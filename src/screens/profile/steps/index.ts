@@ -1,0 +1,11 @@
+export { default as BasicInfoStep } from './BasicInfoStep';
+export { default as ReligiousInfoStep } from './ReligiousInfoStep';
+export { default as PhysicalAttributesStep } from './PhysicalAttributesStep';
+export { default as LifestyleStep } from './LifestyleStep';
+export { default as LocationStep } from './LocationStep';
+export { default as AboutStep } from './AboutStep';
+export { default as FamilyInfoStep } from './FamilyInfoStep';
+export { default as HoroscopeStep } from './HoroscopeStep';
+export { default as EducationStep } from './EducationStep';
+export { default as OccupationStep } from './OccupationStep';
+export { default as PhotosStep } from './PhotosStep';
