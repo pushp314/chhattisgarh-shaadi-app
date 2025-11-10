@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "114963250437",
+    "project_id": "chhattishgarh-shaadi",
+    "storage_bucket": "chhattishgarh-shaadi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:114963250437:android:498299a82977e92ac54b6c",
+        "android_client_info": {
+          "package_name": "com.chhattisgarhshaadi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM4sPgzRjDJ7S9Pms2Bbq1cnZ7vHTwiQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
