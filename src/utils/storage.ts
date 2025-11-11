@@ -1,46 +1,52 @@
+// src/utils/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: '@accessToken',
-  REFRESH_TOKEN: '@refreshToken',
   USER: '@user',
+  // Tokens are no longer in this list
 };
 
+const KEYCHAIN_SERVICE = 'com.chhattisgarhshaadi.app'; // Use your bundle ID
+
 export const StorageService = {
-  // Save tokens
+  // --- Secure Token Storage ---
   async saveTokens(accessToken: string, refreshToken: string) {
     try {
-      await AsyncStorage.multiSet([
-        [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-      ]);
+      // Store tokens securely
+      await Keychain.setGenericPassword(
+        accessToken, // Use username field for access token
+        refreshToken, // Use password field for refresh token
+        { service: KEYCHAIN_SERVICE }
+      );
     } catch (error) {
-      console.error('Error saving tokens:', error);
+      console.error('Error saving tokens to Keychain:', error);
       throw error;
     }
   },
 
-  // Get access token
   async getAccessToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+      return credentials ? credentials.username : null; // Access token
     } catch (error) {
-      console.error('Error getting access token:', error);
+      console.error('Error getting access token from Keychain:', error);
       return null;
     }
   },
 
-  // Get refresh token
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+      return credentials ? credentials.password : null; // Refresh token
     } catch (error) {
-      console.error('Error getting refresh token:', error);
+      console.error('Error getting refresh token from Keychain:', error);
       return null;
     }
   },
 
-  // Save user data
+  // --- Unsafe User Data Storage ---
+  // Note: For PII, this should also be encrypted, but for now...
   async saveUser(user: any) {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -49,7 +55,6 @@ export const StorageService = {
     }
   },
 
-  // Get user data
   async getUser() {
     try {
       const user = await AsyncStorage.getItem(STORAGE_KEYS.USER);
@@ -60,14 +65,13 @@ export const StorageService = {
     }
   },
 
-  // Clear all data (logout)
+  // Clear all data
   async clearAll() {
     try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.ACCESS_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-        STORAGE_KEYS.USER,
-      ]);
+      // Clear secure tokens
+      await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+      // Clear async storage
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
     } catch (error) {
       console.error('Error clearing storage:', error);
     }
