@@ -6,7 +6,6 @@ import {
   StatusBar,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 // ADDED navigation imports
 import { useNavigation } from '@react-navigation/native';

@@ -4,6 +4,15 @@ apply plugin: "com.facebook.react"
 
 apply plugin: 'com.google.gms.google-services' // <-- ADD THIS LINE
 
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties') // This finds android/local.properties
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -86,6 +95,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        // It reads from local.properties, or uses a default value if not found
+        resValue "string", "google_client_id", localProperties.getProperty('GOOGLE_CLIENT_ID', 'DEFAULT_VALUE_IF_NOT_FOUND')
     }
     signingConfigs {
         debug {
