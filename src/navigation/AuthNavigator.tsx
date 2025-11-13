@@ -1,28 +1,32 @@
-// OVERWRITE: src/navigation/AuthNavigator.tsx
+/**
+ * Auth Navigator
+ * Navigation for authentication screens
+ */
+
 import React from 'react';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {AuthStackParamList} from './types';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AuthStackParamList } from './types';
 
-// FIX: Import the real screens
-import {LoginScreen} from '../screens/Auth/LoginScreen';
-
-// TODO: Create these screens and uncomment the imports
-// import { PhoneLoginScreen } from '../screens/Auth/PhoneLoginScreen';
-// import { VerifyOtpScreen } from '../screens/Auth/VerifyOtpScreen';
-
-// FIX: Remove the placeholder declarations
-// const LoginScreen = () => null; // <-- Remove this
-const PhoneLoginScreen = () => null; // <-- Keep this for now if not created
-const VerifyOtpScreen = () => null; // <-- Keep this for now if not created
+// Import screens
+import WelcomeScreen from '../screens/auth/WelcomeScreen.tsx';
+import GoogleSignInScreen from '../screens/auth/GoogleSignInScreen.tsx';
+import PhoneVerificationScreen from '../screens/auth/PhoneVerificationScreen.tsx';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-export const AuthNavigator = () => {
+const AuthNavigator: React.FC = () => {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="PhoneLogin" component={PhoneLoginScreen} />
-      <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="GoogleSignIn" component={GoogleSignInScreen} />
+      <Stack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
     </Stack.Navigator>
   );
 };
+
+export default AuthNavigator;

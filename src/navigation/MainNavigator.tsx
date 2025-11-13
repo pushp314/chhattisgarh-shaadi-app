@@ -1,76 +1,99 @@
-// OVERWRITE: src/navigation/MainNavigator.tsx
+/**
+ * Main Navigator
+ * Bottom tab navigator for authenticated users
+ */
+
 import React from 'react';
-// FIX: Corrected typo in package name
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {MainTabsParamList} from './types';
-import {useTheme} from 'react-native-paper';
-// FIX: This import should be correct if you've installed react-native-vector-icons
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MainTabParamList } from './types';
 
-// TODO: Create these screens
-const DiscoverScreen = () => null;
-const MatchesScreen = () => null;
-const MessagesScreen = () => null;
-const MeScreen = () => null;
+// Import stack navigators
+import HomeStack from './stacks/HomeStack.tsx';
+import SearchStack from './stacks/SearchStack.tsx';
+import MatchesStack from './stacks/MatchesStack.tsx';
+import MessagesStack from './stacks/MessagesStack.tsx';
+import ProfileStack from './stacks/ProfileStack.tsx';
 
-const Tab = createBottomTabNavigator<MainTabsParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// Define icon render functions with proper types to satisfy linter
-const renderDiscoverIcon = ({color, size}: {color: string; size: number}) => (
-  <Icon name="compass" color={color} size={size} />
+// Icon render functions to avoid creating components during render
+const HomeIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="home" size={size} color={color} />
 );
 
-const renderMatchesIcon = ({color, size}: {color: string; size: number}) => (
-  <Icon name="heart-multiple" color={color} size={size} />
+const SearchIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="search" size={size} color={color} />
 );
 
-const renderMessagesIcon = ({color, size}: {color: string; size: number}) => (
-  <Icon name="message-text" color={color} size={size} />
+const MatchesIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="favorite" size={size} color={color} />
 );
 
-const renderMeIcon = ({color, size}: {color: string; size: number}) => (
-  <Icon name="account-circle" color={color} size={size} />
+const MessagesIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="chat" size={size} color={color} />
 );
 
-export const MainNavigator = () => {
-  const theme = useTheme();
+const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="person" size={size} color={color} />
+);
 
+const MainNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-      }}>
+        tabBarActiveTintColor: '#D81B60',
+        tabBarInactiveTintColor: '#757575',
+        tabBarStyle: {
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
+        },
+      }}
+    >
       <Tab.Screen
-        name="Discover"
-        component={DiscoverScreen}
+        name="Home"
+        component={HomeStack}
         options={{
-          tabBarIcon: renderDiscoverIcon, // Use stable function
+          tabBarLabel: 'Home',
+          tabBarIcon: HomeIcon,
+        }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchStack}
+        options={{
+          tabBarLabel: 'Search',
+          tabBarIcon: SearchIcon,
         }}
       />
       <Tab.Screen
         name="Matches"
-        component={MatchesScreen}
+        component={MatchesStack}
         options={{
-          tabBarIcon: renderMatchesIcon, // Use stable function
+          tabBarLabel: 'Matches',
+          tabBarIcon: MatchesIcon,
         }}
       />
       <Tab.Screen
         name="Messages"
-        component={MessagesScreen}
+        component={MessagesStack}
         options={{
-          tabBarIcon: renderMessagesIcon, // Use stable function
-          // TODO: Add badge from /api/messages/unread-count
-          // tabBarBadge: 3,
+          tabBarLabel: 'Messages',
+          tabBarIcon: MessagesIcon,
         }}
       />
       <Tab.Screen
-        name="Me"
-        component={MeScreen}
+        name="Profile"
+        component={ProfileStack}
         options={{
-          tabBarIcon: renderMeIcon, // Use stable function
+          tabBarLabel: 'Profile',
+          tabBarIcon: ProfileIcon,
         }}
       />
     </Tab.Navigator>
   );
 };
+
+export default MainNavigator;

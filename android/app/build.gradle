@@ -3,7 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 apply plugin: 'com.google.gms.google-services' // <-- ADD THIS LINE
-
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties') // This finds android/local.properties

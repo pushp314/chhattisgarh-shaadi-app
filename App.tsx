@@ -1,35 +1,24 @@
-// OVERWRITE: App.tsx
-import 'react-native-gesture-handler'; // Must be at the top
-import React, {useEffect} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {PaperProvider} from 'react-native-paper';
-import {RootNavigator} from './src/navigation/RootNavigator';
-import {theme} from './src/theme/theme';
-import {StatusBar, useColorScheme} from 'react-native';
-import {configureGoogleSignIn} from './src/services/google.config';
+/**
+ * Main App Component
+ * Entry point for the React Native app
+ */
+
+import React, { useEffect } from 'react';
+import { StatusBar } from 'react-native';
+import AppNavigator from './src/navigation/AppNavigator';
+import authService from './src/services/auth.service';
 
 const App = () => {
-  const colorScheme = useColorScheme();
-
-  // TODO: Add support for dark theme
-  const appTheme = theme; //
-  // const appTheme = colorScheme === 'dark' ? darkTheme : lightTheme;
-
   useEffect(() => {
     // Configure Google Sign-In on app start
-    configureGoogleSignIn();
+    authService.configureGoogleSignIn();
   }, []);
 
   return (
-    <PaperProvider theme={appTheme}>
-      <NavigationContainer>
-        <StatusBar
-          barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
-          backgroundColor={appTheme.colors.background}
-        />
-        <RootNavigator />
-      </NavigationContainer>
-    </PaperProvider>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
+      <AppNavigator />
+    </>
   );
 };
 
