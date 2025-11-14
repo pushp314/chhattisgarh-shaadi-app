@@ -37,9 +37,20 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
       setError('');
       await signInWithGoogle();
       
-      // After successful sign in, check if phone verification is needed
-      const { user } = useAuthStore.getState();
+      // Get updated state after sign in
+      const { user, isNewUser } = useAuthStore.getState();
       
+      // Check if this is a new user who needs to complete profile
+      if (isNewUser) {
+        Alert.alert(
+          'Welcome!',
+          'Please complete your profile to start finding matches.',
+          [{ text: 'Continue', onPress: () => navigation.navigate('PhoneVerification') }]
+        );
+        return;
+      }
+      
+      // Existing user - check if phone verification is needed
       if (!user?.isPhoneVerified) {
         navigation.navigate('PhoneVerification');
       }
