@@ -8,13 +8,14 @@ import api, { storeTokens, storeUserData } from './api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import { AuthResponse, DeviceInfo as DeviceInfoType, ApiResponse } from '../types';
 import * as RNDeviceInfo from 'react-native-device-info';
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 
 const GOOGLE_OAUTH_CONFIG = {
-  // Client ID from Google Cloud Console
+  // Web Client ID from Google Cloud Console (for InAppBrowser OAuth)
   clientId: '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com',
   
-  // Backend redirect URI (must match Google Console Authorized redirect URIs)
+  // Backend callback URL - Google redirects here, backend handles token exchange
+  // Backend should then redirect back to app with tokens or deep link
   redirectUri: 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback',
   
   scopes: [
@@ -47,71 +48,147 @@ class AuthService {
 
   /**
    * Sign in with Google using Web-based OAuth
+   * Backend callback route handles token exchange and redirects back to app
    */
   async signInWithGoogle(): Promise<AuthResponse> {
-    try {
-      // Build OAuth URL
-      const params = new URLSearchParams({
-        client_id: GOOGLE_OAUTH_CONFIG.clientId,
-        redirect_uri: GOOGLE_OAUTH_CONFIG.redirectUri,
-        response_type: 'code',
-        scope: GOOGLE_OAUTH_CONFIG.scopes.join(' '),
-        access_type: 'offline',
-        prompt: 'consent',
-      });
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-      // Open OAuth in InAppBrowser
-      if (await InAppBrowser.isAvailable()) {
-        const result = await InAppBrowser.openAuth(authUrl, GOOGLE_OAUTH_CONFIG.redirectUri, {
-          // iOS options
-          ephemeralWebSession: false,
-          // Android options
-          showTitle: false,
-          enableUrlBarHiding: true,
-          enableDefaultShare: false,
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Build OAuth URL
+        const oauthParams = new URLSearchParams({
+          client_id: GOOGLE_OAUTH_CONFIG.clientId,
+          redirect_uri: GOOGLE_OAUTH_CONFIG.redirectUri,
+          response_type: 'code',
+          scope: GOOGLE_OAUTH_CONFIG.scopes.join(' '),
+          access_type: 'offline',
+          prompt: 'consent',
         });
 
-        if (result.type === 'success' && result.url) {
-          // Extract authorization code from redirect URL
-          const match = result.url.match(/code=([^&]+)/);
-          if (!match || !match[1]) {
-            throw new Error('No authorization code received from Google');
-          }
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${oauthParams.toString()}`;
 
-          const authCode = match[1];
+        // Setup deep link listener BEFORE opening browser
+        const handleDeepLink = async ({ url }: { url: string }) => {
+          console.log('Deep link received:', url);
 
-          // Get device info
-          const deviceInfo = await this.getDeviceInfo();
+          try {
+            // Close browser
+            await InAppBrowser.close();
 
-          // Send authorization code to backend
-          const response = await api.post<ApiResponse<AuthResponse>>(
-            API_ENDPOINTS.AUTH.GOOGLE_SIGNIN,
-            {
-              authorizationCode: authCode,
-              redirectUri: GOOGLE_OAUTH_CONFIG.redirectUri,
-              deviceInfo,
+            // Check if it's an error callback
+            if (url.includes('oauth-error')) {
+              const errorMatch = url.match(/error=([^&]+)/);
+              const errorMsg = errorMatch ? decodeURIComponent(errorMatch[1]) : 'Unknown error';
+              Linking.removeAllListeners('url');
+              reject(new Error(`OAuth failed: ${errorMsg}`));
+              return;
             }
-          );
 
-          const { accessToken, refreshToken, user } = response.data.data;
+            // Check if it's a success callback
+            if (url.includes('oauth-success')) {
+              // Parse URL parameters manually
+              const urlParts = url.split('?');
+              if (urlParts.length < 2) {
+                console.error('No query parameters in URL:', url);
+                Linking.removeAllListeners('url');
+                reject(new Error('Invalid callback URL from backend - no parameters'));
+                return;
+              }
 
-          // Store tokens and user data
-          await storeTokens(accessToken, refreshToken);
-          await storeUserData(user);
+              // Extract parameters manually
+              const queryString = urlParts[1];
+              const urlParams: Record<string, string> = {};
+              queryString.split('&').forEach(param => {
+                const [key, value] = param.split('=');
+                if (key && value) {
+                  urlParams[key] = decodeURIComponent(value);
+                }
+              });
 
-          return response.data.data;
+              console.log('Parsed URL params:', urlParams);
+
+              const accessToken = urlParams.accessToken;
+              const refreshToken = urlParams.refreshToken;
+              const isNewUserStr = urlParams.isNewUser;
+              const userData = urlParams.user;
+
+              if (!accessToken || !refreshToken) {
+                console.error('Missing tokens. Params received:', Object.keys(urlParams));
+                Linking.removeAllListeners('url');
+                reject(new Error('No tokens received from backend'));
+                return;
+              }
+
+              // Parse user data if present
+              const user = userData ? JSON.parse(userData) : null;
+
+              // Store tokens and user data
+              await storeTokens(accessToken, refreshToken);
+              if (user) {
+                await storeUserData(user);
+              }
+
+              console.log('Sign-in successful! isNewUser:', isNewUserStr);
+
+              Linking.removeAllListeners('url');
+              resolve({ 
+                accessToken, 
+                refreshToken, 
+                user,
+                expiresIn: '900', // 15 minutes
+                isNewUser: isNewUserStr === 'true',
+              });
+            }
+          } catch (error: any) {
+            console.error('Deep link handling error:', error);
+            Linking.removeAllListeners('url');
+            reject(error);
+          }
+        };
+
+        // Add listener
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+
+        // Timeout after 5 minutes
+        const timeout = setTimeout(() => {
+          subscription.remove();
+          reject(new Error('Authentication timeout'));
+        }, 5 * 60 * 1000);
+
+        // Open OAuth in InAppBrowser
+        if (await InAppBrowser.isAvailable()) {
+          try {
+            await InAppBrowser.open(authUrl, {
+              // iOS options
+              ephemeralWebSession: false,
+              // Android options
+              showTitle: false,
+              enableUrlBarHiding: true,
+              enableDefaultShare: false,
+            });
+            
+            // Note: Browser will stay open until deep link is triggered or user closes it
+            console.log('InAppBrowser opened, waiting for callback...');
+          } catch (browserError: any) {
+            clearTimeout(timeout);
+            subscription.remove();
+            console.error('Browser error:', browserError);
+            
+            // Check if user dismissed/cancelled
+            if (browserError.message?.includes('cancel') || browserError.message?.includes('dismiss')) {
+              reject(new Error('Sign-in cancelled by user'));
+            } else {
+              reject(browserError);
+            }
+          }
         } else {
-          throw new Error('User cancelled Google Sign-In or authentication failed');
+          clearTimeout(timeout);
+          subscription.remove();
+          reject(new Error('InAppBrowser not available'));
         }
-      } else {
-        throw new Error('InAppBrowser not available');
+      } catch (error: any) {
+        console.error('Google Sign-In Error:', error);
+        reject(error);
       }
-    } catch (error: any) {
-      console.error('Google Sign-In Error:', error);
-      throw error;
-    }
+    });
   }
 
   /**

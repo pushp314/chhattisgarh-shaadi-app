@@ -34,7 +34,7 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
         
-        <!-- OAuth Redirect Intent Filter -->
+        <!-- OAuth Redirect Intent Filter (legacy) -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
@@ -42,6 +42,14 @@
             <data
                 android:scheme="com.chhattisgarhshaadi.app"
                 android:host="oauth2redirect" />
+        </intent-filter>
+        
+        <!-- OAuth Success/Error Callback (backend redirects) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="com.chhattisgarhshaadi.app" />
         </intent-filter>
       </activity>
     </application>
