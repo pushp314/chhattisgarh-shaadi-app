@@ -11,13 +11,12 @@ import * as RNDeviceInfo from 'react-native-device-info';
 import { Platform } from 'react-native';
 
 const GOOGLE_OAUTH_CONFIG = {
-  // TODO: Replace with YOUR Client ID from Google Cloud Console
+  // Client ID from Google Cloud Console
   clientId: '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com',
   
-  // Backend expects this redirect URI (must match Google Console configuration)
-  redirectUri: __DEV__ 
-    ? 'http://localhost:8080/api/v1/auth/google/callback'  // Local backend
-    : 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback', // Production
+  // Backend redirect URI (must match Google Console Authorized redirect URIs)
+  redirectUri: 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback',
+  
   scopes: [
     'openid',
     'profile',

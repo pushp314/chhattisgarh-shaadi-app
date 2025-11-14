@@ -3,23 +3,11 @@
  * Base URLs and API endpoints configuration
  */
 
-import { Platform } from 'react-native';
-
 /**
- * Get API URL based on platform
- * - Android Emulator: 10.0.2.2 (host machine's localhost)
- * - iOS Simulator: localhost (shares host network)
- * - Physical Device: Use your computer's local IP (192.168.x.x)
- * - Production: Render backend URL
+ * Get API URL - Always uses deployed backend on Render
+ * No localhost - frontend connects to production backend
  */
 const getApiUrl = () => {
-  if (__DEV__) {
-    return Platform.select({
-      android: 'http://10.0.2.2:8080',      // Android Emulator (local backend)
-      ios: 'http://localhost:8080',          // iOS Simulator (local backend)
-      default: 'http://192.168.29.22:8080'   // Physical devices (local backend)
-    })!;
-  }
   return 'https://chhattisgarhshadi-backend.onrender.com'; // Production backend on Render
 };
 
