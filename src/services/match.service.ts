@@ -74,7 +74,7 @@ class MatchService {
    * Accept match request
    */
   async acceptMatch(matchId: number, responseMessage?: string): Promise<MatchRequest> {
-    const response = await api.put<ApiResponse<MatchRequest>>(
+    const response = await api.post<ApiResponse<MatchRequest>>(
       API_ENDPOINTS.MATCHES.ACCEPT(matchId),
       { responseMessage }
     );
@@ -85,7 +85,7 @@ class MatchService {
    * Reject match request
    */
   async rejectMatch(matchId: number, responseMessage?: string): Promise<MatchRequest> {
-    const response = await api.put<ApiResponse<MatchRequest>>(
+    const response = await api.post<ApiResponse<MatchRequest>>(
       API_ENDPOINTS.MATCHES.REJECT(matchId),
       { responseMessage }
     );

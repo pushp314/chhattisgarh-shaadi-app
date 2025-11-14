@@ -3,23 +3,35 @@
  * Handles all authentication-related API calls
  */
 
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 import api, { storeTokens, storeUserData } from './api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import { AuthResponse, DeviceInfo as DeviceInfoType, ApiResponse } from '../types';
 import * as RNDeviceInfo from 'react-native-device-info';
 import { Platform } from 'react-native';
 
+const GOOGLE_OAUTH_CONFIG = {
+  // TODO: Replace with YOUR Client ID from Google Cloud Console
+  clientId: '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com',
+  
+  // Backend expects this redirect URI (must match Google Console configuration)
+  redirectUri: __DEV__ 
+    ? 'http://localhost:8080/api/v1/auth/google/callback'  // Local backend
+    : 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback', // Production
+  scopes: [
+    'openid',
+    'profile',
+    'email',
+  ],
+};
+
 class AuthService {
   /**
-   * Configure Google Sign-In
+   * Configure Google Sign-In (Legacy - not used with Web OAuth)
    */
   configureGoogleSignIn() {
-    GoogleSignin.configure({
-      webClientId: '250704044564-q3ql66oruro0a17ipumla9cloda24tkk.apps.googleusercontent.com',
-      offlineAccess: true,
-      forceCodeForRefreshToken: true,
-    });
+    // No longer needed with Web-based OAuth
+    console.log('Using Web-based OAuth flow');
   }
 
   /**
@@ -35,43 +47,68 @@ class AuthService {
   }
 
   /**
-   * Sign in with Google
+   * Sign in with Google using Web-based OAuth
    */
   async signInWithGoogle(): Promise<AuthResponse> {
     try {
-      // Check if device supports Google Play services
-      await GoogleSignin.hasPlayServices();
+      // Build OAuth URL
+      const params = new URLSearchParams({
+        client_id: GOOGLE_OAUTH_CONFIG.clientId,
+        redirect_uri: GOOGLE_OAUTH_CONFIG.redirectUri,
+        response_type: 'code',
+        scope: GOOGLE_OAUTH_CONFIG.scopes.join(' '),
+        access_type: 'offline',
+        prompt: 'consent',
+      });
 
-      // Sign in and get user info
-      await GoogleSignin.signIn();
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-      // Get ID token
-      const tokens = await GoogleSignin.getTokens();
-      const idToken = tokens.idToken;
+      // Open OAuth in InAppBrowser
+      if (await InAppBrowser.isAvailable()) {
+        const result = await InAppBrowser.openAuth(authUrl, GOOGLE_OAUTH_CONFIG.redirectUri, {
+          // iOS options
+          ephemeralWebSession: false,
+          // Android options
+          showTitle: false,
+          enableUrlBarHiding: true,
+          enableDefaultShare: false,
+        });
 
-      if (!idToken) {
-        throw new Error('Failed to get ID token from Google');
-      }
+        if (result.type === 'success' && result.url) {
+          // Extract authorization code from redirect URL
+          const match = result.url.match(/code=([^&]+)/);
+          if (!match || !match[1]) {
+            throw new Error('No authorization code received from Google');
+          }
 
-      // Get device info
-      const deviceInfo = await this.getDeviceInfo();
+          const authCode = match[1];
 
-      // Send to backend
-      const response = await api.post<ApiResponse<AuthResponse>>(
-        API_ENDPOINTS.AUTH.GOOGLE_SIGNIN,
-        {
-          idToken,
-          deviceInfo,
+          // Get device info
+          const deviceInfo = await this.getDeviceInfo();
+
+          // Send authorization code to backend
+          const response = await api.post<ApiResponse<AuthResponse>>(
+            API_ENDPOINTS.AUTH.GOOGLE_SIGNIN,
+            {
+              authorizationCode: authCode,
+              redirectUri: GOOGLE_OAUTH_CONFIG.redirectUri,
+              deviceInfo,
+            }
+          );
+
+          const { accessToken, refreshToken, user } = response.data.data;
+
+          // Store tokens and user data
+          await storeTokens(accessToken, refreshToken);
+          await storeUserData(user);
+
+          return response.data.data;
+        } else {
+          throw new Error('User cancelled Google Sign-In or authentication failed');
         }
-      );
-
-      const { accessToken, refreshToken, user } = response.data.data;
-
-      // Store tokens and user data
-      await storeTokens(accessToken, refreshToken);
-      await storeUserData(user);
-
-      return response.data.data;
+      } else {
+        throw new Error('InAppBrowser not available');
+      }
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
       throw error;
@@ -134,14 +171,8 @@ class AuthService {
       await api.post(API_ENDPOINTS.AUTH.LOGOUT, { refreshToken });
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Sign out from Google
-      try {
-        await GoogleSignin.signOut();
-      } catch (error) {
-        console.error('Google sign out error:', error);
-      }
     }
+    // No need to sign out from Google with web-based OAuth
   }
 }
 

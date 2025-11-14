@@ -3,15 +3,31 @@
  * Base URLs and API endpoints configuration
  */
 
+import { Platform } from 'react-native';
+
+/**
+ * Get API URL based on platform
+ * - Android Emulator: 10.0.2.2 (host machine's localhost)
+ * - iOS Simulator: localhost (shares host network)
+ * - Physical Device: Use your computer's local IP (192.168.x.x)
+ * - Production: Render backend URL
+ */
+const getApiUrl = () => {
+  if (__DEV__) {
+    return Platform.select({
+      android: 'http://10.0.2.2:8080',      // Android Emulator (local backend)
+      ios: 'http://localhost:8080',          // iOS Simulator (local backend)
+      default: 'http://192.168.29.22:8080'   // Physical devices (local backend)
+    })!;
+  }
+  return 'https://chhattisgarhshadi-backend.onrender.com'; // Production backend on Render
+};
+
 export const API_CONFIG = {
-  // Change to production URL when deploying
-  BASE_URL: __DEV__
-    ? 'http://localhost:5000/api/v1'
-    : 'https://your-domain.com/api/v1',
+  // Backend uses /api/v1 path
+  BASE_URL: `${getApiUrl()}/api/v1`,
   
-  SOCKET_URL: __DEV__
-    ? 'http://localhost:5000'
-    : 'https://your-domain.com',
+  SOCKET_URL: getApiUrl(),
   
   TIMEOUT: 10000, // 10 seconds
   
@@ -37,13 +53,14 @@ export const API_ENDPOINTS = {
     BY_ID: (userId: number) => `/users/${userId}`,
   },
   
-  // Profiles
+  // Profiles (Backend uses /profile not /profiles)
   PROFILES: {
-    CREATE: '/profiles',
-    ME: '/profiles/me',
-    SEARCH: '/profiles/search',
-    BY_USER_ID: (userId: number) => `/profiles/${userId}`,
-    DELETE_PHOTO: (mediaId: number) => `/profiles/photos/${mediaId}`,
+    CREATE: '/profile',
+    ME: '/profile/me',
+    UPDATE: '/profile/me',
+    DELETE: '/profile/me',
+    BY_ID: (userId: number) => `/profile/${userId}`,
+    SEARCH: '/profile/search',
   },
   
   // Matches
@@ -77,11 +94,11 @@ export const API_ENDPOINTS = {
     DELETE_ALL: '/notifications',
   },
   
-  // Uploads
+  // Uploads (Backend uses /upload not /uploads)
   UPLOADS: {
-    PROFILE_PHOTO: '/uploads/profile-photo',
-    PROFILE_PHOTOS: '/uploads/profile-photos',
-    ID_PROOF: '/uploads/id-proof',
+    PROFILE_PHOTO: '/upload/profile-photo',
+    PROFILE_PHOTOS: '/upload/profile-photos',
+    DOCUMENT: '/upload/document',
   },
   
   // Payments

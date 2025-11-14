@@ -115,7 +115,7 @@ src/
 Update in `src/config/api.config.ts`:
 ```typescript
 BASE_URL: __DEV__
-  ? 'http://localhost:5000/api/v1'       // Development
+  ? 'http://localhost:8080/api/v1'       // Development
   : 'https://your-domain.com/api/v1',    // Production
 ```
 
@@ -147,7 +147,7 @@ npm run ios
 ```
 
 ### Testing API Integration
-1. Start backend server on `localhost:5000`
+1. Start backend server on `localhost:8080`
 2. Update `API_CONFIG.BASE_URL` if needed
 3. Test authentication flow
 4. Check network tab in React Native Debugger

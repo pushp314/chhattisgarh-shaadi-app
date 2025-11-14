@@ -221,7 +221,7 @@ Firebase Analytics is imported in `android/app/build.gradle`. Enable by initiali
 ### 1. API Base URL
 Update `src/config/api.config.ts`:
 ```typescript
-BASE_URL: 'http://YOUR_LOCAL_IP:5000/api/v1'  // For Android emulator/device
+BASE_URL: 'http://YOUR_LOCAL_IP:8080/api/v1'  // For Android emulator/device
 ```
 
 ### 2. Google Sign-In

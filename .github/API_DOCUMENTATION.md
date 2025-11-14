@@ -2,7 +2,7 @@
 
 ## 🌐 Base URL
 ```
-Development: http://localhost:5000/api/v1
+Development: http://localhost:8080/api/v1
 Production: https://your-domain.com/api/v1
 ```
 
@@ -673,7 +673,7 @@ GET /payments/:paymentId
 ```javascript
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000', {
+const socket = io('http://localhost:8080', {
   auth: {
     token: accessToken // JWT access token
   },
@@ -976,7 +976,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api/v1',
+  baseURL: 'http://localhost:8080/api/v1',
   timeout: 10000,
 });
 
@@ -1005,7 +1005,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         const response = await axios.post(
-          'http://localhost:5000/api/v1/auth/refresh',
+          'http://localhost:8080/api/v1/auth/refresh',
           { refreshToken }
         );
 

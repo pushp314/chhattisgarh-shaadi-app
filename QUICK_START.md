@@ -1,7 +1,7 @@
 # Chhattisgarh Shaadi App - Quick Start Guide
 
 ## ✅ Current Status
-**All UI screens are complete and runnable!** The app has a fully functional frontend with 14 screens ready for backend integration.
+**Frontend is 100% integrated with backend!** All API configurations updated and ready for end-to-end testing.
 
 ## 🚀 Running the App
 
@@ -19,23 +19,52 @@ npm install
 cd ios && bundle exec pod install && cd ..
 ```
 
-### Configure Environment
+### ⚡ Quick Start (3 Steps)
 
-1. **Google Sign-In Setup**:
-   - Update `android/local.properties`:
-     ```
-     GOOGLE_CLIENT_ID=your_web_client_id_here
-     ```
-   - Update `src/services/auth.service.ts` line 22 with your web client ID
+#### Step 1: Start Backend Server
+```bash
+cd ../chhattisgarhshadi-backend
+npm run dev
+```
+Wait for: "Server running on port 8080"
 
-2. **API Base URL**:
-   - Update `src/config/api.config.ts`:
-     ```typescript
-     BASE_URL: 'http://YOUR_LOCAL_IP:5000/api/v1'
-     ```
+#### Step 2: Start Metro Bundler
+```bash
+npm start
+```
 
-3. **iOS Firebase** (optional):
-   - Add `GoogleService-Info.plist` to `ios/AwesomeProject/`
+#### Step 3: Run App
+```bash
+# Android Emulator (uses http://10.0.2.2:8080/api automatically)
+npm run android
+
+# iOS Simulator (uses http://localhost:8080/api automatically)
+npm run ios
+```
+
+### ✅ Configuration (Already Complete!)
+
+1. **API URLs** - Platform-specific URLs configured:
+   - Android Emulator: `http://10.0.2.2:8080/api` ✅
+   - iOS Simulator: `http://localhost:8080/api` ✅
+   - Physical Device: `http://192.168.29.22:8080/api` (update if needed)
+
+2. **Google OAuth** - Redirect URI configured:
+   - Redirect URI: `http://localhost:8080/auth/google/callback`
+   - **Action Required:** Add this URI to Google Console > Credentials > OAuth 2.0 Client
+
+3. **Socket.io** - Event names match backend:
+   - `message:received`, `message:read`, `notification:new`
+   - `typing:started`, `typing:stopped`
+
+### 📱 For Physical Device Testing
+If testing on physical device, update your local IP:
+1. Get your IP: `ipconfig getifaddr en0`
+2. Edit `src/config/api.config.ts` line 19:
+   ```typescript
+   default: 'http://YOUR_LOCAL_IP:8080'
+   ```
+3. Rebuild: `npm run android`
 
 ### Run the App
 

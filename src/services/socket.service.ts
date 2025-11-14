@@ -54,7 +54,7 @@ class SocketService {
   private setupDefaultListeners(): void {
     if (!this.socket) return;
 
-    // Message events
+    // Message events (backend uses these exact event names)
     this.socket.on('message:received', (data: Message) => {
       this.emit('message:received', data);
     });
@@ -64,8 +64,8 @@ class SocketService {
     });
 
     // Notification events
-    this.socket.on('notification:received', (data: Notification) => {
-      this.emit('notification:received', data);
+    this.socket.on('notification:new', (data: Notification) => {
+      this.emit('notification:new', data);
     });
 
     // User status events
@@ -77,13 +77,13 @@ class SocketService {
       this.emit('user:offline', data);
     });
 
-    // Typing indicators
-    this.socket.on('typing:start', (data: { userId: number; conversationId?: number }) => {
-      this.emit('typing:start', data);
+    // Typing indicators (backend uses typing:started/stopped)
+    this.socket.on('typing:started', (data: { userId: number }) => {
+      this.emit('typing:started', data);
     });
 
-    this.socket.on('typing:stop', (data: { userId: number; conversationId?: number }) => {
-      this.emit('typing:stop', data);
+    this.socket.on('typing:stopped', (data: { userId: number }) => {
+      this.emit('typing:stopped', data);
     });
   }
 
@@ -118,7 +118,7 @@ class SocketService {
    */
   startTyping(receiverId: number): void {
     if (!this.socket?.connected) return;
-    this.socket.emit('typing:start', { receiverId });
+    this.socket.emit('typing:started', { receiverId });
   }
 
   /**
@@ -126,7 +126,7 @@ class SocketService {
    */
   stopTyping(receiverId: number): void {
     if (!this.socket?.connected) return;
-    this.socket.emit('typing:stop', { receiverId });
+    this.socket.emit('typing:stopped', { receiverId });
   }
 
   /**

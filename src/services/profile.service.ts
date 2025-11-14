@@ -61,11 +61,11 @@ class ProfileService {
   }
 
   /**
-   * Get profile by user ID
+   * Get profile by ID (profile ID, not user ID)
    */
-  async getProfileByUserId(userId: number): Promise<Profile> {
+  async getProfileById(profileId: number): Promise<Profile> {
     const response = await api.get<ApiResponse<Profile>>(
-      API_ENDPOINTS.PROFILES.BY_USER_ID(userId)
+      API_ENDPOINTS.PROFILES.BY_ID(profileId)
     );
     return response.data.data;
   }
@@ -121,10 +121,10 @@ class ProfileService {
   }
 
   /**
-   * Delete profile photo
+   * Delete my profile
    */
-  async deletePhoto(mediaId: number): Promise<void> {
-    await api.delete(API_ENDPOINTS.PROFILES.DELETE_PHOTO(mediaId));
+  async deleteMyProfile(): Promise<void> {
+    await api.delete(API_ENDPOINTS.PROFILES.DELETE);
   }
 }
 

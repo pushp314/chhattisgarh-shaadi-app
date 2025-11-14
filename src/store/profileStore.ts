@@ -19,7 +19,7 @@ interface ProfileState {
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   uploadPhoto: (photoUri: string) => Promise<void>;
   uploadPhotos: (photoUris: string[]) => Promise<void>;
-  deletePhoto: (mediaId: number) => Promise<void>;
+  deleteProfile: () => Promise<void>;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -109,15 +109,17 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }
   },
 
-  deletePhoto: async (mediaId) => {
+  deleteProfile: async () => {
     try {
       set({ isLoading: true });
-      await profileService.deletePhoto(mediaId);
+      await profileService.deleteMyProfile();
       
-      // Refresh profile to get updated media
-      await get().fetchProfile();
-      
-      set({ isLoading: false });
+      // Clear profile data
+      set({
+        profile: null,
+        profileCompleteness: 0,
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;

@@ -118,7 +118,7 @@ chhattisgarh-shaadi-app/
 ## 🚀 How to Run
 
 ### Prerequisites
-1. Backend API running on `http://localhost:5000`
+1. Backend API running on `http://localhost:8080`
 2. Google OAuth credentials configured
 3. Firebase setup for Android/iOS
 
@@ -127,7 +127,7 @@ chhattisgarh-shaadi-app/
 #### 1. Update API Base URL
 Edit `src/config/api.config.ts`:
 ```typescript
-BASE_URL: 'http://YOUR_LOCAL_IP:5000/api/v1'
+BASE_URL: 'http://YOUR_LOCAL_IP:8080/api/v1'
 ```
 
 #### 2. Configure Google Sign-In
