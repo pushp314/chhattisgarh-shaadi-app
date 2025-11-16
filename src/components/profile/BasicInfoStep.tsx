@@ -10,6 +10,7 @@ import {
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {ProfileFormData} from '../../types/profileForm';
+import {Gender} from '../../constants/enums';
 
 type Props = {
   data: Partial<ProfileFormData>;
@@ -24,8 +25,12 @@ const BasicInfoStep: React.FC<Props> = ({data, onUpdate, onNext}) => {
   const validate = () => {
     const newErrors: {[key: string]: string} = {};
 
-    if (!data.name || data.name.trim().length < 2) {
-      newErrors.name = 'Please enter a valid name (at least 2 characters)';
+    if (!data.firstName || data.firstName.trim().length < 2) {
+      newErrors.firstName = 'Please enter a valid first name (at least 2 characters)';
+    }
+
+    if (!data.lastName || data.lastName.trim().length < 1) {
+      newErrors.lastName = 'Please enter your last name';
     }
 
     if (!data.dateOfBirth) {
@@ -76,6 +81,35 @@ const BasicInfoStep: React.FC<Props> = ({data, onUpdate, onNext}) => {
     });
   };
 
+  // Get display value for gender
+  const getGenderDisplayValue = (gender?: string) => {
+    if (!gender) return '';
+    switch (gender) {
+      case Gender.MALE:
+        return 'Male';
+      case Gender.FEMALE:
+        return 'Female';
+      case Gender.OTHER:
+        return 'Other';
+      default:
+        return gender;
+    }
+  };
+
+  // Get gender enum from display value
+  const getGenderEnum = (displayValue: string) => {
+    switch (displayValue) {
+      case 'Male':
+        return Gender.MALE;
+      case 'Female':
+        return Gender.FEMALE;
+      case 'Other':
+        return Gender.OTHER;
+      default:
+        return displayValue;
+    }
+  };
+
   return (
     <Surface style={styles.container} elevation={1}>
       <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -83,15 +117,29 @@ const BasicInfoStep: React.FC<Props> = ({data, onUpdate, onNext}) => {
       </Text>
 
       <TextInput
-        label="Full Name *"
-        value={data.name || ''}
-        onChangeText={text => onUpdate({name: text})}
+        label="First Name *"
+        value={data.firstName || ''}
+        onChangeText={text => onUpdate({firstName: text})}
         mode="outlined"
         style={styles.input}
-        error={!!errors.name}
+        error={!!errors.firstName}
+        placeholder="e.g., John"
       />
-      <HelperText type="error" visible={!!errors.name}>
-        {errors.name}
+      <HelperText type="error" visible={!!errors.firstName}>
+        {errors.firstName}
+      </HelperText>
+
+      <TextInput
+        label="Last Name *"
+        value={data.lastName || ''}
+        onChangeText={text => onUpdate({lastName: text})}
+        mode="outlined"
+        style={styles.input}
+        error={!!errors.lastName}
+        placeholder="e.g., Doe"
+      />
+      <HelperText type="error" visible={!!errors.lastName}>
+        {errors.lastName}
       </HelperText>
 
       <View style={styles.datePickerContainer}>
@@ -125,11 +173,12 @@ const BasicInfoStep: React.FC<Props> = ({data, onUpdate, onNext}) => {
           Gender *
         </Text>
         <SegmentedButtons
-          value={data.gender || ''}
-          onValueChange={value => onUpdate({gender: value})}
+          value={getGenderDisplayValue(data.gender)}
+          onValueChange={value => onUpdate({gender: getGenderEnum(value)})}
           buttons={[
             {value: 'Male', label: 'Male'},
             {value: 'Female', label: 'Female'},
+            {value: 'Other', label: 'Other'},
           ]}
           style={styles.segmentedButtons}
         />

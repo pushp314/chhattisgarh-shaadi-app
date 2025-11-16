@@ -7,6 +7,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { MainTabParamList } from './types';
+import { useAuthStore } from '../store/authStore';
+import { useProfileStore } from '../store/profileStore';
 
 // Import stack navigators
 import HomeStack from './stacks/HomeStack.tsx';
@@ -39,8 +41,15 @@ const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
 );
 
 const MainNavigator: React.FC = () => {
+  const { isNewUser } = useAuthStore();
+  const { profile } = useProfileStore();
+
+  // Determine initial route - if new user or no profile, start at Profile tab
+  const initialRouteName = (isNewUser || !profile) ? 'Profile' : 'Home';
+
   return (
     <Tab.Navigator
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#D81B60',

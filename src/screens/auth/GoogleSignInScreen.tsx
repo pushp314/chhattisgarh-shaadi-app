@@ -42,11 +42,12 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
       
       // Check if this is a new user who needs to complete profile
       if (isNewUser) {
-        Alert.alert(
-          'Welcome!',
-          'Please complete your profile to start finding matches.',
-          [{ text: 'Continue', onPress: () => navigation.navigate('PhoneVerification') }]
-        );
+        // Navigate to CreateProfile screen
+        // Note: We need to navigate to Main stack first, then to CreateProfile
+        // The AppNavigator will handle the navigation based on authentication state
+        // For now, we'll use a navigation reset or navigate through the main navigator
+        // Since we're in Auth stack, we need to wait for AppNavigator to switch to Main stack
+        // The profile check will happen in AppNavigator or MainNavigator
         return;
       }
       

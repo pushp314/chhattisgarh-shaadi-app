@@ -9,7 +9,7 @@ import {
   Menu,
 } from 'react-native-paper';
 import {ProfileFormData} from '../../types/profileForm';
-import {Religion, MaritalStatus} from '../../constants/enums';
+import {Religion, MaritalStatus, MotherTongue} from '../../constants/enums';
 
 type Props = {
   data: Partial<ProfileFormData>;
@@ -20,11 +20,21 @@ type Props = {
 
 const RELIGIONS = Object.values(Religion);
 const MARITAL_STATUSES = Object.values(MaritalStatus);
+const MOTHER_TONGUES = Object.values(MotherTongue);
+
+// Format enum for display (convert SNAKE_CASE to Title Case)
+const formatEnumForDisplay = (enumValue: string) => {
+  return enumValue
+    .split('_')
+    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 const ReligionStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [religionMenuVisible, setReligionMenuVisible] = useState(false);
   const [maritalMenuVisible, setMaritalMenuVisible] = useState(false);
+  const [motherTongueMenuVisible, setMotherTongueMenuVisible] = useState(false);
 
   const validate = () => {
     const newErrors: {[key: string]: string} = {};
@@ -71,7 +81,7 @@ const ReligionStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
               style={styles.menuButton}
               icon="chevron-down"
               contentStyle={styles.menuButtonContent}>
-              {data.religion || 'Select Religion'}
+              {data.religion ? formatEnumForDisplay(data.religion) : 'Select Religion'}
             </Button>
           }>
           {RELIGIONS.map(religion => (
@@ -81,7 +91,7 @@ const ReligionStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
                 onUpdate({religion});
                 setReligionMenuVisible(false);
               }}
-              title={religion}
+              title={formatEnumForDisplay(religion)}
             />
           ))}
         </Menu>
@@ -126,7 +136,7 @@ const ReligionStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
               style={styles.menuButton}
               icon="chevron-down"
               contentStyle={styles.menuButtonContent}>
-              {data.maritalStatus || 'Select Status'}
+              {data.maritalStatus ? formatEnumForDisplay(data.maritalStatus) : 'Select Status'}
             </Button>
           }>
           {MARITAL_STATUSES.map(status => (
@@ -136,13 +146,43 @@ const ReligionStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
                 onUpdate({maritalStatus: status});
                 setMaritalMenuVisible(false);
               }}
-              title={status}
+              title={formatEnumForDisplay(status)}
             />
           ))}
         </Menu>
         <HelperText type="error" visible={!!errors.maritalStatus}>
           {errors.maritalStatus}
         </HelperText>
+      </View>
+
+      <View style={styles.menuContainer}>
+        <Text variant="bodyMedium" style={styles.label}>
+          Mother Tongue (Optional)
+        </Text>
+        <Menu
+          visible={motherTongueMenuVisible}
+          onDismiss={() => setMotherTongueMenuVisible(false)}
+          anchor={
+            <Button
+              mode="outlined"
+              onPress={() => setMotherTongueMenuVisible(true)}
+              style={styles.menuButton}
+              icon="chevron-down"
+              contentStyle={styles.menuButtonContent}>
+              {data.motherTongue ? formatEnumForDisplay(data.motherTongue) : 'Select Mother Tongue'}
+            </Button>
+          }>
+          {MOTHER_TONGUES.map(tongue => (
+            <Menu.Item
+              key={tongue}
+              onPress={() => {
+                onUpdate({motherTongue: tongue});
+                setMotherTongueMenuVisible(false);
+              }}
+              title={formatEnumForDisplay(tongue)}
+            />
+          ))}
+        </Menu>
       </View>
 
       <View style={styles.buttonContainer}>

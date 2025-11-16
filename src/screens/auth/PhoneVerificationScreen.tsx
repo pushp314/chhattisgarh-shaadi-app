@@ -15,13 +15,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../navigation/types';
+import { useNavigation, CommonActions } from '@react-navigation/native';
+import { AuthStackParamList, ProfileStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 
 type PhoneVerificationScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList,
+  AuthStackParamList | ProfileStackParamList,
   'PhoneVerification'
 >;
 
@@ -30,6 +31,7 @@ interface Props {
 }
 
 const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
+  const rootNavigation = useNavigation<any>();
   const { sendPhoneOTP, verifyPhoneOTP, isLoading } = useAuthStore();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -63,8 +65,16 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setError('');
       await verifyPhoneOTP(phone, otp);
-      Alert.alert('Success', 'Phone verified successfully!');
-      // Navigation will automatically handle redirect to main app
+      
+      // Navigate to Home tab after successful verification
+      // Get the parent navigator (Main tab navigator) and navigate to Home
+      const parent = rootNavigation.getParent();
+      if (parent) {
+        parent.navigate('Home');
+      } else {
+        // Fallback: navigate to Main -> Home
+        rootNavigation.navigate('Main', { screen: 'Home' });
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Invalid OTP';
       setError(errorMessage);

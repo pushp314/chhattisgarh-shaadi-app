@@ -44,9 +44,15 @@ const PhotosStep: React.FC<Props> = ({
       if (result.path) {
         onUpdate({photos: [...(data.photos || []), result.path]});
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Don't show error if user cancelled the image picker
+      if (error.message && error.message.includes('User cancelled')) {
+        // User cancelled - this is expected, don't show error
+        return;
+      }
+      // Only show error for actual errors
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -69,27 +75,17 @@ const PhotosStep: React.FC<Props> = ({
   };
 
   const handleSubmit = () => {
-    if (!data.photos || data.photos.length === 0) {
-      Alert.alert(
-        'No Photos',
-        'Are you sure you want to continue without adding photos? Profile photos help others know you better.',
-        [
-          {text: 'Add Photos', style: 'cancel'},
-          {text: 'Continue', onPress: onSubmit},
-        ],
-      );
-    } else {
-      onSubmit();
-    }
+    // Photos are optional - allow submission without photos
+    onSubmit();
   };
 
   return (
     <Surface style={styles.container} elevation={1}>
       <Text variant="titleMedium" style={styles.sectionTitle}>
-        Add Your Photos
+        Add Your Photos (Optional)
       </Text>
       <Text variant="bodyMedium" style={styles.subtitle}>
-        Add at least one photo to make your profile stand out
+        Photos help others know you better. You can add them later too.
       </Text>
 
       <View style={styles.photosGrid}>

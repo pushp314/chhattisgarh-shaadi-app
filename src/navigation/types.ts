@@ -54,6 +54,7 @@ export type ProfileStackParamList = {
   ProfileScreen: undefined;
   EditProfile: undefined;
   CreateProfile: undefined;
+  PhoneVerification: undefined;
   Settings: undefined;
   Subscription: undefined;
 };

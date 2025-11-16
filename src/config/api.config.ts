@@ -41,14 +41,14 @@ export const API_ENDPOINTS = {
     BY_ID: (userId: number) => `/users/${userId}`,
   },
   
-  // Profiles (Backend uses /profile not /profiles)
+  // Profiles
   PROFILES: {
-    CREATE: '/profile',
-    ME: '/profile/me',
-    UPDATE: '/profile/me',
-    DELETE: '/profile/me',
-    BY_ID: (userId: number) => `/profile/${userId}`,
-    SEARCH: '/profile/search',
+    CREATE: '/profiles',
+    ME: '/profiles/me',
+    UPDATE: '/profiles/me',
+    DELETE: '/profiles/me',
+    BY_ID: (userId: number) => `/profiles/${userId}`,
+    SEARCH: '/profiles/search',
   },
   
   // Matches
@@ -82,11 +82,11 @@ export const API_ENDPOINTS = {
     DELETE_ALL: '/notifications',
   },
   
-  // Uploads (Backend uses /upload not /uploads)
+  // Uploads
   UPLOADS: {
-    PROFILE_PHOTO: '/upload/profile-photo',
-    PROFILE_PHOTOS: '/upload/profile-photos',
-    DOCUMENT: '/upload/document',
+    PROFILE_PHOTO: '/uploads/profile-photo',
+    PROFILE_PHOTOS: '/uploads/profile-photos',
+    DOCUMENT: '/uploads/id-proof',
   },
   
   // Payments

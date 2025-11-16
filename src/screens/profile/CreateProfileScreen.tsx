@@ -1,14 +1,13 @@
 import React, {useState} from 'react';
 import {
-  View,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import {
   Text,
-  Button,
   ProgressBar,
   Surface,
   useTheme,
@@ -16,6 +15,8 @@ import {
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ProfileStackParamList} from '../../navigation/types';
 import {ProfileFormData} from '../../types/profileForm';
+import profileService from '../../services/profile.service';
+import {useProfileStore} from '../../store/profileStore';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -38,6 +39,7 @@ const TOTAL_STEPS = 6;
 
 const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
   const theme = useTheme();
+  const {fetchProfile} = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<ProfileFormData>>({
     hobbies: [],
@@ -66,14 +68,121 @@ const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // TODO: Call profileService.createProfile(formData)
-      console.log('Submitting profile:', formData);
-      
-      // Navigate to profile screen after successful creation
-      navigation.navigate('Profile');
-    } catch (error) {
+      // Transform form data to match API requirements
+      const profileData: any = {
+        // Basic Info
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        dateOfBirth: formData.dateOfBirth?.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        gender: formData.gender,
+        aboutMe: formData.aboutMe,
+
+        // Location
+        city: formData.city,
+        state: formData.state,
+        country: 'INDIA',
+        nativeState: formData.nativeState || formData.state,
+        nativeDistrict: formData.nativeDistrict,
+        speaksChhattisgarhi: formData.speaksChhattisgarhi ?? false,
+
+        // Religion
+        religion: formData.religion,
+        caste: formData.caste,
+        subCaste: formData.subCaste,
+
+        // Physical Details from form or default values
+        height: formData.height,
+        weight: formData.weight || 70,
+        complexion: formData.complexion || 'FAIR', // Corrected default
+        bodyType: formData.bodyType || 'AVERAGE',
+        physicalStatus: formData.physicalStatus || 'NORMAL',
+
+        // Habits & Lifestyle
+        eatingHabits: formData.eatingHabits || 'VEGETARIAN',
+        drinkingHabits: formData.drinkingHabits || 'NO',
+        smokingHabits: formData.smokingHabits || 'NO',
+
+        // Other Details
+        maritalStatus: formData.maritalStatus,
+        motherTongue: formData.motherTongue || 'HINDI',
+
+        // Education & Occupation
+        education: formData.education,
+        occupation: formData.occupation,
+        annualIncome: formData.annualIncome,
+
+        // Hobbies
+        hobbies: formData.hobbies?.join(', '),
+      };
+
+      // Log the data being sent for debugging
+      console.log(
+        'Creating profile with data:',
+        JSON.stringify(profileData, null, 2),
+      );
+
+      // Create profile first
+      await profileService.createProfile(profileData);
+
+      // Upload photos if any
+      if (formData.photos && formData.photos.length > 0) {
+        try {
+          // Upload first photo as profile photo
+          await profileService.uploadProfilePhoto(formData.photos[0]);
+          
+          // Upload remaining photos if any
+          if (formData.photos.length > 1) {
+            await profileService.uploadProfilePhotos(formData.photos.slice(1));
+          }
+        } catch (photoError) {
+          console.error('Error uploading photos:', photoError);
+          // Continue even if photo upload fails - profile is already created
+        }
+      }
+
+      // Refresh profile data
+      await fetchProfile();
+
+      // Navigate to phone verification after profile creation
+      navigation.navigate('PhoneVerification');
+    } catch (error: any) {
       console.error('Error creating profile:', error);
-      // TODO: Show error message
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Extract detailed error message
+      let errorMessage = 'Failed to create profile. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Check for validation errors
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          const validationErrors = errorData.errors
+            .map((err: any) => `${err.field || ''}: ${err.message || ''}`)
+            .filter((msg: string) => msg)
+            .join('\n');
+          
+          if (validationErrors) {
+            errorMessage = `Validation Error:\n${validationErrors}`;
+          } else {
+            errorMessage = errorData.message || errorMessage;
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error occurred. Please check your internet connection and try again.';
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show detailed error to user
+      Alert.alert(
+        'Profile Creation Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsSubmitting(false);
     }

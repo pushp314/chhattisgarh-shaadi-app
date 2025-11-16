@@ -7,6 +7,7 @@ import {
   Surface,
   HelperText,
   Menu,
+  Switch,
 } from 'react-native-paper';
 import {ProfileFormData} from '../../types/profileForm';
 
@@ -50,35 +51,42 @@ const CG_DISTRICTS = [
 ];
 
 const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
+  {display: 'Andhra Pradesh', enum: 'ANDHRA_PRADESH'},
+  {display: 'Arunachal Pradesh', enum: 'ARUNACHAL_PRADESH'},
+  {display: 'Assam', enum: 'ASSAM'},
+  {display: 'Bihar', enum: 'BIHAR'},
+  {display: 'Chhattisgarh', enum: 'CHHATTISGARH'},
+  {display: 'Goa', enum: 'GOA'},
+  {display: 'Gujarat', enum: 'GUJARAT'},
+  {display: 'Haryana', enum: 'HARYANA'},
+  {display: 'Himachal Pradesh', enum: 'HIMACHAL_PRADESH'},
+  {display: 'Jharkhand', enum: 'JHARKHAND'},
+  {display: 'Karnataka', enum: 'KARNATAKA'},
+  {display: 'Kerala', enum: 'KERALA'},
+  {display: 'Madhya Pradesh', enum: 'MADHYA_PRADESH'},
+  {display: 'Maharashtra', enum: 'MAHARASHTRA'},
+  {display: 'Manipur', enum: 'MANIPUR'},
+  {display: 'Meghalaya', enum: 'MEGHALAYA'},
+  {display: 'Mizoram', enum: 'MIZORAM'},
+  {display: 'Nagaland', enum: 'NAGALAND'},
+  {display: 'Odisha', enum: 'ODISHA'},
+  {display: 'Punjab', enum: 'PUNJAB'},
+  {display: 'Rajasthan', enum: 'RAJASTHAN'},
+  {display: 'Sikkim', enum: 'SIKKIM'},
+  {display: 'Tamil Nadu', enum: 'TAMIL_NADU'},
+  {display: 'Telangana', enum: 'TELANGANA'},
+  {display: 'Tripura', enum: 'TRIPURA'},
+  {display: 'Uttar Pradesh', enum: 'UTTAR_PRADESH'},
+  {display: 'Uttarakhand', enum: 'UTTARAKHAND'},
+  {display: 'West Bengal', enum: 'WEST_BENGAL'},
 ];
+
+// Convert enum to display name
+const getStateDisplayName = (stateEnum?: string) => {
+  if (!stateEnum) return '';
+  const state = INDIAN_STATES.find(s => s.enum === stateEnum);
+  return state ? state.display : stateEnum;
+};
 
 const LocationStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -130,17 +138,17 @@ const LocationStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
               style={styles.menuButton}
               icon="chevron-down"
               contentStyle={styles.menuButtonContent}>
-              {data.state || 'Select State'}
+              {getStateDisplayName(data.state) || 'Select State'}
             </Button>
           }>
           {INDIAN_STATES.map(state => (
             <Menu.Item
-              key={state}
+              key={state.enum}
               onPress={() => {
-                onUpdate({state});
+                onUpdate({state: state.enum, nativeState: state.enum});
                 setStateMenuVisible(false);
               }}
-              title={state}
+              title={state.display}
             />
           ))}
         </Menu>
@@ -193,6 +201,16 @@ const LocationStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
         <HelperText type="error" visible={!!errors.nativeDistrict}>
           {errors.nativeDistrict}
         </HelperText>
+      </View>
+
+      <View style={styles.switchContainer}>
+        <Text variant="bodyMedium" style={styles.switchLabel}>
+          Do you speak Chhattisgarhi? *
+        </Text>
+        <Switch
+          value={data.speaksChhattisgarhi ?? false}
+          onValueChange={value => onUpdate({speaksChhattisgarhi: value})}
+        />
       </View>
 
       <View style={styles.buttonContainer}>
@@ -257,6 +275,18 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: 8,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 8,
+    paddingVertical: 8,
+  },
+  switchLabel: {
+    flex: 1,
+    color: '#666',
   },
 });
 
