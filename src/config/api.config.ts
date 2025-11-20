@@ -1,102 +1,122 @@
-/**
- * API Configuration
- * Base URLs and API endpoints configuration
- */
+import axios, { AxiosError } from 'axios';
+import * as Keychain from 'react-native-keychain';
+import { useAuthStore } from '../store/authStore';
+import authService from '../services/auth.service'; // Import authService for logout
 
-/**
- * Get API URL - Always uses deployed backend on Render
- * No localhost - frontend connects to production backend
- */
-const getApiUrl = () => {
-  return 'https://chhattisgarhshadi-backend.onrender.com'; // Production backend on Render
+const API_BASE_URL = 'https://chhattisgarhshadi-backend.onrender.com/api/v1';
+
+// Create the main Axios instance
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000, // 10-second timeout
+});
+
+// --- Axios Request Interceptor ---
+// Automatically attaches the access token to every outgoing request.
+apiClient.interceptors.request.use(
+  async (config) => {
+    const credentials = await Keychain.getGenericPassword({ service: 'accessToken' });
+    if (credentials) {
+      config.headers.Authorization = `Bearer ${credentials.password}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// A flag to prevent an infinite loop of refresh token calls
+let isRefreshing = false;
+// A queue to hold failed requests while the token is being refreshed
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
 };
 
-export const API_CONFIG = {
-  // Backend uses /api/v1 path
-  BASE_URL: `${getApiUrl()}/api/v1`,
-  
-  SOCKET_URL: getApiUrl(),
-  
-  TIMEOUT: 10000, // 10 seconds
-  
-  // Token expiry times
-  ACCESS_TOKEN_EXPIRY: 15 * 60 * 1000, // 15 minutes in milliseconds
-  REFRESH_TOKEN_EXPIRY: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-};
 
-export const API_ENDPOINTS = {
-  // Authentication
-  AUTH: {
-    GOOGLE_SIGNIN: '/auth/google',
-    REFRESH_TOKEN: '/auth/refresh',
-    LOGOUT: '/auth/logout',
-    SEND_OTP: '/auth/phone/send-otp',
-    VERIFY_OTP: '/auth/phone/verify-otp',
+// --- Axios Response Interceptor ---
+// Handles 401 Unauthorized errors by attempting to refresh the token.
+apiClient.interceptors.response.use(
+  (response) => {
+    // If the request was successful, just return the response
+    return response;
   },
-  
-  // Users
-  USERS: {
-    ME: '/users/me',
-    SEARCH: '/users/search',
-    BY_ID: (userId: number) => `/users/${userId}`,
-  },
-  
-  // Profiles
-  PROFILES: {
-    CREATE: '/profiles',
-    ME: '/profiles/me',
-    UPDATE: '/profiles/me',
-    DELETE: '/profiles/me',
-    BY_ID: (userId: number) => `/profiles/${userId}`,
-    SEARCH: '/profiles/search',
-  },
-  
-  // Matches
-  MATCHES: {
-    CREATE: '/matches',
-    SENT: '/matches/sent',
-    RECEIVED: '/matches/received',
-    ACCEPTED: '/matches/accepted',
-    ACCEPT: (matchId: number) => `/matches/${matchId}/accept`,
-    REJECT: (matchId: number) => `/matches/${matchId}/reject`,
-    DELETE: (matchId: number) => `/matches/${matchId}`,
-  },
-  
-  // Messages
-  MESSAGES: {
-    SEND: '/messages',
-    CONVERSATIONS: '/messages/conversations',
-    CONVERSATION: (userId: number) => `/messages/${userId}`,
-    MARK_READ: (userId: number) => `/messages/${userId}/read`,
-    UNREAD_COUNT: '/messages/unread-count',
-    DELETE: (messageId: number) => `/messages/${messageId}`,
-  },
-  
-  // Notifications
-  NOTIFICATIONS: {
-    LIST: '/notifications',
-    UNREAD_COUNT: '/notifications/unread-count',
-    MARK_READ: (notificationId: number) => `/notifications/${notificationId}/read`,
-    MARK_ALL_READ: '/notifications/read-all',
-    DELETE: (notificationId: number) => `/notifications/${notificationId}`,
-    DELETE_ALL: '/notifications',
-  },
-  
-  // Uploads
-  UPLOADS: {
-    PROFILE_PHOTO: '/uploads/profile-photo',
-    PROFILE_PHOTOS: '/uploads/profile-photos',
-    DOCUMENT: '/uploads/id-proof',
-  },
-  
-  // Payments
-  PAYMENTS: {
-    CREATE_ORDER: '/payments/orders',
-    VERIFY: '/payments/verify',
-    MY_PAYMENTS: '/payments/me',
-    BY_ID: (paymentId: number) => `/payments/${paymentId}`,
-  },
-  
-  // Health check
-  HEALTH: '/health',
-};
+  async (error: AxiosError) => {
+    const originalRequest = error.config;
+
+    // Check if it's a 401 error and not a retry request
+    if (error.response?.status === 401 && originalRequest && !(originalRequest as any)._retry) {
+      if (isRefreshing) {
+        // If we are already refreshing, add this request to the queue
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          (originalRequest as any).headers['Authorization'] = 'Bearer ' + token;
+          return apiClient(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      (originalRequest as any)._retry = true;
+      isRefreshing = true;
+
+      try {
+        console.log('Access token expired. Attempting to refresh...');
+        const refreshTokenCredentials = await Keychain.getGenericPassword({ service: 'refreshToken' });
+
+        if (!refreshTokenCredentials) {
+          console.log('No refresh token available. Logging out.');
+          await authService.logout();
+          return Promise.reject(error);
+        }
+
+        // Make the refresh token API call
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken: refreshTokenCredentials.password,
+        });
+
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
+
+        // Store the new tokens
+        const userId = useAuthStore.getState().user?.id || 'user';
+        await Keychain.setGenericPassword(userId, newAccessToken, { service: 'accessToken' });
+        await Keychain.setGenericPassword(userId, newRefreshToken, { service: 'refreshToken' });
+
+        console.log('Token refreshed successfully.');
+
+        // Update the header of the original request
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        (originalRequest as any).headers['Authorization'] = `Bearer ${newAccessToken}`;
+        
+        // Process the queue with the new token
+        processQueue(null, newAccessToken);
+        
+        // Retry the original request
+        return apiClient(originalRequest);
+      } catch (refreshError: any) {
+        console.error('Failed to refresh token:', refreshError.response?.data || refreshError.message);
+        processQueue(refreshError, null);
+        // If refresh fails, log the user out completely
+        await authService.logout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    // For all other errors, just reject the promise
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;

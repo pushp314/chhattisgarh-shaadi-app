@@ -1,250 +1,101 @@
-import React, {useState} from 'react';
-import {View, StyleSheet} from 'react-native';
-import {
-  TextInput,
-  Button,
-  Text,
-  Surface,
-  HelperText,
-  Chip,
-} from 'react-native-paper';
-import {ProfileFormData} from '../../types/profileForm';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { TextInput, Button, Text, Chip, HelperText } from 'react-native-paper';
+import { useOnboardingStore } from '../../store/onboardingStore';
+
+const HOBBY_SUGGESTIONS = [
+  'Reading', 'Cooking', 'Traveling', 'Music', 'Dancing', 'Sports', 'Yoga', 'Gardening', 'Photography', 'Movies', 'Art', 'Writing', 'Gaming', 'Fitness', 'Meditation',
+];
+
+const aboutSchema = z.object({
+  aboutMe: z.string().min(50, 'Please write at least 50 characters about yourself'),
+  hobbies: z.array(z.string()).min(1, 'Please select at least one hobby'),
+});
+
+type AboutFormData = z.infer<typeof aboutSchema>;
 
 type Props = {
-  data: Partial<ProfileFormData>;
-  onUpdate: (data: Partial<ProfileFormData>) => void;
   onNext: () => void;
   onBack: () => void;
 };
 
-const HOBBY_SUGGESTIONS = [
-  'Reading',
-  'Cooking',
-  'Traveling',
-  'Music',
-  'Dancing',
-  'Sports',
-  'Yoga',
-  'Gardening',
-  'Photography',
-  'Movies',
-  'Art',
-  'Writing',
-  'Gaming',
-  'Fitness',
-  'Meditation',
-];
+const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
+  const { aboutMe, hobbies, updateOnboardingData } = useOnboardingStore((state) => ({...state}));
 
-const AboutStep: React.FC<Props> = ({data, onUpdate, onNext, onBack}) => {
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [customHobby, setCustomHobby] = useState('');
+  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<AboutFormData>({
+    resolver: zodResolver(aboutSchema),
+    defaultValues: {
+      aboutMe: aboutMe || '',
+      hobbies: hobbies || [],
+    },
+  });
 
-  const validate = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    if (!data.aboutMe || data.aboutMe.trim().length < 50) {
-      newErrors.aboutMe =
-        'Please write at least 50 characters about yourself';
-    }
-
-    if (!data.hobbies || data.hobbies.length === 0) {
-      newErrors.hobbies = 'Please select at least one hobby';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (validate()) {
-      onNext();
-    }
-  };
+  const currentHobbies = watch('hobbies');
 
   const toggleHobby = (hobby: string) => {
-    const currentHobbies = data.hobbies || [];
     const newHobbies = currentHobbies.includes(hobby)
-      ? currentHobbies.filter((h: string) => h !== hobby)
+      ? currentHobbies.filter((h) => h !== hobby)
       : [...currentHobbies, hobby];
-    onUpdate({hobbies: newHobbies});
+    setValue('hobbies', newHobbies, { shouldValidate: true });
   };
 
-  const addCustomHobby = () => {
-    if (customHobby.trim() && !(data.hobbies || []).includes(customHobby)) {
-      onUpdate({hobbies: [...(data.hobbies || []), customHobby.trim()]});
-      setCustomHobby('');
-    }
+  const onSubmit = (data: AboutFormData) => {
+    updateOnboardingData('aboutMe', data.aboutMe);
+    updateOnboardingData('hobbies', data.hobbies);
+    onNext();
   };
 
   return (
-    <Surface style={styles.container} elevation={1}>
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Tell us more about yourself
-      </Text>
+    <View style={styles.container}>
+      <Text variant="titleMedium" style={styles.sectionTitle}>Tell us more about yourself</Text>
 
-      <TextInput
-        label="About Me *"
-        value={data.aboutMe || ''}
-        onChangeText={text => onUpdate({aboutMe: text})}
-        mode="outlined"
-        style={styles.textArea}
-        error={!!errors.aboutMe}
-        placeholder="Write a brief description about yourself, your personality, values, and what you're looking for in a life partner..."
-        multiline
-        numberOfLines={6}
+      <Controller
+        control={control}
+        name="aboutMe"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="About Me *"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            multiline
+            numberOfLines={6}
+            error={!!errors.aboutMe}
+          />
+        )}
       />
-      <HelperText type="info">
-        {(data.aboutMe?.length || 0)} / 50 characters minimum
-      </HelperText>
-      <HelperText type="error" visible={!!errors.aboutMe}>
-        {errors.aboutMe}
-      </HelperText>
+      <HelperText type="error" visible={!!errors.aboutMe}>{errors.aboutMe?.message}</HelperText>
 
-      <Text variant="bodyMedium" style={styles.label}>
-        Hobbies & Interests *
-      </Text>
+      <Text style={styles.label}>Hobbies & Interests *</Text>
       <View style={styles.chipsContainer}>
-        {HOBBY_SUGGESTIONS.map(hobby => (
-          <Chip
-            key={hobby}
-            selected={(data.hobbies || []).includes(hobby)}
-            onPress={() => toggleHobby(hobby)}
-            style={styles.chip}>
+        {HOBBY_SUGGESTIONS.map((hobby) => (
+          <Chip key={hobby} selected={currentHobbies.includes(hobby)} onPress={() => toggleHobby(hobby)}>
             {hobby}
           </Chip>
         ))}
       </View>
-      <HelperText type="error" visible={!!errors.hobbies}>
-        {errors.hobbies}
-      </HelperText>
-
-      <View style={styles.customHobbyContainer}>
-        <TextInput
-          label="Add Custom Hobby"
-          value={customHobby}
-          onChangeText={setCustomHobby}
-          mode="outlined"
-          style={styles.customHobbyInput}
-          placeholder="Type a hobby"
-          onSubmitEditing={addCustomHobby}
-        />
-        <Button
-          mode="outlined"
-          onPress={addCustomHobby}
-          style={styles.addButton}
-          disabled={!customHobby.trim()}>
-          Add
-        </Button>
-      </View>
-
-      {(data.hobbies || []).length > 0 && (
-        <View style={styles.selectedContainer}>
-          <Text variant="bodySmall" style={styles.selectedLabel}>
-            Selected Hobbies:
-          </Text>
-          <View style={styles.selectedChips}>
-            {(data.hobbies || []).map((hobby: string) => (
-              <Chip
-                key={hobby}
-                onClose={() => toggleHobby(hobby)}
-                style={styles.selectedChip}>
-                {hobby}
-              </Chip>
-            ))}
-          </View>
-        </View>
-      )}
+      <HelperText type="error" visible={!!errors.hobbies}>{errors.hobbies?.message}</HelperText>
 
       <View style={styles.buttonContainer}>
-        <Button
-          mode="outlined"
-          onPress={onBack}
-          style={styles.backButton}
-          contentStyle={styles.buttonContent}>
-          Back
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleNext}
-          style={styles.nextButton}
-          contentStyle={styles.buttonContent}>
-          Next
-        </Button>
+        <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
+        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton}>Next</Button>
       </View>
-    </Surface>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  textArea: {
-    marginBottom: 4,
-  },
-  label: {
-    marginTop: 8,
-    marginBottom: 12,
-    color: '#666',
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  chip: {
-    marginBottom: 8,
-  },
-  customHobbyContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  customHobbyInput: {
-    flex: 1,
-  },
-  addButton: {
-    justifyContent: 'center',
-  },
-  selectedContainer: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  selectedLabel: {
-    color: '#666',
-    marginBottom: 8,
-  },
-  selectedChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  selectedChip: {
-    marginBottom: 8,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-  },
-  nextButton: {
-    flex: 1,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
+  container: { padding: 16 },
+  sectionTitle: { marginBottom: 16 },
+  label: { marginTop: 16, marginBottom: 8 },
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 12 },
+  backButton: { flex: 1 },
+  nextButton: { flex: 1 },
 });
 
 export default AboutStep;
