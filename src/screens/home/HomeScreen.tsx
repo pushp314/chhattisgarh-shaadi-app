@@ -1,18 +1,29 @@
-import React, {useEffect, useState} from 'react';
-import {View, ScrollView, StyleSheet, RefreshControl} from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  FlatList,
+} from 'react-native';
 import {
   Text,
   Card,
   Button,
-  ProgressBar,
-  Surface,
   ActivityIndicator,
+  Searchbar,
+  Chip,
+  FAB,
+  Snackbar,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {HomeStackParamList} from '../../navigation/types';
-import {useAuthStore} from '../../store/authStore';
-import {useProfileStore} from '../../store/profileStore';
+import { HomeStackParamList } from '../../navigation/types';
+import { useAuthStore } from '../../store/authStore';
+import { useProfileStore } from '../../store/profileStore';
+import ProfileCard from '../../components/ProfileCard';
+import profileService from '../../services/profile.service';
+import { Profile, SearchProfilesParams } from '../../types';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   HomeStackParamList,
@@ -23,197 +34,197 @@ type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
-const HomeScreen: React.FC<Props> = ({navigation}) => {
+const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const user = useAuthStore(state => state.user);
-  const {profile, profileCompleteness, fetchProfile} = useProfileStore();
+  const { profile, profileCompleteness } = useProfileStore();
+
+  // State for recommended profiles
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<SearchProfilesParams>({
+    page: 1,
+    limit: 10,
+  });
 
   useEffect(() => {
-    loadData();
+    loadProfiles();
   }, []);
 
-  const loadData = async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-
+  const loadProfiles = async (isRefresh = false, pageNum = 1) => {
     try {
-      await fetchProfile();
-    } catch (error) {
-      console.error('Error loading home data:', error);
+      if (isRefresh) {
+        setRefreshing(true);
+        setPage(1);
+      } else if (pageNum === 1) {
+        setIsLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      setError(null);
+
+      // Build search params based on user's gender
+      const searchParams: SearchProfilesParams = {
+        ...filters,
+        page: pageNum,
+        limit: 10,
+        // Show opposite gender by default
+        gender: profile?.gender === 'MALE' ? 'FEMALE' : 'MALE',
+      };
+
+      const response = await profileService.searchProfiles(searchParams);
+
+      if (isRefresh || pageNum === 1) {
+        setProfiles(response.profiles);
+      } else {
+        setProfiles(prev => [...prev, ...response.profiles]);
+      }
+
+      setHasMore(
+        response.pagination.page < response.pagination.totalPages
+      );
+    } catch (err: any) {
+      console.error('Error loading profiles:', err);
+      setError(err.response?.data?.message || 'Failed to load profiles');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
-  const renderProfileCompletion = () => {
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadProfiles(false, nextPage);
+    }
+  };
+
+  const handleProfilePress = (selectedProfile: Profile) => {
+    navigation.navigate('ProfileDetails', { userId: selectedProfile.userId });
+  };
+
+  const handleSearch = () => {
+    setPage(1);
+    loadProfiles(false, 1);
+  };
+
+  const renderHeader = () => {
     if (!profile || profileCompleteness === 100) return null;
 
     return (
       <Card style={styles.completionCard}>
         <Card.Content>
           <View style={styles.completionHeader}>
-            <Icon name="account-check" size={32} color="#FF9800" />
+            <Icon name="account-check" size={28} color="#FF9800" />
             <View style={styles.completionInfo}>
-              <Text variant="titleMedium" style={styles.completionTitle}>
+              <Text variant="titleSmall" style={styles.completionTitle}>
                 Complete Your Profile
               </Text>
               <Text variant="bodySmall" style={styles.completionSubtitle}>
-                {profileCompleteness}% Complete
+                {profileCompleteness}% Complete - Get 5x more matches!
               </Text>
             </View>
           </View>
-          <ProgressBar
-            progress={profileCompleteness / 100}
-            color="#FF9800"
-            style={styles.progressBar}
-          />
-          <Text variant="bodySmall" style={styles.completionText}>
-            A complete profile gets 5x more attention!
-          </Text>
           <Button
             mode="contained"
-            onPress={() => navigation.navigate('ProfileDetails', {userId: user?.id!})}
+            onPress={() => navigation.navigate('ProfileDetails', { userId: user?.id! })}
             style={styles.completeButton}
-            buttonColor="#FF9800">
-            Complete Profile
+            buttonColor="#FF9800"
+            compact>
+            Complete Now
           </Button>
         </Card.Content>
       </Card>
     );
   };
 
-  const renderQuickActions = () => {
+  const renderQuickFilters = () => {
     return (
-      <View style={styles.quickActions}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
-          Quick Actions
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickFiltersContainer}
+        contentContainerStyle={styles.quickFiltersContent}>
+        <Chip
+          mode="outlined"
+          selected={!filters.nativeDistrict}
+          onPress={() => {
+            setFilters(prev => ({ ...prev, nativeDistrict: undefined }));
+            setPage(1);
+          }}
+          style={styles.filterChip}>
+          All Regions
+        </Chip>
+        <Chip
+          mode="outlined"
+          selected={filters.speaksChhattisgarhi}
+          onPress={() => {
+            setFilters(prev => ({
+              ...prev,
+              speaksChhattisgarhi: !prev.speaksChhattisgarhi,
+            }));
+            setPage(1);
+          }}
+          style={styles.filterChip}
+          icon="translate">
+          Speaks Chhattisgarhi
+        </Chip>
+        <Chip
+          mode="outlined"
+          onPress={() => navigation.getParent()?.navigate('Search')}
+          style={styles.filterChip}
+          icon="tune">
+          More Filters
+        </Chip>
+      </ScrollView>
+    );
+  };
+
+  const renderEmptyState = () => {
+    if (isLoading) return null;
+
+    return (
+      <View style={styles.emptyState}>
+        <Icon name="account-search" size={80} color="#ccc" />
+        <Text variant="titleMedium" style={styles.emptyTitle}>
+          No Profiles Found
         </Text>
-        <View style={styles.actionGrid}>
-          <Surface style={styles.actionCard} elevation={1}>
-            <Icon name="account-search" size={40} color="#D81B60" />
-            <Text variant="bodyMedium" style={styles.actionLabel}>
-              Browse
-            </Text>
-            <Text variant="bodySmall" style={styles.actionSubtext}>
-              Profiles
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => navigation.getParent()?.navigate('Search')}
-              compact>
-              Go
-            </Button>
-          </Surface>
-
-          <Surface style={styles.actionCard} elevation={1}>
-            <Icon name="heart" size={40} color="#E91E63" />
-            <Text variant="bodyMedium" style={styles.actionLabel}>
-              My
-            </Text>
-            <Text variant="bodySmall" style={styles.actionSubtext}>
-              Matches
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => navigation.getParent()?.navigate('Matches')}
-              compact>
-              Go
-            </Button>
-          </Surface>
-
-          <Surface style={styles.actionCard} elevation={1}>
-            <Icon name="chat" size={40} color="#2196F3" />
-            <Text variant="bodyMedium" style={styles.actionLabel}>
-              Messages
-            </Text>
-            <Text variant="bodySmall" style={styles.actionSubtext}>
-              Chat
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => navigation.getParent()?.navigate('Messages')}
-              compact>
-              Go
-            </Button>
-          </Surface>
-
-          <Surface style={styles.actionCard} elevation={1}>
-            <Icon name="account" size={40} color="#4CAF50" />
-            <Text variant="bodyMedium" style={styles.actionLabel}>
-              My
-            </Text>
-            <Text variant="bodySmall" style={styles.actionSubtext}>
-              Profile
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => navigation.getParent()?.navigate('Profile')}
-              compact>
-              Go
-            </Button>
-          </Surface>
-        </View>
+        <Text variant="bodyMedium" style={styles.emptySubtitle}>
+          Try adjusting your filters or check back later
+        </Text>
+        <Button
+          mode="contained"
+          onPress={() => navigation.getParent()?.navigate('Search')}
+          style={styles.emptyButton}>
+          Adjust Filters
+        </Button>
       </View>
     );
   };
 
-  const renderWelcomeSection = () => {
-    const firstName = profile?.firstName || user?.email?.split('@')[0] || 'User';
-    
-    return (
-      <Surface style={styles.welcomeCard} elevation={2}>
-        <View style={styles.welcomeContent}>
-          <View>
-            <Text variant="headlineSmall" style={styles.welcomeTitle}>
-              Welcome back, {firstName}!
-            </Text>
-            <Text variant="bodyMedium" style={styles.welcomeSubtitle}>
-              Find your perfect match in Chhattisgarh
-            </Text>
-          </View>
-          <Icon name="hand-wave" size={48} color="#FFB300" />
-        </View>
-      </Surface>
-    );
-  };
+  const renderFooter = () => {
+    if (!loadingMore) return null;
 
-  const renderTipsSection = () => {
     return (
-      <Card style={styles.tipsCard}>
-        <Card.Content>
-          <View style={styles.tipsHeader}>
-            <Icon name="lightbulb-on" size={24} color="#FF9800" />
-            <Text variant="titleMedium" style={styles.tipsTitle}>
-              Tips for Success
-            </Text>
-          </View>
-          <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <Icon name="check-circle" size={20} color="#4CAF50" />
-              <Text variant="bodySmall" style={styles.tipText}>
-                Upload clear, recent photos for better matches
-              </Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Icon name="check-circle" size={20} color="#4CAF50" />
-              <Text variant="bodySmall" style={styles.tipText}>
-                Complete all profile sections to increase visibility
-              </Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Icon name="check-circle" size={20} color="#4CAF50" />
-              <Text variant="bodySmall" style={styles.tipText}>
-                Respond to match requests within 24 hours
-              </Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#D81B60" />
+        <Text variant="bodySmall" style={styles.footerText}>
+          Loading more profiles...
+        </Text>
+      </View>
     );
   };
 
@@ -221,25 +232,78 @@ const HomeScreen: React.FC<Props> = ({navigation}) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#D81B60" />
+        <Text variant="bodyMedium" style={styles.loadingText}>
+          Finding your perfect matches...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => loadData(true)}
+    <View style={styles.container}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder="Search by name, location..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          onSubmitEditing={handleSearch}
+          style={styles.searchBar}
+          icon="magnify"
+          clearIcon="close"
         />
-      }>
-      {renderWelcomeSection()}
-      {renderProfileCompletion()}
-      {renderQuickActions()}
-      {renderTipsSection()}
-    </ScrollView>
+      </View>
+
+      {/* Quick Filters */}
+      {renderQuickFilters()}
+
+      {/* Profile List */}
+      <FlatList
+        data={profiles}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
+          <ProfileCard
+            profile={item}
+            onPress={() => handleProfilePress(item)}
+          />
+        )}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={renderFooter}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadProfiles(true)}
+            colors={['#D81B60']}
+          />
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* Floating Action Button to navigate to Search */}
+      <FAB
+        icon="tune"
+        style={styles.fab}
+        onPress={() => navigation.getParent()?.navigate('Search')}
+        label="Filters"
+        color="#fff"
+      />
+
+      {/* Error Snackbar */}
+      <Snackbar
+        visible={!!error}
+        onDismiss={() => setError(null)}
+        duration={3000}
+        action={{
+          label: 'Retry',
+          onPress: () => loadProfiles(true),
+        }}>
+        {error}
+      </Snackbar>
+    </View>
   );
 };
 
@@ -252,28 +316,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
-  content: {
-    padding: 16,
-  },
-  welcomeCard: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  welcomeContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  welcomeTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#333',
-  },
-  welcomeSubtitle: {
+  loadingText: {
+    marginTop: 16,
     color: '#666',
+  },
+  searchContainer: {
+    padding: 16,
+    paddingBottom: 8,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  searchBar: {
+    backgroundColor: '#f5f5f5',
+    elevation: 0,
+  },
+  quickFiltersContainer: {
+    backgroundColor: '#fff',
+    paddingBottom: 12,
+    elevation: 2,
+  },
+  quickFiltersContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    marginRight: 8,
+  },
+  listContent: {
+    padding: 16,
+    flexGrow: 1,
   },
   completionCard: {
     marginBottom: 16,
@@ -296,75 +369,44 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  completionText: {
-    color: '#666',
-    marginBottom: 12,
-  },
   completeButton: {
     marginTop: 4,
   },
-  quickActions: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#333',
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
+  emptyState: {
     flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingVertical: 60,
   },
-  actionLabel: {
-    fontWeight: 'bold',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  actionSubtext: {
-    color: '#666',
-    textAlign: 'center',
+  emptyTitle: {
+    marginTop: 16,
     marginBottom: 8,
-  },
-  tipsCard: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tipsTitle: {
-    marginLeft: 8,
-    fontWeight: 'bold',
     color: '#333',
+    fontWeight: 'bold',
   },
-  tipsList: {
-    gap: 12,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
+  emptySubtitle: {
     color: '#666',
-    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 32,
+  },
+  emptyButton: {
+    marginTop: 8,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    marginTop: 8,
+    color: '#666',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#D81B60',
   },
 });
 

@@ -19,7 +19,7 @@ interface AuthState {
   // Actions
   setUser: (user: User | null) => void;
   setIsNewUser: (isNewUser: boolean) => void;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (agentCode?: string) => Promise<void>;
   sendPhoneOTP: (phone: string, countryCode?: string) => Promise<void>;
   verifyPhoneOTP: (phone: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -42,10 +42,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setIsNewUser: (isNewUser) => set({ isNewUser }),
 
-  signInWithGoogle: async () => {
+  signInWithGoogle: async (agentCode?: string) => {
     try {
       set({ isLoading: true });
-      const response = await authService.signInWithGoogle();
+      const response = await authService.signInWithGoogle(agentCode);
       set({
         user: response.user,
         isAuthenticated: true,
@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       await authService.verifyPhoneOTP(phone, otp);
-      
+
       // Update user data
       const currentUser = get().user;
       if (currentUser) {
@@ -96,21 +96,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       set({ isLoading: true });
-      
-      // Get refresh token from storage and logout
-      const { refreshToken } = await getTokens();
-      if (refreshToken) {
-        try {
-          await authService.logout(refreshToken);
-        } catch (error) {
-          // Log error but continue with local logout
-          console.warn('Logout API call failed, continuing with local logout:', error);
-        }
+
+      // Call logout service (handles token retrieval internally)
+      try {
+        await authService.logout();
+      } catch (error) {
+        // Log error but continue with local logout
+        console.warn('Logout API call failed, continuing with local logout:', error);
       }
-      
+
       // Clear storage
       await clearStorage();
-      
+
       set({
         user: null,
         isAuthenticated: false,
@@ -149,56 +146,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try {
         // Try to fetch current user to validate token
         const response = await api.get(API_ENDPOINTS.USERS.ME);
-        
+
         // Token is valid - update user data with latest from server
         const updatedUser = response.data.data;
-        set({ 
-          user: updatedUser, 
+        set({
+          user: updatedUser,
           isAuthenticated: true,
           isNewUser: false, // Existing user if we can fetch their data
         });
-        
+
         // Update stored user data with latest from server
         await storeUserData(updatedUser);
-        
+
         console.log('User session restored successfully');
       } catch (validationError: any) {
         // Token might be expired, try to refresh
         if (validationError.response?.status === 401) {
           console.log('Access token expired, attempting refresh...');
-          
+
           try {
             // Try to refresh the token
-            await authService.refreshToken(refreshToken);
-            
+            await authService.refreshToken();
+
             // Token refreshed successfully - validate again
             const userResponse = await api.get(API_ENDPOINTS.USERS.ME);
             const updatedUser = userResponse.data.data;
-            
-            set({ 
-              user: updatedUser, 
+
+            set({
+              user: updatedUser,
               isAuthenticated: true,
               isNewUser: false,
             });
             await storeUserData(updatedUser);
-            
+
             console.log('Token refreshed and session restored successfully');
           } catch (refreshError) {
             // Refresh failed - tokens are invalid, clear everything
             console.log('Token refresh failed, clearing session');
             await clearStorage();
-            set({ 
-              user: null, 
-              isAuthenticated: false, 
-              isNewUser: false 
+            set({
+              user: null,
+              isAuthenticated: false,
+              isNewUser: false
             });
           }
         } else {
           // Other error (network, server error, etc.)
           // Still restore user data but mark as potentially stale
           console.warn('Token validation failed, but restoring cached user data');
-          set({ 
-            user: userData, 
+          set({
+            user: userData,
             isAuthenticated: true,
             isNewUser: false,
           });

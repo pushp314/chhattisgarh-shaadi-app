@@ -33,6 +33,18 @@ const AppNavigator: React.FC = () => {
       if (isNewUser) {
         // Just connect socket, skip profile fetch
         socketService.connect().catch(console.error);
+
+        // Navigate to Profile tab -> CreateProfile
+        if (navigationRef.current) {
+          setTimeout(() => {
+            navigationRef.current?.navigate('Main', {
+              screen: 'Profile',
+              params: {
+                screen: 'CreateProfile',
+              },
+            });
+          }, 100);
+        }
         return;
       }
 
@@ -49,6 +61,14 @@ const AppNavigator: React.FC = () => {
                 params: {
                   screen: 'PhoneVerification',
                 },
+              });
+            }, 500);
+          } else if (navigationRef.current) {
+            // Profile exists and phone verified - ensure we are on Home
+            // This handles the case where user logged in on new device and was initially shown CreateProfile
+            setTimeout(() => {
+              navigationRef.current?.navigate('Main', {
+                screen: 'Home',
               });
             }, 500);
           }
@@ -71,7 +91,7 @@ const AppNavigator: React.FC = () => {
             console.error('Error fetching profile:', error);
           }
         });
-      
+
       socketService.connect().catch(console.error);
     } else {
       socketService.disconnect();

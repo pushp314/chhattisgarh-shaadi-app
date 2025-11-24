@@ -6,11 +6,13 @@ import { z } from 'zod';
 import { TextInput, Button, SegmentedButtons, Text, HelperText } from 'react-native-paper';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { Gender } from '../../constants/enums';
+import { DatePickerInput } from 'react-native-paper-dates';
 
 // 1. Define the Zod validation schema for this step
 const basicInfoSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  dob: z.date().refine((date) => {
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  dateOfBirth: z.date().refine((date) => {
     const age = (new Date()).getFullYear() - date.getFullYear();
     return age >= 18;
   }, 'You must be at least 18 years old'),
@@ -27,14 +29,21 @@ type Props = {
 
 const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
   // 2. Get data and actions from the Zustand store
-  const { fullName, dob, gender, height, updateOnboardingData } = useOnboardingStore((state) => ({...state}));
+  // Select specific fields to avoid infinite loop
+  const firstName = useOnboardingStore((state) => state.firstName);
+  const lastName = useOnboardingStore((state) => state.lastName);
+  const dateOfBirth = useOnboardingStore((state) => state.dateOfBirth);
+  const gender = useOnboardingStore((state) => state.gender);
+  const height = useOnboardingStore((state) => state.height);
+  const updateOnboardingData = useOnboardingStore((state) => state.updateOnboardingData);
 
   // 3. Initialize React Hook Form with store data and Zod resolver
   const { control, handleSubmit, formState: { errors } } = useForm<BasicInfoFormData>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
-      fullName: fullName || '',
-      dob: dob ? new Date(dob) : new Date(),
+      firstName: firstName || '',
+      lastName: lastName || '',
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
       gender: gender,
       height: height || undefined,
     },
@@ -42,8 +51,9 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
 
   // 4. On valid submission, update the central store and navigate
   const onSubmit = (data: BasicInfoFormData) => {
-    updateOnboardingData('fullName', data.fullName);
-    updateOnboardingData('dob', data.dob);
+    updateOnboardingData('firstName', data.firstName);
+    updateOnboardingData('lastName', data.lastName);
+    updateOnboardingData('dateOfBirth', data.dateOfBirth.toISOString()); // Store as string in store if needed, or Date if type allows
     updateOnboardingData('gender', data.gender);
     updateOnboardingData('height', data.height);
     onNext();
@@ -57,28 +67,106 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
 
       <Controller
         control={control}
-        name="fullName"
+        name="firstName"
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            label="Full Name *"
+            label="First Name *"
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
             mode="outlined"
             style={styles.input}
-            error={!!errors.fullName}
+            error={!!errors.firstName}
           />
         )}
       />
-      <HelperText type="error" visible={!!errors.fullName}>
-        {errors.fullName?.message}
+      <HelperText type="error" visible={!!errors.firstName}>
+        {errors.firstName?.message}
       </HelperText>
 
-      {/* Other fields will be similarly refactored... */}
+      <Controller
+        control={control}
+        name="lastName"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Last Name *"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            error={!!errors.lastName}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.lastName}>
+        {errors.lastName?.message}
+      </HelperText>
+
+      {/* Date of Birth - Simplified for now, using TextInput or DatePicker if available */}
+      {/* Assuming DatePickerInput is available or using a simple text input for demo */}
+      <Controller
+        control={control}
+        name="dateOfBirth"
+        render={({ field: { onChange, value } }) => (
+          <DatePickerInput
+            locale="en"
+            label="Date of Birth"
+            value={value}
+            onChange={onChange}
+            inputMode="start"
+            style={styles.input}
+            error={!!errors.dateOfBirth}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.dateOfBirth}>
+        {errors.dateOfBirth?.message}
+      </HelperText>
+
+
+      <Controller
+        control={control}
+        name="gender"
+        render={({ field: { onChange, value } }) => (
+          <SegmentedButtons
+            value={value}
+            onValueChange={onChange}
+            buttons={[
+              { value: Gender.MALE, label: 'Male' },
+              { value: Gender.FEMALE, label: 'Female' },
+            ]}
+            style={styles.input}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.gender}>
+        {errors.gender?.message}
+      </HelperText>
+
+      <Controller
+        control={control}
+        name="height"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Height (cm) *"
+            value={value ? String(value) : ''}
+            onChangeText={(text) => onChange(Number(text))}
+            onBlur={onBlur}
+            mode="outlined"
+            keyboardType="numeric"
+            style={styles.input}
+            error={!!errors.height}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.height}>
+        {errors.height?.message}
+      </HelperText>
 
       <Button
         mode="contained"
-        onPress={handleSubmit(onSubmit)} // Use handleSubmit from React Hook Form
+        onPress={handleSubmit(onSubmit)}
         style={styles.nextButton}
       >
         Next

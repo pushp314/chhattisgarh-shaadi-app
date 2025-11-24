@@ -11,8 +11,9 @@ const HOBBY_SUGGESTIONS = [
 ];
 
 const aboutSchema = z.object({
-  aboutMe: z.string().min(50, 'Please write at least 50 characters about yourself'),
+  bio: z.string().min(50, 'Please write at least 50 characters about yourself'),
   hobbies: z.array(z.string()).min(1, 'Please select at least one hobby'),
+  partnerExpectations: z.string().min(30, 'Please write at least 30 characters about your partner expectations').optional(),
 });
 
 type AboutFormData = z.infer<typeof aboutSchema>;
@@ -23,13 +24,17 @@ type Props = {
 };
 
 const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
-  const { aboutMe, hobbies, updateOnboardingData } = useOnboardingStore((state) => ({...state}));
+  const bio = useOnboardingStore((state) => state.bio);
+  const hobbies = useOnboardingStore((state) => state.hobbies);
+  const partnerExpectations = useOnboardingStore((state) => state.partnerExpectations);
+  const updateOnboardingData = useOnboardingStore((state) => state.updateOnboardingData);
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<AboutFormData>({
     resolver: zodResolver(aboutSchema),
     defaultValues: {
-      aboutMe: aboutMe || '',
-      hobbies: hobbies || [],
+      bio: bio || '',
+      hobbies: hobbies ? hobbies.split(',').filter(Boolean) : [],
+      partnerExpectations: partnerExpectations || '',
     },
   });
 
@@ -43,8 +48,11 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
   };
 
   const onSubmit = (data: AboutFormData) => {
-    updateOnboardingData('aboutMe', data.aboutMe);
-    updateOnboardingData('hobbies', data.hobbies);
+    updateOnboardingData('bio', data.bio);
+    updateOnboardingData('hobbies', data.hobbies.join(','));
+    if (data.partnerExpectations) {
+      updateOnboardingData('partnerExpectations', data.partnerExpectations);
+    }
     onNext();
   };
 
@@ -54,7 +62,7 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
 
       <Controller
         control={control}
-        name="aboutMe"
+        name="bio"
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             label="About Me *"
@@ -64,11 +72,11 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
             mode="outlined"
             multiline
             numberOfLines={6}
-            error={!!errors.aboutMe}
+            error={!!errors.bio}
           />
         )}
       />
-      <HelperText type="error" visible={!!errors.aboutMe}>{errors.aboutMe?.message}</HelperText>
+      <HelperText type="error" visible={!!errors.bio}>{errors.bio?.message}</HelperText>
 
       <Text style={styles.label}>Hobbies & Interests *</Text>
       <View style={styles.chipsContainer}>
@@ -79,6 +87,26 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
         ))}
       </View>
       <HelperText type="error" visible={!!errors.hobbies}>{errors.hobbies?.message}</HelperText>
+
+      <Controller
+        control={control}
+        name="partnerExpectations"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Partner Expectations (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            multiline
+            numberOfLines={4}
+            placeholder="Describe what you're looking for in a life partner..."
+            error={!!errors.partnerExpectations}
+            style={{ marginTop: 16 }}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.partnerExpectations}>{errors.partnerExpectations?.message}</HelperText>
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>

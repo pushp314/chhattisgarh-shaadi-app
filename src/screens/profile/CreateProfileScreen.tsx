@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,18 +12,24 @@ import {
   Surface,
   useTheme,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ProfileStackParamList} from '../../navigation/types';
-import {ProfileFormData} from '../../types/profileForm';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ProfileStackParamList } from '../../navigation/types';
+import { ProfileFormData } from '../../types/profileForm';
 import profileService from '../../services/profile.service';
-import {useProfileStore} from '../../store/profileStore';
+import educationService from '../../services/education.service';
+import occupationService from '../../services/occupation.service';
+import { useProfileStore } from '../../store/profileStore';
+import { useOnboardingStore } from '../../store/onboardingStore';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
 import LocationStep from '../../components/profile/LocationStep';
 import ReligionStep from '../../components/profile/ReligionStep';
+import PhysicalLifestyleStep from '../../components/profile/PhysicalLifestyleStep';
 import EducationStep from '../../components/profile/EducationStep';
+import FamilyDetailsStep from '../../components/profile/FamilyDetailsStep';
 import AboutStep from '../../components/profile/AboutStep';
+import HoroscopeStep from '../../components/profile/HoroscopeStep';
 import PhotosStep from '../../components/profile/PhotosStep';
 
 type CreateProfileScreenNavigationProp = NativeStackNavigationProp<
@@ -35,23 +41,21 @@ type Props = {
   navigation: CreateProfileScreenNavigationProp;
 };
 
-const TOTAL_STEPS = 6;
-
-const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
+const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
-  const {fetchProfile} = useProfileStore();
+  const { fetchProfile } = useProfileStore();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<ProfileFormData>>({
-    hobbies: [],
-    photos: [],
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const progress = currentStep / TOTAL_STEPS;
+  // Get data from store for submission
+  const onboardingData = useOnboardingStore(state => state);
+  const resetOnboardingState = useOnboardingStore(state => state.resetOnboardingState);
+  const religion = useOnboardingStore(state => state.religion);
 
-  const updateFormData = (data: Partial<ProfileFormData>) => {
-    setFormData(prev => ({...prev, ...data}));
-  };
+  // Dynamic total steps: 8 base steps + 1 horoscope step if Hindu
+  const TOTAL_STEPS = religion === 'HINDU' ? 9 : 8;
+
+  const progress = currentStep / TOTAL_STEPS;
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
@@ -68,121 +72,164 @@ const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      // STEP 1: Create Profile
+      console.log('Creating profile...');
+
       // Transform form data to match API requirements
-      const profileData: any = {
+      const profilePayload: any = {
         // Basic Info
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        dateOfBirth: formData.dateOfBirth?.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        gender: formData.gender,
-        aboutMe: formData.aboutMe,
+        firstName: onboardingData.firstName,
+        lastName: onboardingData.lastName,
+        dateOfBirth: onboardingData.dateOfBirth ? new Date(onboardingData.dateOfBirth).toISOString() : undefined,
+        gender: onboardingData.gender,
+        bio: onboardingData.bio,
 
         // Location
-        city: formData.city,
-        state: formData.state,
+        city: onboardingData.city,
+        state: onboardingData.state, // This is the main state field
         country: 'INDIA',
-        nativeState: formData.nativeState || formData.state,
-        nativeDistrict: formData.nativeDistrict,
-        speaksChhattisgarhi: formData.speaksChhattisgarhi ?? false,
+        nativeDistrict: onboardingData.nativeDistrict,
+        nativeTehsil: onboardingData.nativeTehsil,
+        nativeVillage: onboardingData.nativeVillage,
+        speaksChhattisgarhi: onboardingData.speaksChhattisgarhi ?? false,
 
         // Religion
-        religion: formData.religion,
-        caste: formData.caste,
-        subCaste: formData.subCaste,
+        religion: onboardingData.religion,
+        caste: onboardingData.caste,
+        subCaste: onboardingData.subCaste,
+        gothram: onboardingData.gothram,
 
-        // Physical Details from form or default values
-        height: formData.height,
-        weight: formData.weight || 70,
-        complexion: formData.complexion || 'FAIR', // Corrected default
-        bodyType: formData.bodyType || 'AVERAGE',
-        physicalStatus: formData.physicalStatus || 'NORMAL',
-
-        // Habits & Lifestyle
-        eatingHabits: formData.eatingHabits || 'VEGETARIAN',
-        drinkingHabits: formData.drinkingHabits || 'NO',
-        smokingHabits: formData.smokingHabits || 'NO',
+        // Physical Details & Lifestyle
+        height: onboardingData.height,
+        weight: onboardingData.weight,
+        bloodGroup: onboardingData.bloodGroup,
+        complexion: onboardingData.complexion,
+        bodyType: onboardingData.bodyType,
+        diet: onboardingData.diet,
+        smokingHabit: onboardingData.smokingHabit,
+        drinkingHabit: onboardingData.drinkingHabit,
 
         // Other Details
-        maritalStatus: formData.maritalStatus,
-        motherTongue: formData.motherTongue || 'HINDI',
+        maritalStatus: onboardingData.maritalStatus,
+        motherTongue: onboardingData.motherTongue || 'HINDI',
 
-        // Education & Occupation
-        education: formData.education,
-        occupation: formData.occupation,
-        annualIncome: formData.annualIncome,
+        // Family Details
+        fatherName: onboardingData.fatherName,
+        fatherOccupation: onboardingData.fatherOccupation,
+        motherName: onboardingData.motherName,
+        motherOccupation: onboardingData.motherOccupation,
+        numberOfBrothers: onboardingData.numberOfBrothers,
+        numberOfSisters: onboardingData.numberOfSisters,
+        familyType: onboardingData.familyType,
+        familyStatus: onboardingData.familyStatus,
 
-        // Hobbies
-        hobbies: formData.hobbies?.join(', '),
+        // About & Partner Expectations
+        hobbies: onboardingData.hobbies,
+        partnerExpectations: onboardingData.partnerExpectations,
+
+        // Horoscope (for Hindu profiles)
+        manglik: onboardingData.manglik,
+        birthTime: onboardingData.birthTime,
+        birthPlace: onboardingData.birthPlace,
+        rashi: onboardingData.rashi,
+        nakshatra: onboardingData.nakshatra,
       };
 
-      // Log the data being sent for debugging
-      console.log(
-        'Creating profile with data:',
-        JSON.stringify(profileData, null, 2),
-      );
+      // Remove undefined, null, and empty string values
+      const cleanedProfileData = Object.entries(profilePayload).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
 
-      // Create profile first
-      await profileService.createProfile(profileData);
+      console.log('Cleaned profile data:', JSON.stringify(cleanedProfileData, null, 2));
+      const profileResponse = await profileService.createProfile(cleanedProfileData);
+      console.log('Profile created:', profileResponse);
 
-      // Upload photos if any
-      if (formData.photos && formData.photos.length > 0) {
+      // STEP 2: Add Education (if provided)
+      // Note: The current UI collects 'education' (level) and 'educationDetails'.
+      // We map 'education' to 'degree' and 'educationDetails' to 'field' for now.
+      if (onboardingData.education) {
+        console.log('Adding education...');
         try {
-          // Upload first photo as profile photo
-          await profileService.uploadProfilePhoto(formData.photos[0]);
-          
-          // Upload remaining photos if any
-          if (formData.photos.length > 1) {
-            await profileService.uploadProfilePhotos(formData.photos.slice(1));
-          }
-        } catch (photoError) {
-          console.error('Error uploading photos:', photoError);
-          // Continue even if photo upload fails - profile is already created
+          await educationService.createEducation({
+            degree: Array.isArray(onboardingData.education) ? onboardingData.education[0] : onboardingData.education,
+            institution: 'Not Specified', // Placeholder as UI doesn't collect this yet
+            field: onboardingData.educationDetails || 'General',
+            yearOfPassing: undefined, // UI doesn't collect this yet
+            isCurrent: false,
+          } as any);
+          console.log('Education added');
+        } catch (eduError) {
+          console.error('Failed to add education:', eduError);
+          // Don't block flow, just log error
         }
       }
+
+      // STEP 3: Add Occupation (if provided)
+      if (onboardingData.occupation) {
+        console.log('Adding occupation...');
+        try {
+          await occupationService.createOccupation({
+            companyName: 'Not Specified', // Placeholder
+            designation: onboardingData.jobTitle || (onboardingData.occupation as string),
+            employmentType: onboardingData.occupationType || 'FULL_TIME',
+            industry: 'Not Specified',
+            annualIncome: onboardingData.annualIncome,
+            isCurrent: true,
+            location: onboardingData.workLocation,
+          } as any);
+          console.log('Occupation added');
+        } catch (occError) {
+          console.error('Failed to add occupation:', occError);
+          // Don't block flow
+        }
+      }
+
+      // STEP 4: Upload Photos (if selected)
+      if (onboardingData.photos && onboardingData.photos.length > 0) {
+        console.log('Uploading photos...');
+        try {
+          // Upload first photo as profile photo
+          await profileService.uploadProfilePhoto(onboardingData.photos[0]);
+
+          // Upload remaining photos if any
+          if (onboardingData.photos.length > 1) {
+            await profileService.uploadProfilePhotos(onboardingData.photos.slice(1));
+          }
+          console.log('Photos uploaded');
+        } catch (photoError) {
+          console.error('Error uploading photos:', photoError);
+          // Continue even if photo upload fails
+        }
+      }
+
+      // SUCCESS!
+      Alert.alert('Success', 'Profile created successfully!');
 
       // Refresh profile data
       await fetchProfile();
 
+      // Reset store
+      resetOnboardingState();
+
       // Navigate to phone verification after profile creation
       navigation.navigate('PhoneVerification');
+
     } catch (error: any) {
-      console.error('Error creating profile:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      // Extract detailed error message
-      let errorMessage = 'Failed to create profile. Please try again.';
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        // Check for validation errors
-        if (errorData.errors && Array.isArray(errorData.errors)) {
-          const validationErrors = errorData.errors
-            .map((err: any) => `${err.field || ''}: ${err.message || ''}`)
-            .filter((msg: string) => msg)
-            .join('\n');
-          
-          if (validationErrors) {
-            errorMessage = `Validation Error:\n${validationErrors}`;
-          } else {
-            errorMessage = errorData.message || errorMessage;
-          }
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (error.response?.status === 500) {
-          errorMessage = 'Server error occurred. Please check your internet connection and try again.';
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
+      console.error('Profile creation failed:', error);
+
+      if (error.response?.data?.errors) {
+        // Show validation errors
+        const errors = error.response.data.errors;
+        const errorMessage = Array.isArray(errors)
+          ? errors.map((e: any) => e.message || e.msg).join('\n')
+          : 'Validation failed';
+        Alert.alert('Validation Error', errorMessage);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to create profile. Please try again.');
       }
-      
-      // Show detailed error to user
-      Alert.alert(
-        'Profile Creation Failed',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
     } finally {
       setIsSubmitting(false);
     }
@@ -191,54 +238,36 @@ const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <BasicInfoStep
-            data={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
-          />
-        );
+        return <BasicInfoStep onNext={handleNext} />;
       case 2:
-        return (
-          <LocationStep
-            data={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <LocationStep onNext={handleNext} onBack={handleBack} />;
       case 3:
-        return (
-          <ReligionStep
-            data={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <ReligionStep onNext={handleNext} onBack={handleBack} />;
       case 4:
-        return (
-          <EducationStep
-            data={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <PhysicalLifestyleStep onNext={handleNext} onBack={handleBack} />;
       case 5:
-        return (
-          <AboutStep
-            data={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <EducationStep onNext={handleNext} onBack={handleBack} />;
       case 6:
+        return <FamilyDetailsStep onNext={handleNext} onBack={handleBack} />;
+      case 7:
+        return <AboutStep onNext={handleNext} onBack={handleBack} />;
+      case 8:
+        // If Hindu, show HoroscopeStep. Otherwise, show PhotosStep
+        if (religion === 'HINDU') {
+          return <HoroscopeStep onNext={handleNext} onBack={handleBack} />;
+        } else {
+          return (
+            <PhotosStep
+              onSubmit={handleSubmit}
+              onBack={handleBack}
+              isSubmitting={isSubmitting}
+            />
+          );
+        }
+      case 9:
+        // PhotosStep for Hindu profiles (step 9)
         return (
           <PhotosStep
-            data={formData}
-            onUpdate={updateFormData}
             onSubmit={handleSubmit}
             onBack={handleBack}
             isSubmitting={isSubmitting}
@@ -258,10 +287,16 @@ const CreateProfileScreen: React.FC<Props> = ({navigation}) => {
       case 3:
         return 'Religion & Community';
       case 4:
-        return 'Education & Occupation';
+        return 'Physical & Lifestyle';
       case 5:
-        return 'About Yourself';
+        return 'Education & Career';
       case 6:
+        return 'Family Details';
+      case 7:
+        return 'About & Hobbies';
+      case 8:
+        return religion === 'HINDU' ? 'Horoscope Details' : 'Add Photos';
+      case 9:
         return 'Add Photos';
       default:
         return '';

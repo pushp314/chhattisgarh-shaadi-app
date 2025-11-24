@@ -75,7 +75,7 @@ class ProfileService {
    */
   async uploadProfilePhoto(photoUri: string): Promise<any> {
     const formData = new FormData();
-    
+
     formData.append('photo', {
       uri: photoUri,
       type: 'image/jpeg',
@@ -99,7 +99,7 @@ class ProfileService {
    */
   async uploadProfilePhotos(photoUris: string[]): Promise<any> {
     const formData = new FormData();
-    
+
     photoUris.forEach((uri, index) => {
       formData.append('photos', {
         uri,
@@ -126,6 +126,7 @@ class ProfileService {
   async deleteMyProfile(): Promise<void> {
     await api.delete(API_ENDPOINTS.PROFILES.DELETE);
   }
+
 }
 
 export default new ProfileService();

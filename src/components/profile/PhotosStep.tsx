@@ -11,7 +11,10 @@ type Props = {
 };
 
 const PhotosStep: React.FC<Props> = ({ onSubmit, onBack, isSubmitting }) => {
-  const { photos, addPhoto, setPhotos } = useOnboardingStore((state) => ({...state}));
+  // Use individual selectors to avoid re-render loops
+  const photos = useOnboardingStore((state) => state.photos);
+  const addPhoto = useOnboardingStore((state) => state.addPhoto);
+  const setPhotos = useOnboardingStore((state) => state.setPhotos);
 
   const pickImage = async () => {
     if (photos.length >= 5) {

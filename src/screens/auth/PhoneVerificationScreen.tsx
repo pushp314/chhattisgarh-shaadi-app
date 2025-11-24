@@ -37,6 +37,20 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
+  const [resendTimer, setResendTimer] = useState(30);
+  const [canResend, setCanResend] = useState(false);
+
+  React.useEffect(() => {
+    let interval: any;
+    if (otpSent && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [otpSent, resendTimer]);
 
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
@@ -48,6 +62,8 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
       setError('');
       await sendPhoneOTP(phone, '+91');
       setOtpSent(true);
+      setResendTimer(30);
+      setCanResend(false);
       Alert.alert('OTP Sent', 'Please check your phone for the verification code');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to send OTP';
@@ -65,7 +81,7 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setError('');
       await verifyPhoneOTP(phone, otp);
-      
+
       // Navigate to Home tab after successful verification
       // Get the parent navigator (Main tab navigator) and navigate to Home
       const parent = rootNavigation.getParent();
@@ -172,11 +188,13 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.resendButton}
+                  style={[styles.resendButton, !canResend && styles.buttonDisabled]}
                   onPress={handleSendOTP}
-                  disabled={isLoading}
+                  disabled={!canResend || isLoading}
                 >
-                  <Text style={styles.resendText}>Resend OTP</Text>
+                  <Text style={styles.resendText}>
+                    {canResend ? 'Resend OTP' : `Resend OTP in ${resendTimer}s`}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}

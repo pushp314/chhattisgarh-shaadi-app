@@ -5,13 +5,12 @@
 
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api.config';
 import { ApiResponse } from '../types';
 
 // Storage keys
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'accessToken',
-  REFRESH_TOKEN: 'refreshToken',
   USER_DATA: 'userData',
 };
 
@@ -27,9 +26,9 @@ const api = axios.create({
 // Request interceptor - Add auth token
 api.interceptors.request.use(
   async (config: any) => {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const credentials = await Keychain.getGenericPassword({ service: 'accessToken' });
+    if (credentials) {
+      config.headers.Authorization = `Bearer ${credentials.password}`;
     }
     return config;
   },
@@ -47,11 +46,9 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem(
-          STORAGE_KEYS.REFRESH_TOKEN
-        );
-        
-        if (!refreshToken) {
+        const credentials = await Keychain.getGenericPassword({ service: 'refreshToken' });
+
+        if (!credentials) {
           throw new Error('No refresh token available');
         }
 
@@ -60,29 +57,24 @@ api.interceptors.response.use(
           refreshToken: string;
         }>>(
           `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-          { refreshToken }
+          { refreshToken: credentials.password }
         );
 
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-        // Store new tokens
-        await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-        await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+        // Store new tokens (using 'user' as default username if not available, consistent with auth.service)
+        await Keychain.setGenericPassword('user', accessToken, { service: 'accessToken' });
+        await Keychain.setGenericPassword('user', newRefreshToken, { service: 'refreshToken' });
 
         // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh failed - clear tokens and redirect to login
-        await AsyncStorage.multiRemove([
-          STORAGE_KEYS.ACCESS_TOKEN,
-          STORAGE_KEYS.REFRESH_TOKEN,
-          STORAGE_KEYS.USER_DATA,
-        ]);
-        
-        // You can emit an event here to redirect to login
-        // Example: eventEmitter.emit('LOGOUT');
-        
+        await Keychain.resetGenericPassword({ service: 'accessToken' });
+        await Keychain.resetGenericPassword({ service: 'refreshToken' });
+        await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+
         return Promise.reject(refreshError);
       }
     }
@@ -98,10 +90,9 @@ export const storeTokens = async (
   accessToken: string,
   refreshToken: string
 ): Promise<void> => {
-  await AsyncStorage.multiSet([
-    [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-    [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-  ]);
+  // We use a default username 'user' as we primarily rely on the service key
+  await Keychain.setGenericPassword('user', accessToken, { service: 'accessToken' });
+  await Keychain.setGenericPassword('user', refreshToken, { service: 'refreshToken' });
 };
 
 /**
@@ -111,26 +102,27 @@ export const getTokens = async (): Promise<{
   accessToken: string | null;
   refreshToken: string | null;
 }> => {
-  const [accessToken, refreshToken] = await AsyncStorage.multiGet([
-    STORAGE_KEYS.ACCESS_TOKEN,
-    STORAGE_KEYS.REFRESH_TOKEN,
-  ]);
+  try {
+    const accessCreds = await Keychain.getGenericPassword({ service: 'accessToken' });
+    const refreshCreds = await Keychain.getGenericPassword({ service: 'refreshToken' });
 
-  return {
-    accessToken: accessToken[1],
-    refreshToken: refreshToken[1],
-  };
+    return {
+      accessToken: accessCreds ? accessCreds.password : null,
+      refreshToken: refreshCreds ? refreshCreds.password : null,
+    };
+  } catch (error) {
+    console.error('Error getting tokens:', error);
+    return { accessToken: null, refreshToken: null };
+  }
 };
 
 /**
  * Clear all stored data
  */
 export const clearStorage = async (): Promise<void> => {
-  await AsyncStorage.multiRemove([
-    STORAGE_KEYS.ACCESS_TOKEN,
-    STORAGE_KEYS.REFRESH_TOKEN,
-    STORAGE_KEYS.USER_DATA,
-  ]);
+  await Keychain.resetGenericPassword({ service: 'accessToken' });
+  await Keychain.resetGenericPassword({ service: 'refreshToken' });
+  await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
 };
 
 /**

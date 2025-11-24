@@ -1,121 +1,203 @@
 /**
  * Authentication Service
- * Handles all authentication-related API calls
+ * Handles all authentication-related API calls using InAppBrowser for OAuth
  */
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import * as Keychain from 'react-native-keychain';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 import DeviceInfo from 'react-native-device-info';
 import apiClient from '../config/api.config';
 import { useAuthStore } from '../store/authStore';
+import { API_ENDPOINTS } from '../config/api.config';
+
+const API_BASE_URL = 'https://chhattisgarhshadi-backend.onrender.com/api/v1';
+const GOOGLE_CLIENT_ID = '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com';
+// Use the backend callback URL (already authorized in Google Console)
+const BACKEND_CALLBACK_URL = 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback';
 
 // Helper to get device info
 const getDeviceInfo = async () => {
   return {
     deviceId: await DeviceInfo.getUniqueId(),
-    platform: Platform.OS,
+    deviceName: await DeviceInfo.getDeviceName(),
+    deviceType: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
+    userAgent: await DeviceInfo.getUserAgent(),
   };
 };
 
 // Main Authentication Service
 const authService = {
   /**
-   * Configures the Google Sign-In SDK.
-   * This should be called once at app startup.
-   */
-  configureGoogleSignIn: () => {
-    GoogleSignin.configure({
-      webClientId: '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com', // From Google Cloud Console
-      offlineAccess: false, // Set to false, we are not requesting an auth code
-    });
-  },
-
-  /**
-   * Signs the user in with Google.
-   * 1. Gets the idToken from Google Sign-In SDK.
-   * 2. Posts the idToken and deviceInfo to the backend.
-   * 3. Securely stores the received access and refresh tokens.
-   * @param agentCode - Optional tracking code for agent-assisted sign-ups.
+   * Signs the user in with Google using InAppBrowser
+   * Flow: Google -> Backend Callback -> App Deep Link with tokens
+   * @param agentCode - Optional tracking code for agent-assisted sign-ups
    */
   signInWithGoogle: async (agentCode?: string) => {
     try {
-      await GoogleSignin.hasPlayServices();
-      const { idToken } = await GoogleSignin.signIn();
-
-      if (!idToken) {
-        throw new Error('Google Sign-In failed: idToken was null.');
-      }
-
+      // Get device info
       const deviceInfo = await getDeviceInfo();
+      const deviceInfoParam = encodeURIComponent(JSON.stringify(deviceInfo));
+      const agentParam = agentCode ? `&agentCode=${encodeURIComponent(agentCode)}` : '';
 
-      // Construct the request body
-      const requestBody: {
-        idToken: string;
-        deviceInfo: { deviceId: string; platform: string };
-        agentCode?: string;
-      } = {
-        idToken,
-        deviceInfo,
-      };
+      // Construct the Google OAuth URL
+      // The backend will handle the callback and redirect to our app
+      const googleAuthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+        `&redirect_uri=${encodeURIComponent(BACKEND_CALLBACK_URL)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent('openid email profile')}` +
+        `&access_type=offline` +
+        `&prompt=consent` +
+        `&state=${encodeURIComponent(`deviceInfo=${deviceInfoParam}${agentParam}`)}`;
 
-      if (agentCode) {
-        requestBody.agentCode = agentCode;
-      }
+      console.log('Opening Google OAuth URL...');
 
-      // Make the API call to your backend
-      const { data } = await apiClient.post('/auth/google', requestBody);
-      const responseData = data.data; // Assuming the API response is nested under `data`
+      // Open the in-app browser
+      // The backend will redirect to: com.chhattisgarhshaadi.app://oauth-success?accessToken=...&refreshToken=...&isNewUser=...
+      if (await InAppBrowser.isAvailable()) {
+        const result = await InAppBrowser.openAuth(
+          googleAuthUrl,
+          'com.chhattisgarhshaadi.app',  // Match both oauth-success and oauth-error
+          {
+            // iOS Properties
+            ephemeralWebSession: false,
+            // Android Properties
+            showTitle: false,
+            enableUrlBarHiding: true,
+            enableDefaultShare: false,
+          }
+        );
 
-      // On success, store tokens and update state
-      const { accessToken, refreshToken, user } = responseData;
-      
-      // Store both tokens securely
-      await Keychain.setGenericPassword(user.id || 'user', accessToken, { service: 'accessToken' });
-      await Keychain.setGenericPassword(user.id || 'user', refreshToken, { service: 'refreshToken' });
-      
-      // Update Zustand store
-      useAuthStore.getState().setUser(user);
-      useAuth-store.getState().setAuthenticated(true);
-      
-      return { user, isNewUser: responseData.isNewUser || false };
+        if (result.type === 'success' && result.url) {
+          console.log('OAuth callback received:', result.url);
 
-    } catch (error: any) {
-      if (error.code) {
-        switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
-            console.log('User cancelled the login flow');
-            break;
-          case statusCodes.IN_PROGRESS:
-            console.log('Sign in is in progress already');
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            console.error('Play services not available or outdated');
-            break;
-          default:
-            console.error('Google Sign-In error:', error);
+          // Check if it's an error callback
+          if (result.url.includes('oauth-error')) {
+            const urlParts = result.url.split('?');
+            if (urlParts.length >= 2) {
+              const params: Record<string, string> = {};
+              urlParts[1].split('&').forEach(param => {
+                const [key, value] = param.split('=');
+                if (key && value) {
+                  params[key] = decodeURIComponent(value);
+                }
+              });
+              throw new Error(params['error'] || 'Authentication failed');
+            }
+            throw new Error('Authentication failed');
+          }
+
+          // Parse the success callback URL to extract tokens
+          const urlParts = result.url.split('?');
+          if (urlParts.length < 2) {
+            throw new Error('Invalid callback URL format');
+          }
+
+          const params: Record<string, string> = {};
+          urlParts[1].split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            if (key && value) {
+              params[key] = decodeURIComponent(value);
+            }
+          });
+
+          const accessToken = params['accessToken'];
+          const refreshToken = params['refreshToken'];
+          const userDataParam = params['user'];
+          const isNewUserParam = params['isNewUser'];
+
+          if (!accessToken || !refreshToken) {
+            throw new Error('Authentication failed: Missing tokens');
+          }
+
+          console.log('Authentication successful!');
+
+          // Parse user data if provided
+          let user = null;
+          if (userDataParam) {
+            try {
+              user = JSON.parse(userDataParam);
+            } catch (e) {
+              console.error('Failed to parse user data:', e);
+            }
+          }
+
+          const isNewUser = isNewUserParam === 'true';
+
+          // Store both tokens securely
+          const userId = user?.id || 'user';
+          await Keychain.setGenericPassword(String(userId), accessToken, {
+            service: 'accessToken'
+          });
+          await Keychain.setGenericPassword(String(userId), refreshToken, {
+            service: 'refreshToken'
+          });
+
+          // Update Zustand store
+          if (user) {
+            useAuthStore.getState().setUser(user);
+          }
+
+          return { user, isNewUser };
+        } else if (result.type === 'cancel') {
+          throw new Error('User cancelled the authentication');
+        } else {
+          throw new Error('Authentication failed');
         }
       } else {
-        // Handle Axios errors or other exceptions
-        console.error('API call failed:', error.response?.data || error.message);
+        throw new Error('In-app browser is not available on this device');
       }
-      // Log out from Google to allow retrying
-      await GoogleSignin.signOut();
-      throw error; // Re-throw the error to be handled by the caller
+    } catch (error: any) {
+      console.error('Google Sign-In error:', error);
+      throw error;
     }
   },
 
   /**
-   * Logs the user out.
-   * 1. Calls the backend logout endpoint.
-   * 2. Clears tokens from Keychain.
-   * 3. Resets the auth store.
-   * 4. Signs out from Google SDK.
+   * Sends OTP to phone number
+   */
+  sendPhoneOTP: async (phone: string, countryCode: string = '+91') => {
+    try {
+      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.SEND_OTP, {
+        phone,
+        countryCode,
+      });
+      return data;
+    } catch (error: any) {
+      console.error('Send OTP failed:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Verifies phone OTP
+   */
+  verifyPhoneOTP: async (phone: string, otp: string) => {
+    try {
+      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, {
+        phone,
+        otp,
+      });
+      return data;
+    } catch (error: any) {
+      console.error('Verify OTP failed:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Logs the user out
+   * Optionally pass refreshToken to logout from current device only
+   * If no refreshToken provided, logs out from all devices
    */
   logout: async () => {
     try {
       const credentials = await Keychain.getGenericPassword({ service: 'refreshToken' });
       if (credentials) {
-        await apiClient.post('/auth/logout', { refreshToken: credentials.password });
+        await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {
+          refreshToken: credentials.password
+        });
       }
     } catch (error: any) {
       console.error('Backend logout failed:', error.response?.data || error.message);
@@ -124,7 +206,34 @@ const authService = {
       await Keychain.resetGenericPassword({ service: 'accessToken' });
       await Keychain.resetGenericPassword({ service: 'refreshToken' });
       useAuthStore.getState().logout();
-      await GoogleSignin.signOut();
+    }
+  },
+
+  /**
+   * Refresh access token using refresh token
+   */
+  refreshToken: async () => {
+    try {
+      const credentials = await Keychain.getGenericPassword({ service: 'refreshToken' });
+      if (!credentials) {
+        throw new Error('No refresh token found');
+      }
+
+      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH, {
+        refreshToken: credentials.password,
+      });
+
+      const { accessToken, refreshToken: newRefreshToken } = data.data;
+      const userId = useAuthStore.getState().user?.id || 'user';
+
+      // Store new tokens
+      await Keychain.setGenericPassword(String(userId), accessToken, { service: 'accessToken' });
+      await Keychain.setGenericPassword(String(userId), newRefreshToken, { service: 'refreshToken' });
+
+      return { accessToken, refreshToken: newRefreshToken };
+    } catch (error: any) {
+      console.error('Token refresh failed:', error.response?.data || error.message);
+      throw error;
     }
   },
 };

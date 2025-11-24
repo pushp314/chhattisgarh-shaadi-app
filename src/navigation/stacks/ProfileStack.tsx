@@ -26,49 +26,22 @@ const ProfileStack: React.FC = () => {
   // Determine initial route based on user state
   const getInitialRouteName = (): keyof ProfileStackParamList => {
     if (!isAuthenticated) return 'ProfileScreen';
-    
+
     // New users should start at CreateProfile
     if (isNewUser) return 'CreateProfile';
-    
+
     // If no profile exists, go to CreateProfile
     if (!profile) return 'CreateProfile';
-    
+
     // If profile exists but phone not verified, go to PhoneVerification
     if (!user?.isPhoneVerified) return 'PhoneVerification';
-    
+
     // Otherwise, show profile screen
     return 'ProfileScreen';
   };
 
-  useEffect(() => {
-    // Check if user needs to create profile (for cases where state changes)
-    if (isAuthenticated) {
-      // For existing users, check profile and phone verification
-      if (!isNewUser) {
-        const checkProfileAndNavigate = async () => {
-          try {
-            await fetchProfile();
-            // Profile exists - check if phone verification is needed
-            const currentUser = useAuthStore.getState().user;
-            if (!currentUser?.isPhoneVerified) {
-              setTimeout(() => {
-                navigation.navigate('PhoneVerification');
-              }, 300);
-            }
-          } catch (error: any) {
-            // If profile doesn't exist (404), navigate to CreateProfile
-            if (error.response?.status === 404) {
-              setTimeout(() => {
-                navigation.navigate('CreateProfile');
-              }, 300);
-            }
-          }
-        };
-        
-        checkProfileAndNavigate();
-      }
-    }
-  }, [isAuthenticated, isNewUser, fetchProfile, navigation]);
+  // useEffect removed to prevent navigation race conditions. 
+  // initialRouteName and AppNavigator handle the logic.
 
   return (
     <Stack.Navigator initialRouteName={getInitialRouteName()}>

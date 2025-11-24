@@ -23,14 +23,20 @@ type Props = {
 };
 
 const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
-  const { education, occupation, annualIncome, educationDetails, occupationDetails, updateOnboardingData } = useOnboardingStore((state) => ({...state}));
+  // Use individual selectors to avoid re-render loops
+  const education = useOnboardingStore((state) => state.education);
+  const occupation = useOnboardingStore((state) => state.occupation);
+  const annualIncome = useOnboardingStore((state) => state.annualIncome);
+  const educationDetails = useOnboardingStore((state) => state.educationDetails);
+  const occupationDetails = useOnboardingStore((state) => state.occupationDetails);
+  const updateOnboardingData = useOnboardingStore((state) => state.updateOnboardingData);
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<EducationFormData>({
     resolver: zodResolver(educationSchema),
     defaultValues: {
-      education: education?.[0],
+      education: (Array.isArray(education) ? education[0] : education) as Education,
       educationDetails: educationDetails,
-      occupation: occupation,
+      occupation: occupation as Occupation,
       occupationDetails: occupationDetails,
       annualIncome: annualIncome,
     },
@@ -41,11 +47,11 @@ const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
   const [incomeMenuVisible, setIncomeMenuVisible] = React.useState(false);
 
   const onSubmit = (data: EducationFormData) => {
-    updateOnboardingData('education', [data.education]);
-    updateOnboardingData('educationDetails', data.educationDetails);
-    updateOnboardingData('occupation', data.occupation);
-    updateOnboardingData('occupationDetails', data.occupationDetails);
-    updateOnboardingData('annualIncome', data.annualIncome);
+    updateOnboardingData('education', [data.education] as any);
+    updateOnboardingData('educationDetails', data.educationDetails as string);
+    updateOnboardingData('occupation', data.occupation as any);
+    updateOnboardingData('occupationDetails', data.occupationDetails as string);
+    updateOnboardingData('annualIncome', data.annualIncome as string);
     onNext();
   };
 
@@ -81,7 +87,84 @@ const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
         )}
       />
 
-      {/* Other fields will be similarly refactored... */}
+      {/* Occupation Menu */}
+      <Controller
+        control={control}
+        name="occupation"
+        render={({ field: { value } }) => (
+          <View style={styles.menuContainer}>
+            <Text style={styles.label}>Occupation *</Text>
+            <Menu
+              visible={occupationMenuVisible}
+              onDismiss={() => setOccupationMenuVisible(false)}
+              anchor={<Button mode="outlined" onPress={() => setOccupationMenuVisible(true)}>{value || 'Select Occupation'}</Button>}
+            >
+              {Object.values(Occupation).map((occ) => (
+                <Menu.Item
+                  key={occ}
+                  onPress={() => {
+                    setValue('occupation', occ, { shouldValidate: true });
+                    setOccupationMenuVisible(false);
+                  }}
+                  title={occ}
+                />
+              ))}
+            </Menu>
+            <HelperText type="error" visible={!!errors.occupation}>{errors.occupation?.message}</HelperText>
+          </View>
+        )}
+      />
+
+      {/* Education Details (Optional) */}
+      <Controller
+        control={control}
+        name="educationDetails"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Education Details (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            placeholder="e.g., Computer Science Engineering"
+          />
+        )}
+      />
+
+      {/* Occupation Details (Optional) */}
+      <Controller
+        control={control}
+        name="occupationDetails"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Occupation Details (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            placeholder="e.g., Software Engineer at TCS"
+          />
+        )}
+      />
+
+      {/* Annual Income (Optional) */}
+      <Controller
+        control={control}
+        name="annualIncome"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Annual Income (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            placeholder="e.g., 5-10 LPA"
+          />
+        )}
+      />
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
@@ -96,6 +179,7 @@ const styles = StyleSheet.create({
   sectionTitle: { marginBottom: 16 },
   label: { marginBottom: 8 },
   menuContainer: { marginBottom: 12 },
+  input: { marginBottom: 12 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 12 },
   backButton: { flex: 1 },
   nextButton: { flex: 1 },

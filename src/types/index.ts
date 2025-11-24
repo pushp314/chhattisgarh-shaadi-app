@@ -192,7 +192,7 @@ export interface PaginationResponse {
 }
 
 export interface SearchProfilesParams extends PaginationParams {
-  gender?: Gender;
+  gender?: Gender | 'MALE' | 'FEMALE';
   minAge?: number;
   maxAge?: number;
   religions?: string;
@@ -202,6 +202,8 @@ export interface SearchProfilesParams extends PaginationParams {
   maxHeight?: number;
   city?: string;
   state?: string;
+  nativeDistrict?: string;
+  speaksChhattisgarhi?: boolean;
 }
 
 export interface DeviceInfo {
@@ -209,4 +211,221 @@ export interface DeviceInfo {
   deviceName: string;
   deviceType: 'IOS' | 'ANDROID';
   userAgent: string;
+}
+
+export interface Education {
+  id: number;
+  userId: number;
+  degree: string;
+  institution: string;
+  field?: string;
+  university?: string;
+  yearOfPassing?: number;
+  grade?: string;
+  isCurrent: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Occupation {
+  id: number;
+  userId: number;
+  companyName: string;
+  designation: string;
+  employmentType: string;
+  industry?: string;
+  annualIncome?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent: boolean;
+  location?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartnerPreference {
+  id: number;
+  userId: number;
+  ageFrom?: number;
+  ageTo?: number;
+  heightFrom?: number;
+  heightTo?: number;
+  religion?: Religion[];
+  caste?: string[];
+  motherTongue?: MotherTongue;
+  maritalStatus?: MaritalStatus[];
+  country?: string;
+  state?: string[];
+  city?: string[];
+  residencyStatus?: string;
+  nativeDistrict?: string[];
+  mustSpeakChhattisgarhi?: boolean;
+  education?: string[];
+  occupation?: string[];
+  annualIncome?: string;
+  diet?: string;
+  smoking?: string;
+  drinking?: string;
+  manglik?: boolean;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export enum ContactRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ContactRequestType {
+  PHONE = 'PHONE',
+  EMAIL = 'EMAIL',
+}
+
+export interface ContactRequest {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  profileId: number;
+  requestType: ContactRequestType;
+  status: ContactRequestStatus;
+  message?: string;
+  createdAt: string;
+  updatedAt: string;
+  sender?: User;
+  receiver?: User;
+  profile?: Profile;
+}
+
+export interface BlockedUser {
+  id: number;
+  blockerId: number;
+  blockedId: number;
+  reason?: string;
+  createdAt: string;
+  blockedUser?: User;
+}
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  price: number;
+  durationInMonths: number;
+  features: string[];
+  isActive: boolean;
+}
+
+export enum ReportType {
+  PROFILE = 'PROFILE',
+  MESSAGE = 'MESSAGE',
+  PHOTO = 'PHOTO',
+}
+
+export interface Report {
+  id: number;
+  reporterId: number;
+  reportedUserId: number;
+  reason: string;
+  description?: string;
+  reportType: ReportType;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Shortlist {
+  id: number;
+  userId: number;
+  profileId: number;
+  createdAt: string;
+  profile?: Profile;
+}
+
+export enum PhotoRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export interface PhotoRequest {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  photoId: number;
+  message?: string;
+  status: PhotoRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  sender?: User;
+  receiver?: User;
+}
+
+export interface PhotoPrivacySettings {
+  visibility: 'REGISTERED' | 'MATCHED' | 'HIDDEN';
+  enableWatermark: boolean;
+  watermarkText?: string;
+  watermarkPosition?: 'BOTTOM_RIGHT' | 'CENTER' | 'TOP_LEFT';
+  preventScreenshots: boolean;
+  disableRightClick: boolean;
+  blurForNonPremium: boolean;
+  blurLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  allowDownload: boolean;
+  allowViewRequests: boolean;
+  autoApprovePremium: boolean;
+  autoApproveVerified: boolean;
+}
+
+export interface ProfilePrivacySettings {
+  profileVisibility: 'PUBLIC' | 'REGISTERED' | 'MATCHED' | 'HIDDEN';
+  showLastName: boolean;
+  showEmail: 'PUBLIC' | 'REGISTERED' | 'MATCHED' | 'HIDDEN';
+  showPhoneNumber: 'PUBLIC' | 'REGISTERED' | 'MATCHED' | 'HIDDEN';
+  // Add other fields as needed from API docs
+}
+
+export interface CommunicationSettings {
+  allowMatchRequestsFrom: 'EVERYONE' | 'MATCHED_ONLY' | 'HIDDEN';
+  minAgeForRequests?: number;
+  maxAgeForRequests?: number;
+  allowMessagesFrom: 'EVERYONE' | 'MATCHED_ONLY';
+  // Add other fields as needed from API docs
+}
+
+export interface SearchVisibilitySettings {
+  showInSearch: boolean;
+  showInSuggestions: boolean;
+  visibleToFreeUsers: boolean;
+  visibleToPremiumUsers: boolean;
+  visibleToVerifiedUsers: boolean;
+  // Add other fields as needed from API docs
+}
+
+export interface PaymentOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  planName: string;
+}
+
+export interface ProfileView {
+  id: number;
+  viewerId: number;
+  viewedProfileId: number;
+  isAnonymous: boolean;
+  createdAt: string;
+  viewer?: User;
+  viewedProfile?: Profile;
+}
+
+export interface AccountSecuritySettings {
+  twoFactorEnabled: boolean;
+  twoFactorMethod?: 'SMS' | 'EMAIL' | 'BOTH';
+  requireOtpNewDevice: boolean;
+  requireOtpNewLocation: boolean;
+  sessionTimeout?: number;
+  maxActiveSessions?: number;
+  recoveryEmail?: string;
+  recoveryPhone?: string;
 }

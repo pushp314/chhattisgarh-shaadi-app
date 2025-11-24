@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,15 +32,16 @@ interface Props {
 const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, isLoading } = useAuthStore();
   const [error, setError] = useState<string>('');
+  const [agentCode, setAgentCode] = useState<string>('');
 
   const handleGoogleSignIn = async () => {
     try {
       setError('');
-      await signInWithGoogle();
-      
+      await signInWithGoogle(agentCode);
+
       // Get updated state after sign in
       const { user, isNewUser } = useAuthStore.getState();
-      
+
       // Check if this is a new user who needs to complete profile
       if (isNewUser) {
         // Navigate to CreateProfile screen
@@ -50,7 +52,7 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
         // The profile check will happen in AppNavigator or MainNavigator
         return;
       }
-      
+
       // Existing user - check if phone verification is needed
       if (!user?.isPhoneVerified) {
         navigation.navigate('PhoneVerification');
@@ -99,6 +101,20 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
+
+            {/* Agent Code Input */}
+            <View style={styles.inputContainer}>
+              <Icon name="person-add" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Agent Code (Optional)"
+                placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                value={agentCode}
+                onChangeText={setAgentCode}
+                autoCapitalize="characters"
+                maxLength={20}
+              />
+            </View>
 
             {/* Google Sign In Button */}
             <TouchableOpacity
@@ -204,6 +220,27 @@ const styles = StyleSheet.create({
     color: '#FF5252',
     marginLeft: 8,
     flex: 1,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    width: '100%',
+    height: 56,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    height: '100%',
   },
   googleButton: {
     flexDirection: 'row',

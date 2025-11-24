@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TextInput, Button, Text, Menu, Switch, HelperText } from 'react-native-paper';
 import { useOnboardingStore } from '../../store/onboardingStore';
-import { IndianState } from '../../constants/enums'; // Assuming you have this enum
+import { IndianState } from '../../constants/enums';
 
 const CG_DISTRICTS = ['Balod', 'Baloda Bazar', 'Balrampur', 'Bastar', 'Bemetara', 'Bijapur', 'Bilaspur', 'Dantewada', 'Dhamtari', 'Durg', 'Gariaband', 'Gaurela-Pendra-Marwahi', 'Janjgir-Champa', 'Jashpur', 'Kabirdham', 'Kanker', 'Kondagaon', 'Korba', 'Koriya', 'Mahasamund', 'Mungeli', 'Narayanpur', 'Raigarh', 'Raipur', 'Rajnandgaon', 'Sukma', 'Surajpur', 'Surguja'];
 
@@ -13,6 +13,8 @@ const locationSchema = z.object({
   state: z.nativeEnum(IndianState),
   city: z.string().min(2, 'City name must be at least 2 characters'),
   nativeDistrict: z.string().min(1, 'Please select your native district'),
+  nativeTehsil: z.string().optional(),
+  nativeVillage: z.string().optional(),
   speaksChhattisgarhi: z.boolean(),
 });
 
@@ -24,14 +26,22 @@ type Props = {
 };
 
 const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
-  const { state, city, nativeDistrict, speaksChhattisgarhi, updateOnboardingData } = useOnboardingStore((s) => ({...s}));
+  const state = useOnboardingStore((s) => s.state);
+  const city = useOnboardingStore((s) => s.city);
+  const nativeDistrict = useOnboardingStore((s) => s.nativeDistrict);
+  const nativeTehsil = useOnboardingStore((s) => s.nativeTehsil);
+  const nativeVillage = useOnboardingStore((s) => s.nativeVillage);
+  const speaksChhattisgarhi = useOnboardingStore((s) => s.speaksChhattisgarhi);
+  const updateOnboardingData = useOnboardingStore((s) => s.updateOnboardingData);
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
-      state: state,
+      state: (state as IndianState) || IndianState.CHHATTISGARH,
       city: city || '',
       nativeDistrict: nativeDistrict || '',
+      nativeTehsil: nativeTehsil || '',
+      nativeVillage: nativeVillage || '',
       speaksChhattisgarhi: speaksChhattisgarhi ?? false,
     },
   });
@@ -40,10 +50,12 @@ const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
   const [districtMenuVisible, setDistrictMenuVisible] = React.useState(false);
 
   const onSubmit = (data: LocationFormData) => {
-    updateOnboardingData('state', data.state);
-    updateOnboardingData('city', data.city);
-    updateOnboardingData('nativeDistrict', data.nativeDistrict);
-    updateOnboardingData('speaksChhattisgarhi', data.speaksChhattisgarhi);
+    updateOnboardingData('state', data.state as string);
+    updateOnboardingData('city', data.city as string);
+    updateOnboardingData('nativeDistrict', data.nativeDistrict as string);
+    if (data.nativeTehsil) updateOnboardingData('nativeTehsil', data.nativeTehsil);
+    if (data.nativeVillage) updateOnboardingData('nativeVillage', data.nativeVillage);
+    updateOnboardingData('speaksChhattisgarhi', data.speaksChhattisgarhi as boolean);
     onNext();
   };
 
@@ -65,12 +77,12 @@ const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
             >
               {Object.values(IndianState).map((s) => (
                 <Menu.Item
-                  key={s}
+                  key={s as string}
                   onPress={() => {
                     setValue('state', s, { shouldValidate: true });
                     setStateMenuVisible(false);
                   }}
-                  title={s}
+                  title={s as string}
                 />
               ))}
             </Menu>
@@ -79,7 +91,95 @@ const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
         )}
       />
 
-      {/* Other fields similarly refactored */}
+      <Controller
+        control={control}
+        name="city"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Current City *"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            error={!!errors.city}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.city}>{errors.city?.message}</HelperText>
+
+      {/* Native District Menu (Only if Chhattisgarh) */}
+      <Controller
+        control={control}
+        name="nativeDistrict"
+        render={({ field: { value } }) => (
+          <View style={styles.menuContainer}>
+            <Text style={styles.label}>Native District (Chhattisgarh) *</Text>
+            <Menu
+              visible={districtMenuVisible}
+              onDismiss={() => setDistrictMenuVisible(false)}
+              anchor={<Button mode="outlined" onPress={() => setDistrictMenuVisible(true)}>{value || 'Select District'}</Button>}
+            >
+              {CG_DISTRICTS.map((d) => (
+                <Menu.Item
+                  key={d}
+                  onPress={() => {
+                    setValue('nativeDistrict', d, { shouldValidate: true });
+                    setDistrictMenuVisible(false);
+                  }}
+                  title={d}
+                />
+              ))}
+            </Menu>
+            <HelperText type="error" visible={!!errors.nativeDistrict}>{errors.nativeDistrict?.message}</HelperText>
+          </View>
+        )}
+      />
+
+      {/* Native Tehsil (Optional) */}
+      <Controller
+        control={control}
+        name="nativeTehsil"
+        render={({ field: { value, onChange, onBlur } }) => (
+          <TextInput
+            label="Native Tehsil / Block (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            placeholder="e.g., Abhanpur, Dhamtari"
+          />
+        )}
+      />
+
+      {/* Native Village (Optional) */}
+      <Controller
+        control={control}
+        name="nativeVillage"
+        render={({ field: { value, onChange, onBlur } }) => (
+          <TextInput
+            label="Native Village / Town (Optional)"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            mode="outlined"
+            style={styles.input}
+            placeholder="e.g., Kharora, Mandir Hasaud"
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="speaksChhattisgarhi"
+        render={({ field: { value, onChange } }) => (
+          <View style={styles.switchContainer}>
+            <Text>Do you speak Chhattisgarhi?</Text>
+            <Switch value={value} onValueChange={onChange} />
+          </View>
+        )}
+      />
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
@@ -94,6 +194,8 @@ const styles = StyleSheet.create({
   sectionTitle: { marginBottom: 16 },
   label: { marginBottom: 8 },
   menuContainer: { marginBottom: 12 },
+  input: { marginBottom: 4 },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 16 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 12 },
   backButton: { flex: 1 },
   nextButton: { flex: 1 },
