@@ -45,6 +45,16 @@ const ReligionStep: React.FC<Props> = ({ onNext, onBack }) => {
     },
   });
 
+  // Sync form with store when store values change (for auto-fill)
+  React.useEffect(() => {
+    if (religion) setValue('religion', religion);
+    if (caste) setValue('caste', caste);
+    if (subCaste) setValue('subCaste', subCaste);
+    if (gothram) setValue('gothram', gothram);
+    if (maritalStatus) setValue('maritalStatus', maritalStatus);
+    if (motherTongue) setValue('motherTongue', motherTongue);
+  }, [religion, caste, subCaste, gothram, maritalStatus, motherTongue, setValue]);
+
   const [religionMenuVisible, setReligionMenuVisible] = React.useState(false);
   const [maritalMenuVisible, setMaritalMenuVisible] = React.useState(false);
   const [motherTongueMenuVisible, setMotherTongueMenuVisible] = React.useState(false);

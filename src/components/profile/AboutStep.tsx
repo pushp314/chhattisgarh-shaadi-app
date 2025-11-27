@@ -38,6 +38,13 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
     },
   });
 
+  // Sync form with store when store values change (for auto-fill)
+  React.useEffect(() => {
+    if (bio) setValue('bio', bio);
+    if (hobbies) setValue('hobbies', hobbies.split(',').filter(Boolean));
+    if (partnerExpectations) setValue('partnerExpectations', partnerExpectations);
+  }, [bio, hobbies, partnerExpectations, setValue]);
+
   const currentHobbies = watch('hobbies');
 
   const toggleHobby = (hobby: string) => {

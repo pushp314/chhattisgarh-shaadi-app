@@ -50,6 +50,15 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
     },
   });
 
+  // Sync form with store when store values change (for auto-fill)
+  React.useEffect(() => {
+    if (firstName) setValue('firstName', firstName);
+    if (lastName) setValue('lastName', lastName);
+    if (dateOfBirth) setValue('dateOfBirth', new Date(dateOfBirth));
+    if (gender) setValue('gender', gender);
+    if (height) setValue('height', height);
+  }, [firstName, lastName, dateOfBirth, gender, height, setValue]);
+
   // Auto-fill handler for testing
   const handleAutoFill = () => {
     const testData = generateBasicInfo();

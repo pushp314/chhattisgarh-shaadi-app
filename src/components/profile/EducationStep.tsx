@@ -42,6 +42,15 @@ const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
     },
   });
 
+  // Sync form with store when store values change (for auto-fill)
+  React.useEffect(() => {
+    if (education) setValue('education', (Array.isArray(education) ? education[0] : education) as Education);
+    if (educationDetails) setValue('educationDetails', educationDetails);
+    if (occupation) setValue('occupation', occupation as Occupation);
+    if (occupationDetails) setValue('occupationDetails', occupationDetails);
+    if (annualIncome) setValue('annualIncome', annualIncome);
+  }, [education, educationDetails, occupation, occupationDetails, annualIncome, setValue]);
+
   const [educationMenuVisible, setEducationMenuVisible] = React.useState(false);
   const [occupationMenuVisible, setOccupationMenuVisible] = React.useState(false);
   const [incomeMenuVisible, setIncomeMenuVisible] = React.useState(false);

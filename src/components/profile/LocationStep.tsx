@@ -46,6 +46,16 @@ const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
     },
   });
 
+  // Sync form with store when store values change (for auto-fill)
+  React.useEffect(() => {
+    if (state) setValue('state', state as IndianState);
+    if (city) setValue('city', city);
+    if (nativeDistrict) setValue('nativeDistrict', nativeDistrict);
+    if (nativeTehsil) setValue('nativeTehsil', nativeTehsil);
+    if (nativeVillage) setValue('nativeVillage', nativeVillage);
+    if (speaksChhattisgarhi !== undefined) setValue('speaksChhattisgarhi', speaksChhattisgarhi);
+  }, [state, city, nativeDistrict, nativeTehsil, nativeVillage, speaksChhattisgarhi, setValue]);
+
   const [stateMenuVisible, setStateMenuVisible] = React.useState(false);
   const [districtMenuVisible, setDistrictMenuVisible] = React.useState(false);
 

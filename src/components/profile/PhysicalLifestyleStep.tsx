@@ -30,6 +30,17 @@ const PhysicalLifestyleStep: React.FC<PhysicalLifestyleStepProps> = ({ onNext, o
     const [complexion, setComplexion] = useState(storeComplexion || '');
     const [bodyType, setBodyType] = useState(storeBodyType || '');
 
+    // Sync local state with store when store values change (for auto-fill)
+    useEffect(() => {
+        if (storeWeight) setWeight(storeWeight.toString());
+        if (storeBloodGroup) setBloodGroup(storeBloodGroup);
+        if (storeDiet) setDiet(storeDiet);
+        if (storeSmokingHabit) setSmokingHabit(storeSmokingHabit);
+        if (storeDrinkingHabit) setDrinkingHabit(storeDrinkingHabit);
+        if (storeComplexion) setComplexion(storeComplexion);
+        if (storeBodyType) setBodyType(storeBodyType);
+    }, [storeWeight, storeBloodGroup, storeDiet, storeSmokingHabit, storeDrinkingHabit, storeComplexion, storeBodyType]);
+
     const handleNext = () => {
         // Update store with all values
         if (weight) {

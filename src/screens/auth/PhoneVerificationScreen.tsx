@@ -19,7 +19,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { AuthStackParamList, ProfileStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
+import { Theme } from '../../constants/theme';
 
 type PhoneVerificationScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList | ProfileStackParamList,
@@ -100,114 +100,109 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#F06292', '#D81B60']}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Icon name="arrow-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Verify Phone</Text>
+      <View style={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-back" size={24} color={Theme.colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Verify Phone</Text>
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          <View style={styles.iconContainer}>
+            <Icon name="phone-android" size={60} color={Theme.colors.primary} />
           </View>
 
-          {/* Main Content */}
-          <View style={styles.mainContent}>
-            <View style={styles.iconContainer}>
-              <Icon name="phone-android" size={60} color="#FFFFFF" />
+          <Text style={styles.title}>Verify Your Phone Number</Text>
+          <Text style={styles.subtitle}>
+            {otpSent
+              ? 'Enter the 6-digit code sent to your phone'
+              : 'We need to verify your phone number for security'}
+          </Text>
+
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Icon name="error-outline" size={20} color={Theme.colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
             </View>
+          ) : null}
 
-            <Text style={styles.title}>Verify Your Phone Number</Text>
-            <Text style={styles.subtitle}>
-              {otpSent
-                ? 'Enter the 6-digit code sent to your phone'
-                : 'We need to verify your phone number for security'}
-            </Text>
-
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Icon name="error-outline" size={20} color="#FF5252" />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {!otpSent ? (
-              <View style={styles.inputSection}>
-                <View style={styles.phoneInputContainer}>
-                  <Text style={styles.countryCode}>+91</Text>
-                  <TextInput
-                    style={styles.phoneInput}
-                    placeholder="Enter 10-digit phone number"
-                    placeholderTextColor="rgba(255,255,255,0.6)"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.button, isLoading && styles.buttonDisabled]}
-                  onPress={handleSendOTP}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#D81B60" />
-                  ) : (
-                    <Text style={styles.buttonText}>Send OTP</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.inputSection}>
+          {!otpSent ? (
+            <View style={styles.inputSection}>
+              <View style={styles.phoneInputContainer}>
+                <Text style={styles.countryCode}>+91</Text>
                 <TextInput
-                  style={styles.otpInput}
-                  placeholder="Enter 6-digit OTP"
-                  placeholderTextColor="rgba(255,255,255,0.6)"
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
+                  style={styles.phoneInput}
+                  placeholder="Enter 10-digit phone number"
+                  placeholderTextColor={Theme.colors.textSecondary}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  maxLength={10}
                 />
-
-                <TouchableOpacity
-                  style={[styles.button, isLoading && styles.buttonDisabled]}
-                  onPress={handleVerifyOTP}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#D81B60" />
-                  ) : (
-                    <Text style={styles.buttonText}>Verify OTP</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.resendButton, !canResend && styles.buttonDisabled]}
-                  onPress={handleSendOTP}
-                  disabled={!canResend || isLoading}
-                >
-                  <Text style={styles.resendText}>
-                    {canResend ? 'Resend OTP' : `Resend OTP in ${resendTimer}s`}
-                  </Text>
-                </TouchableOpacity>
               </View>
-            )}
 
-            <View style={styles.infoBox}>
-              <Icon name="info-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.infoText}>
-                Phone verification is required only once for security purposes. We will never share your number.
-              </Text>
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleSendOTP}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Theme.colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.buttonText}>Send OTP</Text>
+                )}
+              </TouchableOpacity>
             </View>
+          ) : (
+            <View style={styles.inputSection}>
+              <TextInput
+                style={styles.otpInput}
+                placeholder="Enter 6-digit OTP"
+                placeholderTextColor={Theme.colors.textSecondary}
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleVerifyOTP}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Theme.colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.buttonText}>Verify OTP</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.resendButton, !canResend && styles.buttonDisabled]}
+                onPress={handleSendOTP}
+                disabled={!canResend || isLoading}
+              >
+                <Text style={styles.resendText}>
+                  {canResend ? 'Resend OTP' : `Resend OTP in ${resendTimer}s`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.infoBox}>
+            <Icon name="info-outline" size={20} color={Theme.colors.textSecondary} />
+            <Text style={styles.infoText}>
+              Phone verification is required only once for security purposes. We will never share your number.
+            </Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -215,9 +210,7 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: Theme.colors.background,
   },
   content: {
     flex: 1,
@@ -231,11 +224,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    backgroundColor: Theme.colors.white,
+    borderRadius: Theme.borderRadius.md,
+    ...Theme.shadows.sm,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: Theme.colors.text,
     marginLeft: 16,
   },
   mainContent: {
@@ -247,39 +243,44 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Theme.colors.surfaceCardAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
+    borderWidth: 3,
+    borderColor: Theme.colors.secondary,
+    ...Theme.shadows.md,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
+    fontSize: 15,
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.9,
     marginBottom: 30,
     paddingHorizontal: 20,
+    lineHeight: 22,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Theme.borderRadius.lg,
     marginBottom: 20,
     width: '100%',
+    borderWidth: 1,
+    borderColor: Theme.colors.error,
   },
   errorText: {
     fontSize: 14,
-    color: '#FF5252',
+    color: Theme.colors.error,
     marginLeft: 8,
     flex: 1,
   },
@@ -290,74 +291,79 @@ const styles = StyleSheet.create({
   phoneInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    borderRadius: Theme.borderRadius.lg,
     paddingHorizontal: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    ...Theme.shadows.sm,
   },
   countryCode: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     marginRight: 12,
   },
   phoneInput: {
     flex: 1,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     paddingVertical: 16,
   },
   otpInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    borderRadius: Theme.borderRadius.lg,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 24,
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     textAlign: 'center',
     letterSpacing: 8,
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: Theme.colors.borderFocus,
+    ...Theme.shadows.sm,
   },
   button: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.primary,
     paddingVertical: 16,
-    borderRadius: 30,
+    borderRadius: Theme.borderRadius.round,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Theme.shadows.md,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#D81B60',
+    fontWeight: '700',
+    color: Theme.colors.textOnPrimary,
+    letterSpacing: 0.5,
   },
   resendButton: {
     marginTop: 16,
     alignItems: 'center',
+    paddingVertical: 8,
   },
   resendText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: Theme.colors.primary,
     textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Theme.colors.surfaceCard,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: Theme.borderRadius.lg,
     marginTop: 24,
     width: '100%',
   },
   infoText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: Theme.colors.textSecondary,
     marginLeft: 12,
     flex: 1,
     lineHeight: 18,
@@ -365,3 +371,4 @@ const styles = StyleSheet.create({
 });
 
 export default PhoneVerificationScreen;
+

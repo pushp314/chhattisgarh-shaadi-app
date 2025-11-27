@@ -28,6 +28,15 @@ const HoroscopeStep: React.FC<HoroscopeStepProps> = ({ onNext, onBack }) => {
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [selectedTime, setSelectedTime] = useState(new Date());
 
+    // Sync local state with store when store values change (for auto-fill)
+    React.useEffect(() => {
+        if (storeManglik !== undefined) setManglik(storeManglik ? 'yes' : 'no');
+        if (storeBirthTime) setBirthTime(storeBirthTime);
+        if (storeBirthPlace) setBirthPlace(storeBirthPlace);
+        if (storeRashi) setRashi(storeRashi);
+        if (storeNakshatra) setNakshatra(storeNakshatra);
+    }, [storeManglik, storeBirthTime, storeBirthPlace, storeRashi, storeNakshatra]);
+
     const handleTimeChange = (event: any, time?: Date) => {
         setShowTimePicker(false);
         if (time) {

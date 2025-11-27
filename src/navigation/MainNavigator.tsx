@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { MainTabParamList } from './types';
 import { useAuthStore } from '../store/authStore';
@@ -50,16 +51,25 @@ const MainNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       initialRouteName={initialRouteName}
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#D81B60',
         tabBarInactiveTintColor: '#757575',
-        tabBarStyle: {
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
-        },
-      }}
+        tabBarStyle: ((route) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? route.name;
+
+          // Hide tab bar on CreateProfile screen within the ProfileStack
+          if (routeName === 'CreateProfile') {
+            return { display: 'none' };
+          }
+
+          return {
+            paddingBottom: 5,
+            paddingTop: 5,
+            height: 60,
+          };
+        })(route),
+      })}
     >
       <Tab.Screen
         name="Home"

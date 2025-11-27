@@ -23,6 +23,7 @@ import occupationService from '../../services/occupation.service';
 import { useProfileStore } from '../../store/profileStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { autoFillCompleteProfile } from '../../utils/autoFillProfile';
+import { Theme } from '../../constants/theme';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -356,11 +357,11 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.surfaceCardAlt,
   },
   headerRow: {
     flexDirection: 'row',
@@ -373,14 +374,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: 'bold',
     marginBottom: 8,
+    color: Theme.colors.text,
   },
   stepIndicator: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginBottom: 12,
   },
   progressBar: {
     height: 8,
     borderRadius: 4,
+    backgroundColor: Theme.colors.borderFocus,
   },
   content: {
     flex: 1,

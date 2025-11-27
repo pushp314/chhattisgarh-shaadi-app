@@ -9,12 +9,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import LinearGradient from 'react-native-linear-gradient';
 import { SvgUri } from 'react-native-svg';
+import { Theme } from '../../constants/theme';
 
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -29,55 +31,60 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#D81B60', '#F06292']}
+        colors={Theme.gradients.romantic}
         style={styles.gradient}
       >
-        <View style={styles.content}>
-          {/* Logo/Branding */}
-          <View style={styles.headerSection}>
-            <SvgUri
-              uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
-              width="150"
-              height="150"
-              style={styles.logo}
-            />
-            <Text style={styles.title}>Chhattisgarh Shaadi</Text>
-            <Text style={styles.subtitle}>
-              Find your perfect match in Chhattisgarh
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            {/* Logo/Branding */}
+            <View style={styles.headerSection}>
+              <SvgUri
+                uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
+                width="150"
+                height="150"
+                style={styles.logo}
+              />
+              <Text style={styles.title}>Chhattisgarh Shaadi</Text>
+              <Text style={styles.subtitle}>
+                Find your perfect match in Chhattisgarh
+              </Text>
+            </View>
+
+            {/* Features */}
+            <View style={styles.featuresSection}>
+              <FeatureItem
+                icon="💑"
+                title="Verified Profiles"
+                description="Connect with genuine people"
+              />
+              <FeatureItem
+                icon="🗣️"
+                title="Chhattisgarhi Community"
+                description="Find matches who speak your language"
+              />
+              <FeatureItem
+                icon="✨"
+                title="Secure & Private"
+                description="Your data is safe with us"
+              />
+            </View>
+
+            {/* CTA Button */}
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.navigate('GoogleSignIn')}
+            >
+              <Text style={styles.buttonText}>Get Started</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.termsText}>
+              By continuing, you agree to our Terms of Service and Privacy Policy
             </Text>
           </View>
-
-          {/* Features */}
-          <View style={styles.featuresSection}>
-            <FeatureItem
-              icon="👰"
-              title="Verified Profiles"
-              description="Connect with genuine people"
-            />
-            <FeatureItem
-              icon="🗣️"
-              title="Chhattisgarhi Community"
-              description="Find matches who speak your language"
-            />
-            <FeatureItem
-              icon="🔒"
-              title="Secure & Private"
-              description="Your data is safe with us"
-            />
-          </View>
-
-          {/* CTA Button */}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('GoogleSignIn')}
-          >
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.termsText}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </Text>
-        </View>
+        </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -106,86 +113,90 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'space-between',
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   headerSection: {
-    marginTop: 60,
+    marginTop: 20,
     alignItems: 'center',
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     marginBottom: 12,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#FFFFFF',
+    fontSize: 17,
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.9,
+    fontWeight: '400',
   },
   featuresSection: {
-    marginTop: 40,
+    marginTop: 16,
+    marginBottom: 16,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 16,
-    borderRadius: 12,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 14,
+    borderRadius: Theme.borderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(250, 192, 53, 0.3)',
+    ...Theme.shadows.sm,
   },
   featureIcon: {
-    fontSize: 32,
+    fontSize: 36,
     marginRight: 16,
   },
   featureText: {
     flex: 1,
   },
   featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    color: Theme.colors.text,
     marginBottom: 4,
   },
   featureDescription: {
     fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    color: Theme.colors.textSecondary,
+    fontWeight: '400',
   },
   button: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.primary,
     paddingVertical: 16,
-    borderRadius: 30,
+    borderRadius: Theme.borderRadius.round,
     alignItems: 'center',
-    marginTop: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginTop: 16,
+    ...Theme.shadows.lg,
   },
   buttonText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#D81B60',
+    fontWeight: '700',
+    color: Theme.colors.textOnPrimary,
+    letterSpacing: 0.5,
   },
   termsText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.8,
     marginTop: 16,
+    lineHeight: 18,
   },
 });
 

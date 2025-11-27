@@ -149,12 +149,12 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/users/${id}`,
   },
   PROFILES: {
-    CREATE: '/profile',
-    ME: '/profile/me',
-    SEARCH: '/profile/search',
-    BY_ID: (id: number) => `/profile/${id}`,
-    DELETE: '/profile/me',
-    DELETE_PHOTO: (mediaId: number) => `/profile/photos/${mediaId}`,
+    CREATE: '/profiles',
+    ME: '/profiles/me',
+    SEARCH: '/profiles/search',
+    BY_ID: (id: number) => `/profiles/${id}`,
+    DELETE: '/profiles/me',
+    DELETE_PHOTO: (mediaId: number) => `/profiles/photos/${mediaId}`,
   },
   UPLOADS: {
     PROFILE_PHOTO: '/users/upload-profile-picture',

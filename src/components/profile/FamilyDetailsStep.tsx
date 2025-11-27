@@ -32,6 +32,18 @@ const FamilyDetailsStep: React.FC<FamilyDetailsStepProps> = ({ onNext, onBack })
     const [familyType, setFamilyType] = useState(storeFamilyType || '');
     const [familyStatus, setFamilyStatus] = useState(storeFamilyStatus || '');
 
+    // Sync local state with store when store values change (for auto-fill)
+    React.useEffect(() => {
+        if (storeFatherName) setFatherName(storeFatherName);
+        if (storeFatherOccupation) setFatherOccupation(storeFatherOccupation);
+        if (storeMotherName) setMotherName(storeMotherName);
+        if (storeMotherOccupation) setMotherOccupation(storeMotherOccupation);
+        if (storeNumberOfBrothers !== undefined) setNumberOfBrothers(storeNumberOfBrothers.toString());
+        if (storeNumberOfSisters !== undefined) setNumberOfSisters(storeNumberOfSisters.toString());
+        if (storeFamilyType) setFamilyType(storeFamilyType);
+        if (storeFamilyStatus) setFamilyStatus(storeFamilyStatus);
+    }, [storeFatherName, storeFatherOccupation, storeMotherName, storeMotherOccupation, storeNumberOfBrothers, storeNumberOfSisters, storeFamilyType, storeFamilyStatus]);
+
     const handleNext = () => {
         // Update store with all values
         if (fatherName) updateOnboardingData('fatherName', fatherName);

@@ -20,6 +20,19 @@ import { useAuthStore } from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { SvgUri } from 'react-native-svg';
+import { Theme } from '../../constants/theme';
+import Svg, { Path, G } from 'react-native-svg';
+
+// Google Logo Component
+const GoogleLogo = () => (
+  <Svg width="20" height="20" viewBox="0 0 48 48">
+    <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    <Path fill="none" d="M0 0h48v48H0z" />
+  </Svg>
+);
 
 type GoogleSignInScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -70,7 +83,7 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#F06292', '#D81B60']}
+        colors={Theme.gradients.romantic}
         style={styles.gradient}
       >
         <View style={styles.content}>
@@ -80,7 +93,7 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Icon name="arrow-back" size={24} color="#FFFFFF" />
+              <Icon name="arrow-back" size={24} color={Theme.colors.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Sign In</Text>
           </View>
@@ -90,8 +103,8 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.iconContainer}>
               <SvgUri
                 uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
-                width="100"
-                height="100"
+                width="140"
+                height="140"
               />
             </View>
 
@@ -102,18 +115,18 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
 
             {error ? (
               <View style={styles.errorContainer}>
-                <Icon name="error-outline" size={20} color="#FF5252" />
+                <Icon name="error-outline" size={20} color={Theme.colors.error} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
             {/* Agent Code Input */}
             <View style={styles.inputContainer}>
-              <Icon name="person-add" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <Icon name="person-add" size={20} color={Theme.colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Agent Code (Optional)"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                placeholderTextColor={Theme.colors.textSecondary}
                 value={agentCode}
                 onChangeText={setAgentCode}
                 autoCapitalize="characters"
@@ -128,17 +141,19 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#D81B60" />
+                <ActivityIndicator size="small" color="#4285F4" />
               ) : (
                 <>
-                  <Icon name="g-mobiledata" size={24} color="#D81B60" />
+                  <View style={styles.googleLogoContainer}>
+                    <GoogleLogo />
+                  </View>
                   <Text style={styles.googleButtonText}>Continue with Google</Text>
                 </>
               )}
             </TouchableOpacity>
 
             <View style={styles.infoBox}>
-              <Icon name="info-outline" size={20} color="#FFFFFF" />
+              <Icon name="info-outline" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>
                 We use Google Sign-In for secure authentication. Your Google password is never shared with us.
               </Text>
@@ -175,11 +190,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: Theme.borderRadius.md,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: Theme.colors.text,
     marginLeft: 16,
   },
   mainContent: {
@@ -188,66 +205,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
-  },
-  logoImage: {
-    width: 100,
-    height: 100,
+    borderWidth: 3,
+    borderColor: Theme.colors.secondary,
+    ...Theme.shadows.md,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     textAlign: 'center',
     marginBottom: 12,
+    letterSpacing: 0.3,
   },
   subtitle: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.9,
-    marginBottom: 40,
+    marginBottom: 32,
+    fontWeight: '400',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Theme.borderRadius.lg,
     marginBottom: 20,
     width: '100%',
+    borderWidth: 1,
+    borderColor: Theme.colors.error,
   },
   errorText: {
     fontSize: 14,
-    color: '#FF5252',
+    color: Theme.colors.error,
     marginLeft: 8,
     flex: 1,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 30,
+    backgroundColor: Theme.colors.white,
+    borderRadius: Theme.borderRadius.round,
     paddingHorizontal: 20,
     marginBottom: 20,
     width: '100%',
     height: 56,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Theme.colors.border,
+    ...Theme.shadows.sm,
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    color: '#FFFFFF',
+    color: Theme.colors.text,
     fontSize: 16,
     height: '100%',
   },
@@ -256,48 +276,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 30,
+    borderRadius: 4,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#dadce0',
+    ...Theme.shadows.sm,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
+  googleLogoContainer: {
+    marginRight: 12,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   googleButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#D81B60',
-    marginLeft: 12,
+    color: '#3c4043',
+    letterSpacing: 0.25,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: Theme.borderRadius.lg,
     marginTop: 24,
     width: '100%',
   },
   infoText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: Theme.colors.textSecondary,
     marginLeft: 12,
     flex: 1,
     lineHeight: 18,
   },
   termsText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.8,
     paddingBottom: 20,
+    lineHeight: 18,
   },
 });
 
 export default GoogleSignInScreen;
+
