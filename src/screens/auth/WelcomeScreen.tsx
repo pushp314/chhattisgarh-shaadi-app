@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import LinearGradient from 'react-native-linear-gradient';
+import { SvgUri } from 'react-native-svg';
 
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -34,6 +35,12 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.content}>
           {/* Logo/Branding */}
           <View style={styles.headerSection}>
+            <SvgUri
+              uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
+              width="150"
+              height="150"
+              style={styles.logo}
+            />
             <Text style={styles.title}>Chhattisgarh Shaadi</Text>
             <Text style={styles.subtitle}>
               Find your perfect match in Chhattisgarh
@@ -108,6 +115,11 @@ const styles = StyleSheet.create({
   headerSection: {
     marginTop: 60,
     alignItems: 'center',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
   },
   title: {
     fontSize: 36,

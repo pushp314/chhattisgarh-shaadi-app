@@ -19,6 +19,7 @@ import { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import { SvgUri } from 'react-native-svg';
 
 type GoogleSignInScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -87,7 +88,11 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
           {/* Main Content */}
           <View style={styles.mainContent}>
             <View style={styles.iconContainer}>
-              <Icon name="favorite" size={80} color="#FFFFFF" />
+              <SvgUri
+                uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
+                width="100"
+                height="100"
+              />
             </View>
 
             <Text style={styles.title}>Welcome to{'\n'}Chhattisgarh Shaadi</Text>
@@ -190,6 +195,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   title: {
     fontSize: 32,

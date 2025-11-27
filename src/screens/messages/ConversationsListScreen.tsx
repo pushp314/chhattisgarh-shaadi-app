@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {View, FlatList, StyleSheet, Image, RefreshControl} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, FlatList, StyleSheet, Image, RefreshControl } from 'react-native';
 import {
   Text,
   Searchbar,
@@ -8,11 +8,14 @@ import {
   Surface,
   ActivityIndicator,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {MessagesStackParamList} from '../../navigation/types';
-import {Conversation} from '../../types';
-// import messageService from '../../services/message.service';
+import { MessagesStackParamList } from '../../navigation/types';
+import { Conversation, Message } from '../../types';
+import messageService from '../../services/message.service';
+import socketService from '../../services/socket.service';
+import { SOCKET_EVENTS } from '../../constants/socket.constants';
+import { useFocusEffect } from '@react-navigation/native';
 
 type ConversationsListScreenNavigationProp = NativeStackNavigationProp<
   MessagesStackParamList,
@@ -23,7 +26,7 @@ type Props = {
   navigation: ConversationsListScreenNavigationProp;
 };
 
-const ConversationsListScreen: React.FC<Props> = ({navigation}) => {
+const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
@@ -32,9 +35,24 @@ const ConversationsListScreen: React.FC<Props> = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadConversations();
+
+      // Set up Socket.io listener for new messages
+      const handleNewMessage = (message: Message) => {
+        console.log('ConversationsList: New message received', message);
+        // Reload conversations to update list
+        loadConversations();
+      };
+
+      socketService.on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+
+      return () => {
+        socketService.off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+      };
+    }, [])
+  );
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -56,10 +74,9 @@ const ConversationsListScreen: React.FC<Props> = ({navigation}) => {
     }
 
     try {
-      // TODO: Call messageService.getConversations()
       console.log('Loading conversations');
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      setConversations([]);
+      const conversationsData = await messageService.getConversations();
+      setConversations(conversationsData);
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -88,7 +105,7 @@ const ConversationsListScreen: React.FC<Props> = ({navigation}) => {
     });
   };
 
-  const renderItem = ({item}: {item: Conversation}) => {
+  const renderItem = ({ item }: { item: Conversation }) => {
     const profile = item.user.profile;
     const userName = profile
       ? `${profile.firstName} ${profile.lastName}`
@@ -102,7 +119,7 @@ const ConversationsListScreen: React.FC<Props> = ({navigation}) => {
         descriptionNumberOfLines={1}
         left={() =>
           profilePic ? (
-            <Image source={{uri: profilePic}} style={styles.avatar} />
+            <Image source={{ uri: profilePic }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Icon name="account" size={32} color="#999" />

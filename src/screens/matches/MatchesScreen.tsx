@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -15,12 +15,16 @@ import {
   ActivityIndicator,
   Chip,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {MatchesStackParamList} from '../../navigation/types';
-import {MatchRequest} from '../../types';
-import {useAuthStore} from '../../store/authStore';
-// import matchService from '../../services/match.service';
+import { MatchesStackParamList } from '../../navigation/types';
+import { MatchRequest } from '../../types';
+import { useAuthStore } from '../../store/authStore';
+import matchService from '../../services/match.service';
+import ProfileCardSkeleton from '../../components/profile/ProfileCardSkeleton';
+import EmptyState from '../../components/common/EmptyState';
+import ErrorState from '../../components/common/ErrorState';
+import SuccessAnimation from '../../components/common/SuccessAnimation';
 
 type MatchesScreenNavigationProp = NativeStackNavigationProp<
   MatchesStackParamList,
@@ -33,13 +37,15 @@ type Props = {
 
 type TabType = 'received' | 'sent' | 'accepted';
 
-const MatchesScreen: React.FC<Props> = ({navigation}) => {
+const MatchesScreen: React.FC<Props> = ({ navigation }) => {
   const currentUser = useAuthStore(state => state.user);
   const [activeTab, setActiveTab] = useState<TabType>('received');
   const [matches, setMatches] = useState<MatchRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     loadMatches();
@@ -53,15 +59,22 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     }
 
     try {
-      // TODO: Call matchService based on activeTab
-      // received: matchService.getReceivedRequests()
-      // sent: matchService.getSentRequests()
-      // accepted: matchService.getAcceptedMatches()
       console.log('Loading matches:', activeTab);
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      setMatches([]);
-    } catch (error) {
-      console.error('Error loading matches:', error);
+      setError(null);
+      let response;
+
+      if (activeTab === 'received') {
+        response = await matchService.getReceivedMatches();
+      } else if (activeTab === 'sent') {
+        response = await matchService.getSentMatches();
+      } else {
+        response = await matchService.getAcceptedMatches();
+      }
+
+      setMatches(response.matches);
+    } catch (err: any) {
+      console.error('Error loading matches:', err);
+      setError(err.response?.data?.message || 'Failed to load matches');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -71,9 +84,9 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
   const handleAccept = async (requestId: number) => {
     setProcessingIds(prev => new Set(prev).add(requestId));
     try {
-      // TODO: Call matchService.acceptMatchRequest(requestId)
       console.log('Accepting match request:', requestId);
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      await matchService.acceptMatch(requestId);
+      setShowSuccess(true);
       loadMatches();
     } catch (error) {
       console.error('Error accepting match:', error);
@@ -89,9 +102,8 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
   const handleReject = async (requestId: number) => {
     setProcessingIds(prev => new Set(prev).add(requestId));
     try {
-      // TODO: Call matchService.rejectMatchRequest(requestId)
       console.log('Rejecting match request:', requestId);
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      await matchService.rejectMatch(requestId);
       loadMatches();
     } catch (error) {
       console.error('Error rejecting match:', error);
@@ -107,9 +119,8 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
   const handleCancel = async (requestId: number) => {
     setProcessingIds(prev => new Set(prev).add(requestId));
     try {
-      // TODO: Call matchService.cancelMatchRequest(requestId)
       console.log('Cancelling match request:', requestId);
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      await matchService.deleteMatch(requestId);
       loadMatches();
     } catch (error) {
       console.error('Error cancelling match:', error);
@@ -123,7 +134,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleViewProfile = (userId: number) => {
-    navigation.navigate('ProfileDetails', {userId});
+    navigation.navigate('ProfileDetails', { userId });
   };
 
   const handleStartChat = (userId: number, userName: string) => {
@@ -131,7 +142,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     // @ts-ignore - Cross-navigation between tabs
     navigation.navigate('Messages', {
       screen: 'ChatScreen',
-      params: {userId, userName},
+      params: { userId, userName },
     });
   };
 
@@ -144,7 +155,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
+
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
@@ -153,11 +164,11 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
 
   const getStatusChip = (status: string) => {
     const statusConfig = {
-      PENDING: {label: 'Pending', color: '#FF9800'},
-      ACCEPTED: {label: 'Accepted', color: '#4CAF50'},
-      REJECTED: {label: 'Rejected', color: '#F44336'},
-      CANCELLED: {label: 'Cancelled', color: '#9E9E9E'},
-      EXPIRED: {label: 'Expired', color: '#9E9E9E'},
+      PENDING: { label: 'Pending', color: '#FF9800' },
+      ACCEPTED: { label: 'Accepted', color: '#4CAF50' },
+      REJECTED: { label: 'Rejected', color: '#F44336' },
+      CANCELLED: { label: 'Cancelled', color: '#9E9E9E' },
+      EXPIRED: { label: 'Expired', color: '#9E9E9E' },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
@@ -165,16 +176,16 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     return (
       <Chip
         mode="flat"
-        textStyle={{fontSize: 12}}
-        style={{backgroundColor: config.color + '20'}}>
-        <Text style={{color: config.color, fontWeight: 'bold'}}>
+        textStyle={{ fontSize: 12 }}
+        style={{ backgroundColor: config.color + '20' }}>
+        <Text style={{ color: config.color, fontWeight: 'bold' }}>
           {config.label}
         </Text>
       </Chip>
     );
   };
 
-  const renderReceivedRequest = ({item}: {item: MatchRequest}) => {
+  const renderReceivedRequest = ({ item }: { item: MatchRequest }) => {
     const profile = item.sender?.profile;
     const userName = profile
       ? `${profile.firstName} ${profile.lastName}`
@@ -191,7 +202,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
           onPress={() => handleViewProfile(item.senderId)}
           style={styles.cardContent}>
           {profilePic ? (
-            <Image source={{uri: profilePic}} style={styles.profilePic} />
+            <Image source={{ uri: profilePic }} style={styles.profilePic} />
           ) : (
             <View style={styles.profilePicPlaceholder}>
               <Icon name="account" size={40} color="#999" />
@@ -256,7 +267,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     );
   };
 
-  const renderSentRequest = ({item}: {item: MatchRequest}) => {
+  const renderSentRequest = ({ item }: { item: MatchRequest }) => {
     const profile = item.receiver?.profile;
     const userName = profile
       ? `${profile.firstName} ${profile.lastName}`
@@ -273,7 +284,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
           onPress={() => handleViewProfile(item.receiverId)}
           style={styles.cardContent}>
           {profilePic ? (
-            <Image source={{uri: profilePic}} style={styles.profilePic} />
+            <Image source={{ uri: profilePic }} style={styles.profilePic} />
           ) : (
             <View style={styles.profilePicPlaceholder}>
               <Icon name="account" size={40} color="#999" />
@@ -320,7 +331,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     );
   };
 
-  const renderAcceptedMatch = ({item}: {item: MatchRequest}) => {
+  const renderAcceptedMatch = ({ item }: { item: MatchRequest }) => {
     const isSender = item.senderId === currentUser?.id;
     const otherUser = isSender ? item.receiver : item.sender;
     const profile = otherUser?.profile;
@@ -339,7 +350,7 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
           onPress={() => handleViewProfile(otherUserId)}
           style={styles.cardContent}>
           {profilePic ? (
-            <Image source={{uri: profilePic}} style={styles.profilePic} />
+            <Image source={{ uri: profilePic }} style={styles.profilePic} />
           ) : (
             <View style={styles.profilePicPlaceholder}>
               <Icon name="account" size={40} color="#999" />
@@ -390,45 +401,62 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
     );
   };
 
-  const renderItem = ({item}: {item: MatchRequest}) => {
-    if (activeTab === 'received') return renderReceivedRequest({item});
-    if (activeTab === 'sent') return renderSentRequest({item});
-    return renderAcceptedMatch({item});
+  const renderItem = ({ item }: { item: MatchRequest }) => {
+    if (activeTab === 'received') return renderReceivedRequest({ item });
+    if (activeTab === 'sent') return renderSentRequest({ item });
+    return renderAcceptedMatch({ item });
   };
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading) {
+      return (
+        <View style={styles.skeletonContainer}>
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+        </View>
+      );
+    }
+
+    if (error) {
+      return <ErrorState message={error} onRetry={() => loadMatches()} />;
+    }
 
     const emptyMessages = {
       received: {
         icon: 'inbox',
         title: 'No Received Requests',
-        subtitle: 'You haven\'t received any match requests yet',
+        message:
+          "You haven't received any match requests yet. Keep your profile updated to attract more matches!",
       },
       sent: {
         icon: 'send',
         title: 'No Sent Requests',
-        subtitle: 'Start sending match requests to connect',
+        message:
+          'Start sending match requests to connect with profiles you like. Browse the Home screen to find matches!',
+        actionLabel: 'Browse Profiles',
       },
       accepted: {
-        icon: 'heart-outline',
+        icon: 'heart-multiple',
         title: 'No Matches Yet',
-        subtitle: 'Accept requests to build connections',
+        message:
+          'Accept match requests to build connections. Your accepted matches will appear here.',
       },
     };
 
-    const message = emptyMessages[activeTab];
+    const config = emptyMessages[activeTab];
 
     return (
-      <View style={styles.emptyContainer}>
-        <Icon name={message.icon} size={64} color="#ccc" />
-        <Text variant="titleLarge" style={styles.emptyTitle}>
-          {message.title}
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptyText}>
-          {message.subtitle}
-        </Text>
-      </View>
+      <EmptyState
+        icon={config.icon}
+        title={config.title}
+        message={config.message}
+        actionLabel={'actionLabel' in config ? config.actionLabel : undefined}
+        onAction={
+          'actionLabel' in config
+            ? () => navigation.getParent()?.navigate('Home')
+            : undefined
+        }
+      />
     );
   };
 
@@ -439,9 +467,9 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
           value={activeTab}
           onValueChange={value => setActiveTab(value as TabType)}
           buttons={[
-            {value: 'received', label: 'Received'},
-            {value: 'sent', label: 'Sent'},
-            {value: 'accepted', label: 'Matches'},
+            { value: 'received', label: 'Received' },
+            { value: 'sent', label: 'Sent' },
+            { value: 'accepted', label: 'Matches' },
           ]}
           style={styles.segmentedButtons}
         />
@@ -466,6 +494,11 @@ const MatchesScreen: React.FC<Props> = ({navigation}) => {
           }
         />
       )}
+
+      <SuccessAnimation
+        visible={showSuccess}
+        onComplete={() => setShowSuccess(false)}
+      />
     </View>
   );
 };
@@ -488,6 +521,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
+    padding: 16,
+  },
+  skeletonContainer: {
     padding: 16,
   },
   card: {

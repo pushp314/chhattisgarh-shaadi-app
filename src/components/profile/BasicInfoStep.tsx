@@ -7,6 +7,7 @@ import { TextInput, Button, SegmentedButtons, Text, HelperText } from 'react-nat
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { Gender } from '../../constants/enums';
 import { DatePickerInput } from 'react-native-paper-dates';
+import { generateBasicInfo } from '../../utils/testDataGenerator';
 
 // 1. Define the Zod validation schema for this step
 const basicInfoSchema = z.object({
@@ -38,7 +39,7 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
   const updateOnboardingData = useOnboardingStore((state) => state.updateOnboardingData);
 
   // 3. Initialize React Hook Form with store data and Zod resolver
-  const { control, handleSubmit, formState: { errors } } = useForm<BasicInfoFormData>({
+  const { control, handleSubmit, formState: { errors }, setValue } = useForm<BasicInfoFormData>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
       firstName: firstName || '',
@@ -48,6 +49,16 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
       height: height || undefined,
     },
   });
+
+  // Auto-fill handler for testing
+  const handleAutoFill = () => {
+    const testData = generateBasicInfo();
+    setValue('firstName', testData.firstName);
+    setValue('lastName', testData.lastName);
+    setValue('dateOfBirth', testData.dateOfBirth);
+    setValue('gender', testData.gender);
+    setValue('height', testData.height);
+  };
 
   // 4. On valid submission, update the central store and navigate
   const onSubmit = (data: BasicInfoFormData) => {
@@ -64,6 +75,16 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Tell us about yourself
       </Text>
+
+      {/* Auto-Fill Button for Testing */}
+      <Button
+        mode="outlined"
+        onPress={handleAutoFill}
+        style={styles.autoFillButton}
+        icon="auto-fix"
+      >
+        Auto-Fill Test Data
+      </Button>
 
       <Controller
         control={control}
@@ -180,6 +201,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
+    marginBottom: 16,
+  },
+  autoFillButton: {
     marginBottom: 16,
   },
   input: {

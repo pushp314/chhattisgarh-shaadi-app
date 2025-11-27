@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -17,9 +17,9 @@ import {
   ActivityIndicator,
   Divider,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ProfileStackParamList} from '../../navigation/types';
-import {useProfileStore} from '../../store/profileStore';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ProfileStackParamList } from '../../navigation/types';
+import { useProfileStore } from '../../store/profileStore';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
@@ -31,11 +31,11 @@ type Props = {
   navigation: ProfileScreenNavigationProp;
 };
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48) / 3; // 3 photos per row with padding
 
-const ProfileScreen: React.FC<Props> = ({navigation}) => {
-  const {profile, isLoading, fetchProfile} = useProfileStore();
+const ProfileScreen: React.FC<Props> = ({ navigation }) => {
+  const { profile, isLoading, fetchProfile } = useProfileStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ const ProfileScreen: React.FC<Props> = ({navigation}) => {
       {profile.media && profile.media.length > 0 && (
         <View style={styles.primaryPhotoContainer}>
           <Image
-            source={{uri: profile.media[0].url}}
+            source={{ uri: profile.media[0].url }}
             style={styles.primaryPhoto}
           />
         </View>
@@ -312,7 +312,7 @@ const ProfileScreen: React.FC<Props> = ({navigation}) => {
             {profile.media.slice(1).map((photo, index) => (
               <Image
                 key={index}
-                source={{uri: photo.url}}
+                source={{ uri: photo.url }}
                 style={styles.galleryPhoto}
               />
             ))}
@@ -328,6 +328,27 @@ const ProfileScreen: React.FC<Props> = ({navigation}) => {
           onPress={() => navigation.navigate('EditProfile')}
           style={styles.actionButton}>
           Edit Profile
+        </Button>
+        <Button
+          mode="outlined"
+          icon="image-multiple"
+          onPress={() => navigation.navigate('PhotoManagement')}
+          style={styles.actionButton}>
+          Manage Photos
+        </Button>
+        <Button
+          mode="outlined"
+          icon="heart-multiple"
+          onPress={() => navigation.navigate('PartnerPreferences')}
+          style={styles.actionButton}>
+          Partner Preferences
+        </Button>
+        <Button
+          mode="outlined"
+          icon="bookmark-multiple"
+          onPress={() => navigation.navigate('Shortlist')}
+          style={styles.actionButton}>
+          My Shortlist
         </Button>
         <Button
           mode="outlined"

@@ -5,12 +5,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  View,
 } from 'react-native';
 import {
   Text,
   ProgressBar,
   Surface,
   useTheme,
+  IconButton,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../../navigation/types';
@@ -20,6 +22,7 @@ import educationService from '../../services/education.service';
 import occupationService from '../../services/occupation.service';
 import { useProfileStore } from '../../store/profileStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { autoFillCompleteProfile } from '../../utils/autoFillProfile';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -66,6 +69,15 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleAutoFill = () => {
+    try {
+      autoFillCompleteProfile();
+      Alert.alert('Success', 'Profile filled with test data! You can now navigate through the steps.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to auto-fill profile');
     }
   };
 
@@ -147,56 +159,56 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
       const profileResponse = await profileService.createProfile(cleanedProfileData);
       console.log('Profile created:', profileResponse);
 
-      // STEP 2: Add Education (if provided)
-      // Note: The current UI collects 'education' (level) and 'educationDetails'.
-      // We map 'education' to 'degree' and 'educationDetails' to 'field' for now.
-      if (onboardingData.education) {
-        console.log('Adding education...');
-        try {
-          await educationService.createEducation({
-            degree: Array.isArray(onboardingData.education) ? onboardingData.education[0] : onboardingData.education,
-            institution: 'Not Specified', // Placeholder as UI doesn't collect this yet
-            field: onboardingData.educationDetails || 'General',
-            yearOfPassing: undefined, // UI doesn't collect this yet
-            isCurrent: false,
-          } as any);
-          console.log('Education added');
-        } catch (eduError) {
-          console.error('Failed to add education:', eduError);
-          // Don't block flow, just log error
-        }
-      }
+      // NOTE: Education and Occupation endpoints require 'requireCompleteProfile' middleware
+      // which blocks access until the profile is complete. We skip these during initial creation.
+      // Users can add education/occupation details later through the Edit Profile screen.
 
-      // STEP 3: Add Occupation (if provided)
-      if (onboardingData.occupation) {
-        console.log('Adding occupation...');
-        try {
-          await occupationService.createOccupation({
-            companyName: 'Not Specified', // Placeholder
-            designation: onboardingData.jobTitle || (onboardingData.occupation as string),
-            employmentType: onboardingData.occupationType || 'FULL_TIME',
-            industry: 'Not Specified',
-            annualIncome: onboardingData.annualIncome,
-            isCurrent: true,
-            location: onboardingData.workLocation,
-          } as any);
-          console.log('Occupation added');
-        } catch (occError) {
-          console.error('Failed to add occupation:', occError);
-          // Don't block flow
-        }
-      }
+      // // STEP 2: Add Education (if provided)
+      // // Note: The current UI collects 'education' (level) and 'educationDetails'.
+      // // We map 'education' to 'degree' and 'educationDetails' to 'field' for now.
+      // if (onboardingData.education) {
+      //   console.log('Adding education...');
+      //   try {
+      //     await educationService.createEducation({
+      //       degree: Array.isArray(onboardingData.education) ? onboardingData.education[0] : onboardingData.education,
+      //       institution: 'Not Specified', // Placeholder as UI doesn't collect this yet
+      //       field: onboardingData.educationDetails || 'General',
+      //       yearOfPassing: undefined, // UI doesn't collect this yet
+      //       isCurrent: false,
+      //     } as any);
+      //     console.log('Education added');
+      //   } catch (eduError) {
+      //     console.error('Failed to add education:', eduError);
+      //     // Don't block flow, just log error
+      //   }
+      // }
 
-      // STEP 4: Upload Photos (if selected)
+      // // STEP 3: Add Occupation (if provided)
+      // if (onboardingData.occupation) {
+      //   console.log('Adding occupation...');
+      //   try {
+      //     await occupationService.createOccupation({
+      //       companyName: 'Not Specified', // Placeholder
+      //       designation: onboardingData.jobTitle || (onboardingData.occupation as string),
+      //       employmentType: onboardingData.occupationType || 'FULL_TIME',
+      //       industry: 'Not Specified',
+      //       annualIncome: onboardingData.annualIncome,
+      //       isCurrent: true,
+      //       location: onboardingData.workLocation,
+      //     } as any);
+      //     console.log('Occupation added');
+      //   } catch (occError) {
+      //     console.error('Failed to add occupation:', occError);
+      //     // Don't block flow
+      //   }
+      // }
+
+      // STEP 2: Upload Photos (if provided)
       if (onboardingData.photos && onboardingData.photos.length > 0) {
         console.log('Uploading photos...');
         try {
-          // Upload first photo as profile photo
-          await profileService.uploadProfilePhoto(onboardingData.photos[0]);
-
-          // Upload remaining photos if any
-          if (onboardingData.photos.length > 1) {
-            await profileService.uploadProfilePhotos(onboardingData.photos.slice(1));
+          for (const photoUri of onboardingData.photos) {
+            await profileService.uploadProfilePhoto(photoUri);
           }
           console.log('Photos uploaded');
         } catch (photoError) {
@@ -308,12 +320,22 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Surface style={styles.header} elevation={2}>
-        <Text variant="titleLarge" style={styles.headerTitle}>
-          Create Your Profile
-        </Text>
-        <Text variant="bodyMedium" style={styles.stepIndicator}>
-          Step {currentStep} of {TOTAL_STEPS}: {getStepTitle()}
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextContainer}>
+            <Text variant="titleLarge" style={styles.headerTitle}>
+              Create Your Profile
+            </Text>
+            <Text variant="bodyMedium" style={styles.stepIndicator}>
+              Step {currentStep} of {TOTAL_STEPS}: {getStepTitle()}
+            </Text>
+          </View>
+          <IconButton
+            icon="auto-fix"
+            mode="contained-tonal"
+            size={24}
+            onPress={handleAutoFill}
+          />
+        </View>
         <ProgressBar
           progress={progress}
           color={theme.colors.primary}
@@ -339,6 +361,14 @@ const styles = StyleSheet.create({
   header: {
     padding: 16,
     backgroundColor: '#fff',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
     fontWeight: 'bold',

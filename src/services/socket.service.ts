@@ -7,6 +7,7 @@ import io, { Socket } from 'socket.io-client';
 import { API_CONFIG } from '../config/api.config';
 import { getTokens } from './api.service';
 import { Message, Notification } from '../types';
+import { SOCKET_EVENTS } from '../constants/socket.constants';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -54,36 +55,41 @@ class SocketService {
   private setupDefaultListeners(): void {
     if (!this.socket) return;
 
-    // Message events (backend uses these exact event names)
-    this.socket.on('message:received', (data: Message) => {
-      this.emit('message:received', data);
+    // Message events
+    this.socket.on(SOCKET_EVENTS.MESSAGE_RECEIVED, (data: Message) => {
+      console.log('Socket: Message received', data);
+      this.emit(SOCKET_EVENTS.MESSAGE_RECEIVED, data);
     });
 
-    this.socket.on('message:read', (data: any) => {
-      this.emit('message:read', data);
+    this.socket.on(SOCKET_EVENTS.MESSAGE_READ, (data: any) => {
+      console.log('Socket: Message read', data);
+      this.emit(SOCKET_EVENTS.MESSAGE_READ, data);
     });
 
     // Notification events
-    this.socket.on('notification:new', (data: Notification) => {
-      this.emit('notification:new', data);
+    this.socket.on(SOCKET_EVENTS.NOTIFICATION_NEW, (data: Notification) => {
+      console.log('Socket: New notification', data);
+      this.emit(SOCKET_EVENTS.NOTIFICATION_NEW, data);
     });
 
     // User status events
-    this.socket.on('user:online', (data: { userId: number }) => {
-      this.emit('user:online', data);
+    this.socket.on(SOCKET_EVENTS.USER_ONLINE, (data: { userId: number }) => {
+      console.log('Socket: User online', data.userId);
+      this.emit(SOCKET_EVENTS.USER_ONLINE, data);
     });
 
-    this.socket.on('user:offline', (data: { userId: number }) => {
-      this.emit('user:offline', data);
+    this.socket.on(SOCKET_EVENTS.USER_OFFLINE, (data: { userId: number }) => {
+      console.log('Socket: User offline', data.userId);
+      this.emit(SOCKET_EVENTS.USER_OFFLINE, data);
     });
 
-    // Typing indicators (backend uses typing:started/stopped)
-    this.socket.on('typing:started', (data: { userId: number }) => {
-      this.emit('typing:started', data);
+    // Typing indicators
+    this.socket.on(SOCKET_EVENTS.TYPING_START, (data: { userId: number }) => {
+      this.emit(SOCKET_EVENTS.TYPING_START, data);
     });
 
-    this.socket.on('typing:stopped', (data: { userId: number }) => {
-      this.emit('typing:stopped', data);
+    this.socket.on(SOCKET_EVENTS.TYPING_STOP, (data: { userId: number }) => {
+      this.emit(SOCKET_EVENTS.TYPING_STOP, data);
     });
   }
 
@@ -99,18 +105,27 @@ class SocketService {
   }
 
   /**
-   * Send message
+   * Send message via socket (with callback for confirmation)
    */
-  sendMessage(receiverId: number, content: string, attachmentUrl?: string): void {
+  sendMessage(
+    receiverId: number,
+    content: string,
+    callback?: (response: { success: boolean; message?: Message; error?: string }) => void
+  ): void {
     if (!this.socket?.connected) {
-      throw new Error('Socket not connected');
+      callback?.({ success: false, error: 'Socket not connected' });
+      return;
     }
 
-    this.socket.emit('message:send', {
-      receiverId,
-      content,
-      attachmentUrl,
-    });
+    this.socket.emit(SOCKET_EVENTS.MESSAGE_SEND, { receiverId, content }, callback);
+  }
+
+  /**
+   * Mark messages as read
+   */
+  markMessagesAsRead(otherUserId: number): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit(SOCKET_EVENTS.MESSAGE_READ, { userId: otherUserId });
   }
 
   /**
@@ -118,7 +133,7 @@ class SocketService {
    */
   startTyping(receiverId: number): void {
     if (!this.socket?.connected) return;
-    this.socket.emit('typing:started', { receiverId });
+    this.socket.emit(SOCKET_EVENTS.TYPING_START, { receiverId });
   }
 
   /**
@@ -126,7 +141,7 @@ class SocketService {
    */
   stopTyping(receiverId: number): void {
     if (!this.socket?.connected) return;
-    this.socket.emit('typing:stopped', { receiverId });
+    this.socket.emit(SOCKET_EVENTS.TYPING_STOP, { receiverId });
   }
 
   /**

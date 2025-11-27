@@ -32,7 +32,10 @@ export type HomeStackParamList = {
 // Search Stack
 export type SearchStackParamList = {
   SearchScreen: undefined;
-  SearchResults: undefined;
+  SearchResults: {
+    query?: string;
+    filters?: any;
+  };
   ProfileDetails: { userId: number };
 };
 
@@ -57,6 +60,9 @@ export type ProfileStackParamList = {
   PhoneVerification: undefined;
   Settings: undefined;
   Subscription: undefined;
+  PhotoManagement: undefined;
+  PartnerPreferences: undefined;
+  Shortlist: undefined;
 };
 
 // Root Navigator
@@ -67,6 +73,6 @@ export type RootStackParamList = {
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }

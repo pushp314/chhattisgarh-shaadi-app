@@ -13,7 +13,7 @@ class MatchService {
    */
   async sendMatchRequest(receiverId: number, message?: string): Promise<MatchRequest> {
     const response = await api.post<ApiResponse<MatchRequest>>(
-      API_ENDPOINTS.MATCHES.CREATE,
+      API_ENDPOINTS.MATCHES.SEND,
       {
         receiverId,
         message,

@@ -121,6 +121,13 @@ class ProfileService {
   }
 
   /**
+   * Delete profile photo
+   */
+  async deletePhoto(mediaId: number): Promise<void> {
+    await api.delete(API_ENDPOINTS.PROFILES.DELETE_PHOTO(mediaId));
+  }
+
+  /**
    * Delete my profile
    */
   async deleteMyProfile(): Promise<void> {

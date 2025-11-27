@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -15,11 +15,11 @@ import {
   useTheme,
   ActivityIndicator,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RouteProp} from '@react-navigation/native';
-import {ProfileStackParamList} from '../../navigation/types';
-import {ProfileFormData} from '../../types/profileForm';
-import {useProfileStore} from '../../store/profileStore';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
+import { ProfileStackParamList } from '../../navigation/types';
+import { useProfileStore } from '../../store/profileStore';
+import { useOnboardingStore } from '../../store/onboardingStore';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -43,14 +43,11 @@ type Props = {
 
 const TOTAL_STEPS = 6;
 
-const EditProfileScreen: React.FC<Props> = ({navigation}) => {
+const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
-  const {profile, fetchProfile, updateProfile} = useProfileStore();
+  const { profile, fetchProfile, updateProfile } = useProfileStore();
+  const { updateOnboardingData } = useOnboardingStore();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<ProfileFormData>>({
-    hobbies: [],
-    photos: [],
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,28 +62,21 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
     try {
       await fetchProfile();
       if (profile) {
-        // Transform profile to form data
-        setFormData({
-          name: profile.name || '',
-          dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
-          gender: profile.gender || '',
-          height: profile.height || undefined,
-          state: profile.state || '',
-          city: profile.city || '',
-          nativeDistrict: profile.nativeDistrict || '',
-          religion: profile.religion || '',
-          caste: profile.caste || '',
-          subCaste: profile.subCaste || '',
-          maritalStatus: profile.maritalStatus || '',
-          education: profile.education || '',
-          educationDetails: profile.educationDetails || '',
-          occupation: profile.occupation || '',
-          occupationDetails: profile.occupationDetails || '',
-          annualIncome: profile.annualIncome || '',
-          aboutMe: profile.aboutMe || '',
-          hobbies: profile.hobbies || [],
-          photos: profile.photos?.map(p => p.url) || [],
-        });
+        // Populate onboarding store with profile data
+        updateOnboardingData('firstName', profile.firstName || '');
+        updateOnboardingData('lastName', profile.lastName || '');
+        updateOnboardingData('dateOfBirth', profile.dateOfBirth || '');
+        updateOnboardingData('gender', profile.gender || '');
+        updateOnboardingData('height', profile.height || undefined);
+        updateOnboardingData('state', profile.state || '');
+        updateOnboardingData('city', profile.city || '');
+        updateOnboardingData('nativeDistrict', profile.nativeDistrict || '');
+        updateOnboardingData('religion', profile.religion || '');
+        updateOnboardingData('caste', profile.caste || '');
+        updateOnboardingData('maritalStatus', profile.maritalStatus || '');
+        updateOnboardingData('bio', profile.bio || '');
+        updateOnboardingData('hobbies', profile.hobbies || '');
+        updateOnboardingData('photos', profile.media?.map((m: any) => m.url) || []);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -94,10 +84,6 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const updateFormData = (data: Partial<ProfileFormData>) => {
-    setFormData(prev => ({...prev, ...data}));
   };
 
   const handleNext = () => {
@@ -115,11 +101,36 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // TODO: Transform formData to API format and call updateProfile
-      console.log('Updating profile:', formData);
-      
+      const onboardingData = useOnboardingStore.getState();
+
+      // Transform onboarding data to API format
+      const updateData: any = {
+        firstName: onboardingData.firstName,
+        lastName: onboardingData.lastName,
+        dateOfBirth: onboardingData.dateOfBirth,
+        gender: onboardingData.gender,
+        height: onboardingData.height,
+        state: onboardingData.state,
+        city: onboardingData.city,
+        nativeDistrict: onboardingData.nativeDistrict,
+        religion: onboardingData.religion,
+        caste: onboardingData.caste,
+        maritalStatus: onboardingData.maritalStatus,
+        bio: onboardingData.bio,
+        hobbies: onboardingData.hobbies,
+      };
+
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
+      await updateProfile(updateData);
+
       Alert.alert('Success', 'Profile updated successfully', [
-        {text: 'OK', onPress: () => navigation.goBack()},
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -134,16 +145,12 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
       case 1:
         return (
           <BasicInfoStep
-            data={formData}
-            onUpdate={updateFormData}
             onNext={handleNext}
           />
         );
       case 2:
         return (
           <LocationStep
-            data={formData}
-            onUpdate={updateFormData}
             onNext={handleNext}
             onBack={handleBack}
           />
@@ -151,8 +158,6 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
       case 3:
         return (
           <ReligionStep
-            data={formData}
-            onUpdate={updateFormData}
             onNext={handleNext}
             onBack={handleBack}
           />
@@ -160,8 +165,6 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
       case 4:
         return (
           <EducationStep
-            data={formData}
-            onUpdate={updateFormData}
             onNext={handleNext}
             onBack={handleBack}
           />
@@ -169,8 +172,6 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
       case 5:
         return (
           <AboutStep
-            data={formData}
-            onUpdate={updateFormData}
             onNext={handleNext}
             onBack={handleBack}
           />
@@ -178,8 +179,6 @@ const EditProfileScreen: React.FC<Props> = ({navigation}) => {
       case 6:
         return (
           <PhotosStep
-            data={formData}
-            onUpdate={updateFormData}
             onSubmit={handleSubmit}
             onBack={handleBack}
             isSubmitting={isSubmitting}

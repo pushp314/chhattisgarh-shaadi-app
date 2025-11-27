@@ -22,6 +22,9 @@ import { HomeStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
 import ProfileCard from '../../components/ProfileCard';
+import ProfileCardSkeleton from '../../components/profile/ProfileCardSkeleton';
+import EmptyState from '../../components/common/EmptyState';
+import ErrorState from '../../components/common/ErrorState';
 import profileService from '../../services/profile.service';
 import { Profile, SearchProfilesParams } from '../../types';
 
@@ -104,8 +107,62 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleRefresh = () => {
+    loadProfiles(true, 1);
+  };
+
+  const renderItem = ({ item }: { item: Profile }) => (
+    <ProfileCard
+      profile={item}
+      onPress={() => navigation.navigate('ProfileDetails', { userId: item.userId })}
+    />
+  );
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#D81B60" />
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.skeletonContainer}>
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <ErrorState
+          message={error}
+          onRetry={() => loadProfiles(false, 1)}
+        />
+      );
+    }
+
+    return (
+      <EmptyState
+        icon="account-search"
+        title="No Profiles Found"
+        message="We couldn't find any profiles matching your criteria. Try adjusting your filters or check back later."
+        actionLabel="Browse All Profiles"
+        onAction={() => {
+          setFilters({ page: 1, limit: 10 });
+          loadProfiles(false, 1);
+        }}
+      />
+    );
+  };
+
   const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
+    if (hasMore && !loadingMore && !isLoading) {
       const nextPage = page + 1;
       setPage(nextPage);
       loadProfiles(false, nextPage);
@@ -193,40 +250,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderEmptyState = () => {
-    if (isLoading) return null;
 
-    return (
-      <View style={styles.emptyState}>
-        <Icon name="account-search" size={80} color="#ccc" />
-        <Text variant="titleMedium" style={styles.emptyTitle}>
-          No Profiles Found
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptySubtitle}>
-          Try adjusting your filters or check back later
-        </Text>
-        <Button
-          mode="contained"
-          onPress={() => navigation.getParent()?.navigate('Search')}
-          style={styles.emptyButton}>
-          Adjust Filters
-        </Button>
-      </View>
-    );
-  };
-
-  const renderFooter = () => {
-    if (!loadingMore) return null;
-
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#D81B60" />
-        <Text variant="bodySmall" style={styles.footerText}>
-          Loading more profiles...
-        </Text>
-      </View>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -268,7 +292,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           />
         )}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
@@ -377,6 +401,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+  },
+  skeletonContainer: {
+    padding: 16,
   },
   emptyTitle: {
     marginTop: 16,

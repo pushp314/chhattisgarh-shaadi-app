@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -17,13 +17,13 @@ import {
   ProgressBar,
   Chip,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RouteProp} from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {SearchStackParamList} from '../../navigation/types';
-import {Profile} from '../../types';
-// import profileService from '../../services/profile.service';
-// import matchService from '../../services/match.service';
+import { SearchStackParamList } from '../../navigation/types';
+import { Profile } from '../../types';
+import profileService from '../../services/profile.service';
+import matchService from '../../services/match.service';
 
 type ProfileDetailsScreenNavigationProp = NativeStackNavigationProp<
   SearchStackParamList,
@@ -40,10 +40,10 @@ type Props = {
   route: ProfileDetailsScreenRouteProp;
 };
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
-  const {userId} = route.params;
+const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { userId } = route.params;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,13 +58,12 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
     }
 
     try {
-      // TODO: Call profileService.getProfileById(userId)
-      console.log('Loading profile:', userId);
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      // Mock profile data
-      setProfile(null);
-    } catch (error) {
+      console.log('Loading profile for userId:', userId);
+      const profileData = await profileService.getProfileById(userId);
+      setProfile(profileData);
+    } catch (error: any) {
       console.error('Error loading profile:', error);
+      setProfile(null);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -78,12 +77,13 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
   const handleSendMatchRequest = async () => {
     setSendingRequest(true);
     try {
-      // TODO: Call matchService.sendMatchRequest(userId)
-      console.log('Sending match request to:', userId);
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+      console.log('Sending match request to userId:', userId);
+      await matchService.sendMatchRequest(userId);
+      // Show success message and navigate back
       navigation.goBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending match request:', error);
+      // You could show an error alert here
     } finally {
       setSendingRequest(false);
     }
@@ -104,7 +104,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
     return (
       <View style={styles.photoContainer}>
         <Image
-          source={{uri: photos[currentPhotoIndex].url}}
+          source={{ uri: photos[currentPhotoIndex].url }}
           style={styles.photo}
           resizeMode="cover"
         />
@@ -237,17 +237,17 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
             <Icon name="account-details" size={20} /> Basic Information
           </Text>
           <Divider style={styles.divider} />
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Gender</Text>
             <Text style={styles.value}>{profile.gender}</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Marital Status</Text>
             <Text style={styles.value}>{profile.maritalStatus.replace('_', ' ')}</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Mother Tongue</Text>
             <Text style={styles.value}>{profile.motherTongue}</Text>
@@ -260,12 +260,12 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
             <Icon name="map-marker" size={20} /> Location
           </Text>
           <Divider style={styles.divider} />
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Native District</Text>
             <Text style={styles.value}>{profile.nativeDistrict}, Chhattisgarh</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Currently Living In</Text>
             <Text style={styles.value}>{profile.city}, {profile.state}</Text>
@@ -278,12 +278,12 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
             <Icon name="om" size={20} /> Religion & Caste
           </Text>
           <Divider style={styles.divider} />
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Religion</Text>
             <Text style={styles.value}>{profile.religion}</Text>
           </View>
-          
+
           {profile.caste && (
             <View style={styles.infoRow}>
               <Text style={styles.label}>Caste</Text>
@@ -298,17 +298,17 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
             <Icon name="school" size={20} /> Education & Career
           </Text>
           <Divider style={styles.divider} />
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Education</Text>
             <Text style={styles.value}>{profile.education}</Text>
           </View>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.label}>Occupation</Text>
             <Text style={styles.value}>{profile.occupation}</Text>
           </View>
-          
+
           {profile.annualIncome && (
             <View style={styles.infoRow}>
               <Text style={styles.label}>Annual Income</Text>
@@ -356,7 +356,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({navigation, route}) => {
               {profile.media.map((photo, index) => (
                 <Image
                   key={index}
-                  source={{uri: photo.url}}
+                  source={{ uri: photo.url }}
                   style={styles.galleryPhoto}
                   resizeMode="cover"
                 />

@@ -15,6 +15,9 @@ import CreateProfileScreen from '../../screens/profile/CreateProfileScreen.tsx';
 import PhoneVerificationScreen from '../../screens/auth/PhoneVerificationScreen.tsx';
 import SettingsScreen from '../../screens/profile/SettingsScreen.tsx';
 import SubscriptionScreen from '../../screens/profile/SubscriptionScreen.tsx';
+import PhotoManagementScreen from '../../screens/profile/PhotoManagementScreen.tsx';
+import PartnerPreferencesScreen from '../../screens/profile/PartnerPreferencesScreen.tsx';
+import ShortlistScreen from '../../screens/profile/ShortlistScreen.tsx';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -66,6 +69,11 @@ const ProfileStack: React.FC = () => {
         options={{ title: 'Edit Profile' }}
       />
       <Stack.Screen
+        name="PhotoManagement"
+        component={PhotoManagementScreen}
+        options={{ title: 'Manage Photos' }}
+      />
+      <Stack.Screen
         name="Settings"
         component={SettingsScreen}
         options={{ title: 'Settings' }}
@@ -74,6 +82,16 @@ const ProfileStack: React.FC = () => {
         name="Subscription"
         component={SubscriptionScreen}
         options={{ title: 'Subscription' }}
+      />
+      <Stack.Screen
+        name="PartnerPreferences"
+        component={PartnerPreferencesScreen}
+        options={{ title: 'Partner Preferences' }}
+      />
+      <Stack.Screen
+        name="Shortlist"
+        component={ShortlistScreen}
+        options={{ title: 'My Shortlist' }}
       />
     </Stack.Navigator>
   );

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -13,13 +13,13 @@ import {
   Modal,
   Surface,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RouteProp} from '@react-navigation/native';
-import {SearchStackParamList} from '../../navigation/types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
+import { SearchStackParamList } from '../../navigation/types';
 import ProfileCard from '../../components/ProfileCard';
 import SearchFilters from '../../components/SearchFilters';
-import {Profile} from '../../types';
-// import profileService from '../../services/profile.service';
+import { Profile } from '../../types';
+import profileService from '../../services/profile.service';
 
 type SearchResultsScreenNavigationProp = NativeStackNavigationProp<
   SearchStackParamList,
@@ -36,8 +36,8 @@ type Props = {
   route: SearchResultsScreenRouteProp;
 };
 
-const SearchResultsScreen: React.FC<Props> = ({navigation, route}) => {
-  const {query, filters} = route.params;
+const SearchResultsScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { query, filters } = route.params;
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -54,13 +54,21 @@ const SearchResultsScreen: React.FC<Props> = ({navigation, route}) => {
 
     setIsLoading(true);
     try {
-      // TODO: Call profileService.searchProfiles(query, activeFilters, pageNum)
-      console.log('Searching profiles:', {query, activeFilters, pageNum});
-      
-      // Mock data for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setProfiles([]);
-      setHasMore(false);
+      console.log('Searching profiles:', { query, activeFilters, pageNum });
+
+      const response = await profileService.searchProfiles({
+        ...activeFilters,
+        page: pageNum,
+        limit: 10,
+      });
+
+      if (pageNum === 1) {
+        setProfiles(response.profiles);
+      } else {
+        setProfiles(prev => [...prev, ...response.profiles]);
+      }
+
+      setHasMore(response.pagination.page < response.pagination.totalPages);
     } catch (error) {
       console.error('Error loading profiles:', error);
     } finally {
@@ -77,7 +85,7 @@ const SearchResultsScreen: React.FC<Props> = ({navigation, route}) => {
   };
 
   const handleProfilePress = (profile: Profile) => {
-    navigation.navigate('ProfileDetails', {profileId: profile.id});
+    navigation.navigate('ProfileDetails', { userId: profile.userId });
   };
 
   const handleApplyFilters = (newFilters: any) => {
@@ -91,7 +99,7 @@ const SearchResultsScreen: React.FC<Props> = ({navigation, route}) => {
     key => activeFilters[key] !== undefined && activeFilters[key] !== '',
   ).length;
 
-  const renderItem = ({item}: {item: Profile}) => (
+  const renderItem = ({ item }: { item: Profile }) => (
     <ProfileCard
       profile={item}
       onPress={() => handleProfilePress(item)}

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -8,15 +8,16 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import {Text, TextInput, IconButton, Surface} from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RouteProp} from '@react-navigation/native';
+import { Text, TextInput, IconButton, Surface } from 'react-native-paper';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {MessagesStackParamList} from '../../navigation/types';
-import {Message} from '../../types';
-import {useAuthStore} from '../../store/authStore';
-// import messageService from '../../services/message.service';
-// import socketService from '../../services/socket.service';
+import { MessagesStackParamList } from '../../navigation/types';
+import { Message } from '../../types';
+import { useAuthStore } from '../../store/authStore';
+import messageService from '../../services/message.service';
+import socketService from '../../services/socket.service';
+import { SOCKET_EVENTS } from '../../constants/socket.constants';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<
   MessagesStackParamList,
@@ -30,8 +31,8 @@ type Props = {
   route: ChatScreenRouteProp;
 };
 
-const ChatScreen: React.FC<Props> = ({navigation, route}) => {
-  const {userId: otherUserId, userName} = route.params;
+const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { userId: otherUserId, userName } = route.params;
   const currentUser = useAuthStore(state => state.user);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
@@ -39,34 +40,46 @@ const ChatScreen: React.FC<Props> = ({navigation, route}) => {
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    navigation.setOptions({title: userName});
+    navigation.setOptions({ title: userName });
   }, [navigation, userName]);
 
   useEffect(() => {
     loadMessages();
-    // TODO: Set up Socket.io listeners
-    // socketService.on('message:received', handleNewMessage);
-    // socketService.on('typing:started', handleTypingStarted);
-    // socketService.on('typing:stopped', handleTypingStopped);
+
+    // Set up Socket.io listeners
+    socketService.on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+    socketService.on(SOCKET_EVENTS.TYPING_START, handleTypingStarted);
+    socketService.on(SOCKET_EVENTS.TYPING_STOP, handleTypingStopped);
+    socketService.on(SOCKET_EVENTS.MESSAGE_READ, handleMessageRead);
+
+    // Mark messages as read when entering chat
+    if (socketService.isConnected()) {
+      socketService.markMessagesAsRead(otherUserId);
+    }
 
     return () => {
-      // TODO: Clean up Socket.io listeners
-      // socketService.off('message:received', handleNewMessage);
-      // socketService.off('typing:started', handleTypingStarted);
-      // socketService.off('typing:stopped', handleTypingStopped);
+      // Clean up Socket.io listeners
+      socketService.off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+      socketService.off(SOCKET_EVENTS.TYPING_START, handleTypingStarted);
+      socketService.off(SOCKET_EVENTS.TYPING_STOP, handleTypingStopped);
+      socketService.off(SOCKET_EVENTS.MESSAGE_READ, handleMessageRead);
+
+      // Stop typing indicator on unmount
+      if (socketService.isConnected()) {
+        socketService.stopTyping(otherUserId);
+      }
     };
   }, [otherUserId]);
 
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      // TODO: Call messageService.getMessages(otherUserId)
       console.log('Loading messages with:', otherUserId);
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      setMessages([]);
+      const response = await messageService.getConversation(otherUserId);
+      setMessages(response.messages.reverse()); // Reverse to show newest at bottom
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -75,27 +88,50 @@ const ChatScreen: React.FC<Props> = ({navigation, route}) => {
   };
 
   const handleNewMessage = useCallback((message: Message) => {
+    console.log('New message received:', message);
     if (
       message.senderId === otherUserId ||
       message.receiverId === otherUserId
     ) {
-      setMessages(prev => [message, ...prev]);
-      // TODO: Mark as read
-      // messageService.markAsRead(message.id);
+      setMessages(prev => {
+        // Prevent duplicates
+        if (prev.some(m => m.id === message.id)) {
+          return prev;
+        }
+        return [message, ...prev];
+      });
+
+      // Mark as read if it's from the other user and we're in the chat
+      if (message.senderId === otherUserId && socketService.isConnected()) {
+        socketService.markMessagesAsRead(otherUserId);
+      }
     }
   }, [otherUserId]);
 
-  const handleTypingStarted = useCallback((data: {userId: number}) => {
+  const handleTypingStarted = useCallback((data: { userId: number }) => {
     if (data.userId === otherUserId) {
       setIsTyping(true);
     }
   }, [otherUserId]);
 
-  const handleTypingStopped = useCallback((data: {userId: number}) => {
+  const handleTypingStopped = useCallback((data: { userId: number }) => {
     if (data.userId === otherUserId) {
       setIsTyping(false);
     }
   }, [otherUserId]);
+
+  const handleMessageRead = useCallback((data: { byUser: number }) => {
+    // Update read status for messages sent by current user
+    if (data.byUser === otherUserId) {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.senderId === currentUser?.id && msg.receiverId === otherUserId
+            ? { ...msg, isRead: true, readAt: new Date().toISOString() }
+            : msg
+        )
+      );
+    }
+  }, [otherUserId, currentUser]);
 
   const handleSendMessage = async () => {
     if (messageText.trim() === '' || isSending) return;
@@ -105,20 +141,9 @@ const ChatScreen: React.FC<Props> = ({navigation, route}) => {
     setIsSending(true);
 
     try {
-      // TODO: Call messageService.sendMessage(otherUserId, tempMessage)
-      console.log('Sending message:', {to: otherUserId, text: tempMessage});
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
-
-      // Mock message
-      // const newMessage: Message = {
-      //   id: Date.now(),
-      //   senderId: currentUser?.id!,
-      //   receiverId: otherUserId,
-      //   content: tempMessage,
-      //   isRead: false,
-      //   createdAt: new Date().toISOString(),
-      // };
-      // setMessages(prev => [newMessage, ...prev]);
+      console.log('Sending message:', { to: otherUserId, text: tempMessage });
+      const newMessage = await messageService.sendMessage(otherUserId, tempMessage);
+      setMessages(prev => [newMessage, ...prev]);
     } catch (error) {
       console.error('Error sending message:', error);
       setMessageText(tempMessage);
@@ -130,18 +155,21 @@ const ChatScreen: React.FC<Props> = ({navigation, route}) => {
   const handleTextChange = (text: string) => {
     setMessageText(text);
 
-    // TODO: Emit typing indicator
-    // if (text.trim() !== '') {
-    //   socketService.emit('typing:start', { receiverId: otherUserId });
-    //   
-    //   if (typingTimeoutRef.current) {
-    //     clearTimeout(typingTimeoutRef.current);
-    //   }
-    //   
-    //   typingTimeoutRef.current = setTimeout(() => {
-    //     socketService.emit('typing:stop', { receiverId: otherUserId });
-    //   }, 2000);
-    // }
+    // Emit typing indicator
+    if (text.trim() !== '' && socketService.isConnected()) {
+      socketService.startTyping(otherUserId);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // @ts-ignore
+      typingTimeoutRef.current = setTimeout(() => {
+        socketService.stopTyping(otherUserId);
+      }, 2000);
+    } else if (text.trim() === '' && socketService.isConnected()) {
+      socketService.stopTyping(otherUserId);
+    }
   };
 
   const formatTimestamp = (dateString: string) => {
@@ -152,7 +180,7 @@ const ChatScreen: React.FC<Props> = ({navigation, route}) => {
     });
   };
 
-  const renderMessage = ({item}: {item: Message}) => {
+  const renderMessage = ({ item }: { item: Message }) => {
     const isMine = item.senderId === currentUser?.id;
 
     return (
@@ -342,7 +370,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 120,
-    transform: [{scaleY: -1}],
+    transform: [{ scaleY: -1 }],
   },
   emptyText: {
     marginTop: 16,
