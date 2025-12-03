@@ -18,6 +18,8 @@ import { useAuthStore } from '../../store/authStore';
 import messageService from '../../services/message.service';
 import socketService from '../../services/socket.service';
 import { SOCKET_EVENTS } from '../../constants/socket.constants';
+import TypingIndicator from '../../components/common/TypingIndicator';
+import OnlineStatusBadge from '../../components/common/OnlineStatusBadge';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<
   MessagesStackParamList,
@@ -39,12 +41,18 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    navigation.setOptions({ title: userName });
-  }, [navigation, userName]);
+    navigation.setOptions({
+      title: userName,
+      headerRight: () => (
+        <OnlineStatusBadge isOnline={isOnline} size="small" showText={true} />
+      ),
+    });
+  }, [navigation, userName, isOnline]);
 
   useEffect(() => {
     loadMessages();
@@ -54,6 +62,8 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
     socketService.on(SOCKET_EVENTS.TYPING_START, handleTypingStarted);
     socketService.on(SOCKET_EVENTS.TYPING_STOP, handleTypingStopped);
     socketService.on(SOCKET_EVENTS.MESSAGE_READ, handleMessageRead);
+    socketService.on(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
+    socketService.on(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
 
     // Mark messages as read when entering chat
     if (socketService.isConnected()) {
@@ -66,6 +76,8 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
       socketService.off(SOCKET_EVENTS.TYPING_START, handleTypingStarted);
       socketService.off(SOCKET_EVENTS.TYPING_STOP, handleTypingStopped);
       socketService.off(SOCKET_EVENTS.MESSAGE_READ, handleMessageRead);
+      socketService.off(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
+      socketService.off(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
 
       // Stop typing indicator on unmount
       if (socketService.isConnected()) {
@@ -132,6 +144,18 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
       );
     }
   }, [otherUserId, currentUser]);
+
+  const handleUserOnline = useCallback((data: { userId: number }) => {
+    if (data.userId === otherUserId) {
+      setIsOnline(true);
+    }
+  }, [otherUserId]);
+
+  const handleUserOffline = useCallback((data: { userId: number }) => {
+    if (data.userId === otherUserId) {
+      setIsOnline(false);
+    }
+  }, [otherUserId]);
 
   const handleSendMessage = async () => {
     if (messageText.trim() === '' || isSending) return;
@@ -242,18 +266,7 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const renderTypingIndicator = () => {
     if (!isTyping) return null;
-
-    return (
-      <View style={styles.typingContainer}>
-        <Surface style={styles.typingBubble} elevation={1}>
-          <View style={styles.typingDots}>
-            <View style={styles.typingDot} />
-            <View style={styles.typingDot} />
-            <View style={styles.typingDot} />
-          </View>
-        </Surface>
-      </View>
-    );
+    return <TypingIndicator />;
   };
 
   if (isLoading) {

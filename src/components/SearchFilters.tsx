@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, ScrollView, StyleSheet} from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import {
   Text,
   Button,
@@ -8,7 +8,8 @@ import {
   Divider,
   Menu,
 } from 'react-native-paper';
-import {Religion, MaritalStatus, Education, Occupation} from '../constants/enums';
+import { Theme } from '../constants/theme';
+import { Religion, MaritalStatus, Education, Occupation } from '../constants/enums';
 
 type FilterValues = {
   minAge?: number;
@@ -38,7 +39,7 @@ const CG_DISTRICTS = [
   'Narayanpur', 'Raigarh', 'Raipur', 'Rajnandgaon', 'Sukma', 'Surajpur', 'Surguja',
 ];
 
-const SearchFilters: React.FC<Props> = ({initialFilters, onApply, onClose}) => {
+const SearchFilters: React.FC<Props> = ({ initialFilters, onApply, onClose }) => {
   const [filters, setFilters] = useState<FilterValues>(initialFilters);
   const [religionMenuVisible, setReligionMenuVisible] = useState(false);
   const [maritalMenuVisible, setMaritalMenuVisible] = useState(false);
@@ -47,7 +48,7 @@ const SearchFilters: React.FC<Props> = ({initialFilters, onApply, onClose}) => {
   const [districtMenuVisible, setDistrictMenuVisible] = useState(false);
 
   const updateFilter = (key: keyof FilterValues, value: any) => {
-    setFilters(prev => ({...prev, [key]: value}));
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const clearFilters = () => {
@@ -308,7 +309,9 @@ const SearchFilters: React.FC<Props> = ({initialFilters, onApply, onClose}) => {
         <Button
           mode="contained"
           onPress={handleApply}
-          style={styles.footerButton}>
+          style={styles.footerButton}
+          buttonColor={Theme.colors.secondary}
+          textColor={Theme.colors.primaryDark}>
           Apply Filters
         </Button>
       </Surface>
@@ -319,17 +322,18 @@ const SearchFilters: React.FC<Props> = ({initialFilters, onApply, onClose}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.surfaceCard,
   },
   title: {
     fontWeight: 'bold',
+    color: Theme.colors.text,
   },
   content: {
     flex: 1,
@@ -340,6 +344,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: 12,
     fontWeight: '600',
+    color: Theme.colors.text,
   },
   row: {
     flexDirection: 'row',
@@ -356,10 +361,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
+    ...Theme.shadows.md,
   },
   footerButton: {
     flex: 1,
+    borderRadius: 8,
   },
 });
 

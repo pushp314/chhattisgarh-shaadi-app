@@ -20,9 +20,11 @@ type EducationFormData = z.infer<typeof educationSchema>;
 type Props = {
   onNext: () => void;
   onBack: () => void;
+  submitLabel?: string;
+  isSubmitting?: boolean;
 };
 
-const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
+const EducationStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', isSubmitting = false }) => {
   // Use individual selectors to avoid re-render loops
   const education = useOnboardingStore((state) => state.education);
   const occupation = useOnboardingStore((state) => state.occupation);
@@ -177,7 +179,7 @@ const EducationStep: React.FC<Props> = ({ onNext, onBack }) => {
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton}>Next</Button>
+        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton} loading={isSubmitting} disabled={isSubmitting}>{submitLabel}</Button>
       </View>
     </View>
   );

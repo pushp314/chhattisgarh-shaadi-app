@@ -9,13 +9,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
 import { useProfileStore } from '../store/profileStore';
 import AuthNavigator from './AuthNavigator';
-import MainNavigator from './MainNavigator';
+import DrawerNavigator from './DrawerNavigator';
 import { RootStackParamList } from './types';
 import socketService from '../services/socket.service';
+import { ToastProvider } from '../providers/ToastProvider';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
+  // ... existing hooks
   const { isAuthenticated, loadUserData, isNewUser } = useAuthStore();
   const { fetchProfile, profile } = useProfileStore();
   const navigationRef = useRef<any>(null);
@@ -38,7 +40,7 @@ const AppNavigator: React.FC = () => {
         if (navigationRef.current) {
           setTimeout(() => {
             navigationRef.current?.navigate('Main', {
-              screen: 'Profile',
+              screen: 'ProfileStack',
               params: {
                 screen: 'CreateProfile',
               },
@@ -51,24 +53,15 @@ const AppNavigator: React.FC = () => {
       // For existing users, fetch profile to check status
       fetchProfile()
         .then(() => {
-          // Profile exists - check if phone verification is needed
-          const { user } = useAuthStore.getState();
-          if (!user?.isPhoneVerified && navigationRef.current) {
-            // Navigate to Profile tab -> PhoneVerification
+          // Profile exists - navigate to Home
+          // Skip phone verification check since it's handled during sign-up
+          if (navigationRef.current) {
             setTimeout(() => {
               navigationRef.current?.navigate('Main', {
-                screen: 'Profile',
+                screen: 'MainTabs',
                 params: {
-                  screen: 'PhoneVerification',
+                  screen: 'Home',
                 },
-              });
-            }, 500);
-          } else if (navigationRef.current) {
-            // Profile exists and phone verified - ensure we are on Home
-            // This handles the case where user logged in on new device and was initially shown CreateProfile
-            setTimeout(() => {
-              navigationRef.current?.navigate('Main', {
-                screen: 'Home',
               });
             }, 500);
           }
@@ -79,7 +72,7 @@ const AppNavigator: React.FC = () => {
             if (navigationRef.current) {
               setTimeout(() => {
                 navigationRef.current?.navigate('Main', {
-                  screen: 'Profile',
+                  screen: 'ProfileStack',
                   params: {
                     screen: 'CreateProfile',
                   },
@@ -103,15 +96,17 @@ const AppNavigator: React.FC = () => {
   }, [isAuthenticated, isNewUser, fetchProfile]);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : (
-          <Stack.Screen name="Main" component={MainNavigator} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ToastProvider>
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!isAuthenticated ? (
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          ) : (
+            <Stack.Screen name="Main" component={DrawerNavigator} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ToastProvider>
   );
 };
 

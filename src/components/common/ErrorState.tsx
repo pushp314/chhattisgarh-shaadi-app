@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
+import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = {
@@ -16,7 +17,7 @@ const ErrorState: React.FC<Props> = ({
 }) => {
     return (
         <View style={styles.container}>
-            <Icon name="alert-circle-outline" size={80} color="#F44336" />
+            <Icon name="alert-circle-outline" size={80} color={Theme.colors.primary} />
             <Text variant="headlineSmall" style={styles.title}>
                 {title}
             </Text>
@@ -29,7 +30,8 @@ const ErrorState: React.FC<Props> = ({
                     onPress={onRetry}
                     icon="refresh"
                     style={styles.button}
-                    buttonColor="#D81B60">
+                    buttonColor={Theme.colors.secondary}
+                    textColor={Theme.colors.primaryDark}>
                     Try Again
                 </Button>
             )}
@@ -49,16 +51,17 @@ const styles = StyleSheet.create({
         marginTop: 16,
         marginBottom: 8,
         textAlign: 'center',
-        color: '#F44336',
+        color: Theme.colors.primary,
     },
     message: {
-        color: '#666',
+        color: Theme.colors.textSecondary,
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 22,
     },
     button: {
         marginTop: 8,
+        borderRadius: 8,
     },
 });
 

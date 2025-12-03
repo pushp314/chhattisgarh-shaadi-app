@@ -8,14 +8,17 @@ type Props = {
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting: boolean;
+  submitLabel?: string;
+  onNext?: () => void; // Optional for compatibility
 };
 
-const PhotosStep: React.FC<Props> = ({ onSubmit, onBack, isSubmitting }) => {
-  // Use individual selectors to avoid re-render loops
+const PhotosStep: React.FC<Props> = ({ onSubmit, onBack, isSubmitting, submitLabel = 'Complete Profile' }) => {
+  // ... existing hooks ...
   const photos = useOnboardingStore((state) => state.photos);
   const addPhoto = useOnboardingStore((state) => state.addPhoto);
   const setPhotos = useOnboardingStore((state) => state.setPhotos);
 
+  // ... existing pickImage ...
   const pickImage = async () => {
     if (photos.length >= 5) {
       Alert.alert('Maximum Limit', 'You can upload a maximum of 5 photos.');
@@ -42,6 +45,7 @@ const PhotosStep: React.FC<Props> = ({ onSubmit, onBack, isSubmitting }) => {
     }
   };
 
+  // ... existing removeImage ...
   const removeImage = (index: number) => {
     Alert.alert('Remove Photo', 'Are you sure you want to remove this photo?', [
       { text: 'Cancel', style: 'cancel' },
@@ -79,7 +83,7 @@ const PhotosStep: React.FC<Props> = ({ onSubmit, onBack, isSubmitting }) => {
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} disabled={isSubmitting} style={styles.backButton}>Back</Button>
         <Button mode="contained" onPress={onSubmit} loading={isSubmitting} disabled={isSubmitting} style={styles.submitButton}>
-          {isSubmitting ? 'Creating Profile...' : 'Complete Profile'}
+          {isSubmitting ? 'Saving...' : submitLabel}
         </Button>
       </View>
     </View>

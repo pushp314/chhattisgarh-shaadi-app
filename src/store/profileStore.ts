@@ -22,6 +22,7 @@ interface ProfileState {
   uploadPhoto: (photoUri: string) => Promise<void>;
   uploadPhotos: (photoUris: string[]) => Promise<void>;
   deleteProfile: () => Promise<void>;
+  clearProfile: () => void;
 }
 
 export const useProfileStore = create<ProfileState>()(
@@ -128,6 +129,14 @@ export const useProfileStore = create<ProfileState>()(
           set({ isLoading: false });
           throw error;
         }
+      },
+
+      clearProfile: () => {
+        set({
+          profile: null,
+          profileCompleteness: 0,
+          isLoading: false,
+        });
       },
     }), {
     name: 'profile-storage',

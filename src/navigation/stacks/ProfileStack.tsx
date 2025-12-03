@@ -13,11 +13,23 @@ import ProfileScreen from '../../screens/profile/ProfileScreen.tsx';
 import EditProfileScreen from '../../screens/profile/EditProfileScreen.tsx';
 import CreateProfileScreen from '../../screens/profile/CreateProfileScreen.tsx';
 import PhoneVerificationScreen from '../../screens/auth/PhoneVerificationScreen.tsx';
-import SettingsScreen from '../../screens/profile/SettingsScreen.tsx';
+import SettingsScreen from '../../screens/settings/SettingsScreen.tsx';
 import SubscriptionScreen from '../../screens/profile/SubscriptionScreen.tsx';
 import PhotoManagementScreen from '../../screens/profile/PhotoManagementScreen.tsx';
 import PartnerPreferencesScreen from '../../screens/profile/PartnerPreferencesScreen.tsx';
 import ShortlistScreen from '../../screens/profile/ShortlistScreen.tsx';
+import NotificationCenterScreen from '../../screens/notifications/NotificationCenterScreen.tsx';
+import WhoViewedMeScreen from '../../screens/profile/WhoViewedMeScreen.tsx';
+import ProfileDetailsScreen from '../../screens/profile/ProfileDetailsScreen.tsx';
+import BlockedUsersScreen from '../../screens/profile/BlockedUsersScreen.tsx';
+import ContactRequestsScreen from '../../screens/profile/ContactRequestsScreen.tsx';
+import MatchRequestsScreen from '../../screens/matches/MatchRequestsScreen.tsx';
+import PhotoPrivacyScreen from '../../screens/profile/PhotoPrivacyScreen.tsx';
+import PhotoRequestsScreen from '../../screens/profile/PhotoRequestsScreen.tsx';
+import EducationManagementScreen from '../../screens/profile/EducationManagementScreen.tsx';
+import OccupationManagementScreen from '../../screens/profile/OccupationManagementScreen.tsx';
+import PrivacyPolicyScreen from '../../screens/legal/PrivacyPolicyScreen.tsx';
+import TermsConditionsScreen from '../../screens/legal/TermsConditionsScreen.tsx';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -36,10 +48,11 @@ const ProfileStack: React.FC = () => {
     // If no profile exists, go to CreateProfile
     if (!profile) return 'CreateProfile';
 
-    // If profile exists but phone not verified, go to PhoneVerification
-    if (!user?.isPhoneVerified) return 'PhoneVerification';
+    // Phone not verified - this should be handled by AppNavigator, not ProfileStack
+    // If we reach here with unverified phone, still show ProfileScreen
+    // The AppNavigator should prevent navigation to Main stack if phone not verified
 
-    // Otherwise, show profile screen
+    // Default: show profile screen for authenticated users with profiles
     return 'ProfileScreen';
   };
 
@@ -92,6 +105,66 @@ const ProfileStack: React.FC = () => {
         name="Shortlist"
         component={ShortlistScreen}
         options={{ title: 'My Shortlist' }}
+      />
+      <Stack.Screen
+        name="NotificationCenter"
+        component={NotificationCenterScreen}
+        options={{ title: 'Notifications' }}
+      />
+      <Stack.Screen
+        name="WhoViewedMe"
+        component={WhoViewedMeScreen}
+        options={{ title: 'Who Viewed Me' }}
+      />
+      <Stack.Screen
+        name="ProfileDetails"
+        component={ProfileDetailsScreen}
+        options={{ title: 'Profile Details' }}
+      />
+      <Stack.Screen
+        name="BlockedUsers"
+        component={BlockedUsersScreen}
+        options={{ title: 'Blocked Users' }}
+      />
+      <Stack.Screen
+        name="ContactRequests"
+        component={ContactRequestsScreen}
+        options={{ title: 'Contact Requests' }}
+      />
+      <Stack.Screen
+        name="MatchRequests"
+        component={MatchRequestsScreen}
+        options={{ title: 'Match Requests' }}
+      />
+      <Stack.Screen
+        name="PhotoPrivacy"
+        component={PhotoPrivacyScreen}
+        options={{ title: 'Photo Privacy' }}
+      />
+      <Stack.Screen
+        name="PhotoRequests"
+        component={PhotoRequestsScreen}
+        options={{ title: 'Photo Requests' }}
+      />
+      <Stack.Screen
+        name="EducationManagement"
+        component={EducationManagementScreen}
+        options={{ title: 'Education Management' }}
+      />
+      <Stack.Screen
+        name="OccupationManagement"
+        component={OccupationManagementScreen}
+        options={{ title: 'Occupation Management' }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ title: 'Privacy Policy' }}
+      />
+      <Stack.Screen
+        name="TermsConditions"
+        component={TermsConditionsScreen}
+        options={{ title: 'Terms & Conditions' }}
       />
     </Stack.Navigator>
   );

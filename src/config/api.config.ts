@@ -157,8 +157,9 @@ export const API_ENDPOINTS = {
     DELETE_PHOTO: (mediaId: number) => `/profiles/photos/${mediaId}`,
   },
   UPLOADS: {
-    PROFILE_PHOTO: '/users/upload-profile-picture',
-    PROFILE_PHOTOS: '/users/upload-profile-picture/multiple',
+    PROFILE_PHOTO: '/uploads/profile-photo',
+    PROFILE_PHOTOS: '/uploads/profile-photos',
+    ID_PROOF: '/uploads/id-proof',
   },
   EDUCATION: {
     CREATE: '/education',
@@ -204,7 +205,10 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/block/${id}`,
   },
   SUBSCRIPTION: {
-    PLANS: '/subscription',
+    PLANS: '/plans',
+    CURRENT: '/subscriptions/current',
+    CREATE: '/subscriptions',
+    CANCEL: '/subscriptions/cancel',
   },
   NOTIFICATIONS: {
     LIST: '/notifications',

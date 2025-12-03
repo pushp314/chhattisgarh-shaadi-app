@@ -13,13 +13,31 @@ export type AuthStackParamList = {
   PhoneVerification: undefined;
 };
 
+// Subscription Stack
+export type SubscriptionStackParamList = {
+  SubscriptionPlans: undefined;
+  Payment: {
+    planId: number;
+    planName: string;
+    amount: number;
+    duration: number;
+  };
+  TransactionHistory: undefined;
+};
+
 // Main Tab Navigator
 export type MainTabParamList = {
   Home: undefined;
   Search: undefined;
   Matches: undefined;
   Messages: undefined;
-  Profile: undefined;
+  Subscription: undefined;
+};
+
+// Drawer Navigator
+export type DrawerParamList = {
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
+  ProfileStack: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 // Home Stack
@@ -63,12 +81,24 @@ export type ProfileStackParamList = {
   PhotoManagement: undefined;
   PartnerPreferences: undefined;
   Shortlist: undefined;
+  NotificationCenter: undefined;
+  WhoViewedMe: undefined;
+  ProfileDetails: { userId: number };
+  BlockedUsers: undefined;
+  ContactRequests: undefined;
+  MatchRequests: undefined;
+  PhotoPrivacy: undefined;
+  PhotoRequests: undefined;
+  EducationManagement: undefined;
+  OccupationManagement: undefined;
+  PrivacyPolicy: undefined;
+  TermsConditions: undefined;
 };
 
 // Root Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Main: NavigatorScreenParams<DrawerParamList>;
 };
 
 declare global {

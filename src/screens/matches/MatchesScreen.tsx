@@ -20,6 +20,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MatchesStackParamList } from '../../navigation/types';
 import { MatchRequest } from '../../types';
 import { useAuthStore } from '../../store/authStore';
+import { Theme } from '../../constants/theme';
 import matchService from '../../services/match.service';
 import ProfileCardSkeleton from '../../components/profile/ProfileCardSkeleton';
 import EmptyState from '../../components/common/EmptyState';
@@ -252,7 +253,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
               disabled={isProcessing}
               loading={isProcessing}
               style={styles.actionButton}
-              buttonColor="#4CAF50">
+              buttonColor={Theme.colors.success}>
               Accept
             </Button>
           </View>
@@ -362,7 +363,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
               <Text variant="titleMedium" style={styles.userName}>
                 {userName}
               </Text>
-              <Icon name="heart" size={20} color="#4CAF50" />
+              <Icon name="heart" size={20} color={Theme.colors.success} />
             </View>
             {profile && (
               <Text variant="bodyMedium" style={styles.details}>
@@ -477,7 +478,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#D81B60" />
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -506,14 +507,14 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   tabContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     padding: 16,
   },
   segmentedButtons: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
   },
   loadingContainer: {
     flex: 1,
@@ -528,9 +529,10 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    borderRadius: 16,
     overflow: 'hidden',
+    ...Theme.shadows.md,
   },
   cardContent: {
     flexDirection: 'row',
@@ -545,7 +547,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Theme.colors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -556,25 +558,26 @@ const styles = StyleSheet.create({
   userName: {
     fontWeight: 'bold',
     marginBottom: 4,
+    color: Theme.colors.text,
   },
   details: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginBottom: 2,
   },
   location: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginBottom: 4,
   },
   message: {
     fontStyle: 'italic',
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginTop: 4,
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: '#D81B60',
+    borderLeftColor: Theme.colors.primary,
   },
   timestamp: {
-    color: '#999',
+    color: Theme.colors.textSecondary,
     marginTop: 4,
     fontSize: 12,
   },
@@ -595,7 +598,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   matchedDate: {
-    color: '#4CAF50',
+    color: Theme.colors.success,
     marginTop: 4,
     fontSize: 12,
   },
@@ -607,9 +610,11 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+    borderRadius: 8,
   },
   cancelButton: {
     flex: 1,
+    borderRadius: 8,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -623,7 +628,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
   },
 });

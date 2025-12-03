@@ -13,6 +13,10 @@ import { generateBasicInfo } from '../../utils/testDataGenerator';
 const basicInfoSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  firstNameHi: z.string().optional(),
+  firstNameCg: z.string().optional(),
+  lastNameHi: z.string().optional(),
+  lastNameCg: z.string().optional(),
   dateOfBirth: z.date().refine((date) => {
     const age = (new Date()).getFullYear() - date.getFullYear();
     return age >= 18;
@@ -26,13 +30,20 @@ type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 
 type Props = {
   onNext: () => void; // Keep onNext to control navigation
+  onBack?: () => void; // Make optional as it might not be used in first step of wizard
+  submitLabel?: string; // Optional label for the submit button
+  isSubmitting?: boolean;
 };
 
-const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
+const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', isSubmitting = false }) => {
   // 2. Get data and actions from the Zustand store
   // Select specific fields to avoid infinite loop
   const firstName = useOnboardingStore((state) => state.firstName);
   const lastName = useOnboardingStore((state) => state.lastName);
+  const firstNameHi = useOnboardingStore((state) => state.firstNameHi);
+  const firstNameCg = useOnboardingStore((state) => state.firstNameCg);
+  const lastNameHi = useOnboardingStore((state) => state.lastNameHi);
+  const lastNameCg = useOnboardingStore((state) => state.lastNameCg);
   const dateOfBirth = useOnboardingStore((state) => state.dateOfBirth);
   const gender = useOnboardingStore((state) => state.gender);
   const height = useOnboardingStore((state) => state.height);
@@ -44,6 +55,10 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
     defaultValues: {
       firstName: firstName || '',
       lastName: lastName || '',
+      firstNameHi: firstNameHi || '',
+      firstNameCg: firstNameCg || '',
+      lastNameHi: lastNameHi || '',
+      lastNameCg: lastNameCg || '',
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
       gender: gender,
       height: height || undefined,
@@ -54,16 +69,28 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
   React.useEffect(() => {
     if (firstName) setValue('firstName', firstName);
     if (lastName) setValue('lastName', lastName);
+    if (firstNameHi) setValue('firstNameHi', firstNameHi);
+    if (firstNameCg) setValue('firstNameCg', firstNameCg);
+    if (lastNameHi) setValue('lastNameHi', lastNameHi);
+    if (lastNameCg) setValue('lastNameCg', lastNameCg);
     if (dateOfBirth) setValue('dateOfBirth', new Date(dateOfBirth));
     if (gender) setValue('gender', gender);
     if (height) setValue('height', height);
-  }, [firstName, lastName, dateOfBirth, gender, height, setValue]);
+  }, [firstName, lastName, firstNameHi, firstNameCg, lastNameHi, lastNameCg, dateOfBirth, gender, height, setValue]);
 
   // Auto-fill handler for testing
   const handleAutoFill = () => {
-    const testData = generateBasicInfo();
+    // Use current selected gender if available, otherwise random
+    const currentGender = control._formValues.gender;
+    const testData = generateBasicInfo(currentGender);
+
     setValue('firstName', testData.firstName);
     setValue('lastName', testData.lastName);
+    // Auto-fill optional language fields for demo
+    setValue('firstNameHi', 'राम');
+    setValue('firstNameCg', 'राम');
+    setValue('lastNameHi', 'शर्मा');
+    setValue('lastNameCg', 'शर्मा');
     setValue('dateOfBirth', testData.dateOfBirth);
     setValue('gender', testData.gender);
     setValue('height', testData.height);
@@ -73,7 +100,11 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
   const onSubmit = (data: BasicInfoFormData) => {
     updateOnboardingData('firstName', data.firstName);
     updateOnboardingData('lastName', data.lastName);
-    updateOnboardingData('dateOfBirth', data.dateOfBirth.toISOString()); // Store as string in store if needed, or Date if type allows
+    updateOnboardingData('firstNameHi', data.firstNameHi);
+    updateOnboardingData('firstNameCg', data.firstNameCg);
+    updateOnboardingData('lastNameHi', data.lastNameHi);
+    updateOnboardingData('lastNameCg', data.lastNameCg);
+    updateOnboardingData('dateOfBirth', data.dateOfBirth.toISOString());
     updateOnboardingData('gender', data.gender);
     updateOnboardingData('height', data.height);
     onNext();
@@ -85,15 +116,17 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
         Tell us about yourself
       </Text>
 
-      {/* Auto-Fill Button for Testing */}
-      <Button
-        mode="outlined"
-        onPress={handleAutoFill}
-        style={styles.autoFillButton}
-        icon="auto-fix"
-      >
-        Auto-Fill Test Data
-      </Button>
+      {/* Only show Auto-Fill if not editing (or check submitLabel) - for now keep it but maybe hide if isSubmitting passed? */}
+      {submitLabel === 'Next' && (
+        <Button
+          mode="outlined"
+          onPress={handleAutoFill}
+          style={styles.autoFillButton}
+          icon="auto-fix"
+        >
+          Auto-Fill Test Data
+        </Button>
+      )}
 
       <Controller
         control={control}
@@ -133,8 +166,80 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
         {errors.lastName?.message}
       </HelperText>
 
-      {/* Date of Birth - Simplified for now, using TextInput or DatePicker if available */}
-      {/* Assuming DatePickerInput is available or using a simple text input for demo */}
+      {/* Multi-Language Fields (Optional) */}
+      <Text variant="bodySmall" style={styles.optionalLabel}>Optional: Names in local languages</Text>
+
+      <View style={styles.row}>
+        <View style={styles.halfWidth}>
+          <Controller
+            control={control}
+            name="firstNameHi"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="First Name (Hindi)"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                style={styles.input}
+              />
+            )}
+          />
+        </View>
+        <View style={styles.halfWidth}>
+          <Controller
+            control={control}
+            name="lastNameHi"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="Last Name (Hindi)"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                style={styles.input}
+              />
+            )}
+          />
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={styles.halfWidth}>
+          <Controller
+            control={control}
+            name="firstNameCg"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="First Name (CG)"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                style={styles.input}
+              />
+            )}
+          />
+        </View>
+        <View style={styles.halfWidth}>
+          <Controller
+            control={control}
+            name="lastNameCg"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="Last Name (CG)"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                style={styles.input}
+              />
+            )}
+          />
+        </View>
+      </View>
+
+      {/* Date of Birth */}
       <Controller
         control={control}
         name="dateOfBirth"
@@ -198,8 +303,10 @@ const BasicInfoStep: React.FC<Props> = ({ onNext }) => {
         mode="contained"
         onPress={handleSubmit(onSubmit)}
         style={styles.nextButton}
+        loading={isSubmitting}
+        disabled={isSubmitting}
       >
-        Next
+        {submitLabel}
       </Button>
     </View>
   );
@@ -217,6 +324,19 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 4,
+  },
+  optionalLabel: {
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#666',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 4,
+  },
+  halfWidth: {
+    flex: 1,
   },
   nextButton: {
     marginTop: 24,

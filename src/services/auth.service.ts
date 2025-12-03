@@ -173,12 +173,19 @@ const authService = {
   /**
    * Verifies phone OTP
    */
-  verifyPhoneOTP: async (phone: string, otp: string) => {
+  verifyPhoneOTP: async (phone: string, otp: string, countryCode: string = '+91', referralCode?: string) => {
     try {
-      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, {
+      const payload: any = {
         phone,
         otp,
-      });
+        countryCode,
+      };
+
+      if (referralCode) {
+        payload.referralCode = referralCode;
+      }
+
+      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, payload);
       return data;
     } catch (error: any) {
       console.error('Verify OTP failed:', error.response?.data || error.message);
@@ -202,10 +209,9 @@ const authService = {
     } catch (error: any) {
       console.error('Backend logout failed:', error.response?.data || error.message);
     } finally {
-      // Always clear local session
+      // Always clear local session (tokens only, state is cleared by authStore)
       await Keychain.resetGenericPassword({ service: 'accessToken' });
       await Keychain.resetGenericPassword({ service: 'refreshToken' });
-      useAuthStore.getState().logout();
     }
   },
 

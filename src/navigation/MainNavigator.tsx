@@ -16,7 +16,7 @@ import HomeStack from './stacks/HomeStack.tsx';
 import SearchStack from './stacks/SearchStack.tsx';
 import MatchesStack from './stacks/MatchesStack.tsx';
 import MessagesStack from './stacks/MessagesStack.tsx';
-import ProfileStack from './stacks/ProfileStack.tsx';
+import SubscriptionStack from './stacks/SubscriptionStack.tsx';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -37,24 +37,21 @@ const MessagesIcon = ({ color, size }: { color: string; size: number }) => (
   <Icon name="chat" size={size} color={color} />
 );
 
-const ProfileIcon = ({ color, size }: { color: string; size: number }) => (
-  <Icon name="person" size={size} color={color} />
+const SubscriptionIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="card-membership" size={size} color={color} />
 );
 
 const MainNavigator: React.FC = () => {
   const { isNewUser } = useAuthStore();
   const { profile } = useProfileStore();
 
-  // Determine initial route - if new user or no profile, start at Profile tab
-  const initialRouteName = (isNewUser || !profile) ? 'Profile' : 'Home';
-
   return (
     <Tab.Navigator
-      initialRouteName={initialRouteName}
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#D81B60',
-        tabBarInactiveTintColor: '#757575',
+        tabBarActiveTintColor: '#E7383F', // Love Red
+        tabBarInactiveTintColor: '#ADA5A4', // Secondary text
         tabBarStyle: ((route) => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? route.name;
 
@@ -67,6 +64,8 @@ const MainNavigator: React.FC = () => {
             paddingBottom: 5,
             paddingTop: 5,
             height: 60,
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#F9DFC0', // Pastel Peach
           };
         })(route),
       })}
@@ -104,11 +103,11 @@ const MainNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileStack}
+        name="Subscription"
+        component={SubscriptionStack}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ProfileIcon,
+          tabBarLabel: 'Premium',
+          tabBarIcon: SubscriptionIcon,
         }}
       />
     </Tab.Navigator>

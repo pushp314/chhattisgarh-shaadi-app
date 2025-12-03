@@ -23,9 +23,11 @@ type LocationFormData = z.infer<typeof locationSchema>;
 type Props = {
   onNext: () => void;
   onBack: () => void;
+  submitLabel?: string;
+  isSubmitting?: boolean;
 };
 
-const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
+const LocationStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', isSubmitting = false }) => {
   const state = useOnboardingStore((s) => s.state);
   const city = useOnboardingStore((s) => s.city);
   const nativeDistrict = useOnboardingStore((s) => s.nativeDistrict);
@@ -193,7 +195,7 @@ const LocationStep: React.FC<Props> = ({ onNext, onBack }) => {
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton}>Next</Button>
+        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton} loading={isSubmitting} disabled={isSubmitting}>{submitLabel}</Button>
       </View>
     </View>
   );

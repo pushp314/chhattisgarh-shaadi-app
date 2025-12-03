@@ -21,9 +21,11 @@ type AboutFormData = z.infer<typeof aboutSchema>;
 type Props = {
   onNext: () => void;
   onBack: () => void;
+  submitLabel?: string;
+  isSubmitting?: boolean;
 };
 
-const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
+const AboutStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', isSubmitting = false }) => {
   const bio = useOnboardingStore((state) => state.bio);
   const hobbies = useOnboardingStore((state) => state.hobbies);
   const partnerExpectations = useOnboardingStore((state) => state.partnerExpectations);
@@ -117,7 +119,7 @@ const AboutStep: React.FC<Props> = ({ onNext, onBack }) => {
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton}>Next</Button>
+        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton} loading={isSubmitting} disabled={isSubmitting}>{submitLabel}</Button>
       </View>
     </View>
   );

@@ -23,21 +23,42 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
+// Request interceptor - Add auth token and logging
 api.interceptors.request.use(
   async (config: any) => {
     const credentials = await Keychain.getGenericPassword({ service: 'accessToken' });
     if (credentials) {
       config.headers.Authorization = `Bearer ${credentials.password}`;
     }
+
+    // Detailed logging for debugging
+    if (__DEV__) {
+      console.log('🚀 API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        data: config.data,
+        params: config.params,
+      });
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - Handle token expiry
+// Response interceptor - Handle token expiry and logging
 api.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => response,
+  (response: AxiosResponse<ApiResponse>) => {
+    // Log successful responses in dev mode
+    if (__DEV__) {
+      console.log('✅ API Response:', {
+        status: response.status,
+        url: response.config.url,
+        data: response.data,
+      });
+    }
+    return response;
+  },
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest: any = error.config;
 
@@ -77,6 +98,16 @@ api.interceptors.response.use(
 
         return Promise.reject(refreshError);
       }
+    }
+
+    // Log all errors in dev mode
+    if (__DEV__) {
+      console.error('❌ API Error:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        data: error.response?.data,
+        message: error.message,
+      });
     }
 
     return Promise.reject(error);

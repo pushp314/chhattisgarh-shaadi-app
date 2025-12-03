@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, ScrollView, StyleSheet} from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import {
   Searchbar,
   Button,
@@ -8,8 +8,9 @@ import {
   IconButton,
   Badge,
 } from 'react-native-paper';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {SearchStackParamList} from '../../navigation/types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SearchStackParamList } from '../../navigation/types';
+import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<
@@ -35,7 +36,7 @@ type Filters = {
   nativeDistrict?: string;
 };
 
-const SearchScreen: React.FC<Props> = ({navigation}) => {
+const SearchScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<Filters>({});
 
@@ -93,25 +94,25 @@ const SearchScreen: React.FC<Props> = ({navigation}) => {
             icon="account-search"
             title="Browse Profiles"
             subtitle="Discover matches"
-            onPress={() => navigation.navigate('SearchResults', {filters: {}})}
+            onPress={() => navigation.navigate('SearchResults', { filters: {} })}
           />
           <CategoryCard
             icon="map-marker-radius"
             title="Nearby"
             subtitle="Profiles near you"
-            onPress={() => navigation.navigate('SearchResults', {filters: {}})}
+            onPress={() => navigation.navigate('SearchResults', { filters: {} })}
           />
           <CategoryCard
             icon="star"
             title="New Members"
             subtitle="Recently joined"
-            onPress={() => navigation.navigate('SearchResults', {filters: {}})}
+            onPress={() => navigation.navigate('SearchResults', { filters: {} })}
           />
           <CategoryCard
             icon="check-decagram"
             title="Verified"
             subtitle="Verified profiles"
-            onPress={() => navigation.navigate('SearchResults', {filters: {}})}
+            onPress={() => navigation.navigate('SearchResults', { filters: {} })}
           />
         </View>
 
@@ -127,7 +128,7 @@ const SearchScreen: React.FC<Props> = ({navigation}) => {
               mode="outlined"
               onPress={() =>
                 navigation.navigate('SearchResults', {
-                  filters: {religion},
+                  filters: { religion },
                 })
               }
               style={styles.chip}>
@@ -147,7 +148,7 @@ const SearchScreen: React.FC<Props> = ({navigation}) => {
               mode="outlined"
               onPress={() =>
                 navigation.navigate('SearchResults', {
-                  filters: {state: 'Chhattisgarh'},
+                  filters: { state: 'Chhattisgarh' },
                 })
               }
               style={styles.chip}>
@@ -158,7 +159,7 @@ const SearchScreen: React.FC<Props> = ({navigation}) => {
 
         {/* Info Card */}
         <Surface style={styles.infoCard} elevation={1}>
-          <Icon name="information" size={24} color="#D81B60" />
+          <Icon name="information" size={24} color={Theme.colors.primary} />
           <View style={styles.infoContent}>
             <Text variant="titleSmall" style={styles.infoTitle}>
               Find Your Perfect Match
@@ -193,7 +194,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       contentStyle={styles.categoryCardContent}
       style={styles.categoryCardButton}>
       <View style={styles.categoryCardInner}>
-        <Icon name={icon} size={32} color="#D81B60" />
+        <Icon name={icon} size={32} color={Theme.colors.primary} />
         <Text variant="titleSmall" style={styles.categoryTitle}>
           {title}
         </Text>
@@ -208,10 +209,10 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   searchContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -223,6 +224,8 @@ const styles = StyleSheet.create({
   searchbar: {
     flex: 1,
     elevation: 0,
+    backgroundColor: Theme.colors.background,
+    borderRadius: 12,
   },
   filterButtonContainer: {
     position: 'relative',
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#D81B60',
+    backgroundColor: Theme.colors.secondary,
   },
   content: {
     flex: 1,
@@ -246,6 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     marginTop: 8,
+    color: Theme.colors.text,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -255,11 +259,12 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '48%',
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: 16,
+    backgroundColor: Theme.colors.white,
+    ...Theme.shadows.sm,
   },
   categoryCardButton: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
   categoryCardContent: {
     height: 140,
@@ -272,9 +277,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 4,
     textAlign: 'center',
+    color: Theme.colors.text,
   },
   categorySubtitle: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
   },
   chipContainer: {
@@ -285,14 +291,16 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderRadius: 20,
+    borderColor: Theme.colors.primary,
   },
   infoCard: {
     flexDirection: 'row',
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#FFF3F8',
+    backgroundColor: Theme.colors.surfaceCard,
     gap: 12,
     marginTop: 8,
+    ...Theme.shadows.sm,
   },
   infoContent: {
     flex: 1,
@@ -300,10 +308,10 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontWeight: 'bold',
     marginBottom: 4,
-    color: '#D81B60',
+    color: Theme.colors.primary,
   },
   infoText: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
   },
 });
 

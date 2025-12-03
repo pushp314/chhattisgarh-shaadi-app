@@ -21,9 +21,11 @@ type ReligionFormData = z.infer<typeof religionSchema>;
 type Props = {
   onNext: () => void;
   onBack: () => void;
+  submitLabel?: string;
+  isSubmitting?: boolean;
 };
 
-const ReligionStep: React.FC<Props> = ({ onNext, onBack }) => {
+const ReligionStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', isSubmitting = false }) => {
   // Use individual selectors to avoid re-render loops
   const religion = useOnboardingStore((state) => state.religion);
   const caste = useOnboardingStore((state) => state.caste);
@@ -212,7 +214,7 @@ const ReligionStep: React.FC<Props> = ({ onNext, onBack }) => {
 
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={onBack} style={styles.backButton}>Back</Button>
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton}>Next</Button>
+        <Button mode="contained" onPress={handleSubmit(onSubmit)} style={styles.nextButton} loading={isSubmitting} disabled={isSubmitting}>{submitLabel}</Button>
       </View>
     </View>
   );

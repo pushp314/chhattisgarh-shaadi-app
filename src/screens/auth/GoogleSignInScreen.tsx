@@ -56,22 +56,24 @@ const GoogleSignInScreen: React.FC<Props> = ({ navigation }) => {
       // Get updated state after sign in
       const { user, isNewUser } = useAuthStore.getState();
 
-      // Check if this is a new user who needs to complete profile
-      if (isNewUser) {
-        // Navigate to CreateProfile screen
-        // Note: We need to navigate to Main stack first, then to CreateProfile
-        // The AppNavigator will handle the navigation based on authentication state
-        // For now, we'll use a navigation reset or navigate through the main navigator
-        // Since we're in Auth stack, we need to wait for AppNavigator to switch to Main stack
-        // The profile check will happen in AppNavigator or MainNavigator
-        return;
-      }
+      // Check if phone is already verified
+      const isPhoneVerified = user?.isPhoneVerified;
+      const hasProfile = user?.profile;
 
-      // Existing user - check if phone verification is needed
-      if (!user?.isPhoneVerified) {
+      if (isPhoneVerified) {
+        // Phone already verified - navigate based on profile status
+        if (isNewUser || !hasProfile) {
+          // New user or no profile - go to profile creation
+          // Navigation will be handled by AppNavigator based on auth state
+          console.log('User authenticated, no profile - AppNavigator will redirect to CreateProfile');
+        } else {
+          // Existing user with profile - go to home
+          console.log('User authenticated with profile - AppNavigator will redirect to Home');
+        }
+      } else {
+        // Phone not verified - go to phone verification
         navigation.navigate('PhoneVerification');
       }
-      // Otherwise, navigation will handle redirect to main app
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       const errorMessage = err.message || 'Failed to sign in with Google';

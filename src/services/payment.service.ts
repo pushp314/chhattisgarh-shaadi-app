@@ -5,11 +5,40 @@
 
 import api from './api.service';
 import { API_ENDPOINTS } from '../config/api.config';
-import { Payment, PaymentOrder, ApiResponse } from '../types';
+import { ApiResponse, PaginationResponse } from '../types';
+
+interface PaymentOrder {
+    orderId: string;
+    amount: number;
+    currency: string;
+    razorpayKey: string;
+}
+
+interface PaymentVerification {
+    success: boolean;
+    subscription?: any;
+    message?: string;
+}
+
+export interface Payment {
+    id: number;
+    userId: number;
+    subscriptionId?: number;
+    amount: number;
+    currency: string;
+    status: 'SUCCESS' | 'FAILED' | 'PENDING';
+    paymentMethod?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
+    createdAt: string;
+    updatedAt: string;
+    subscription?: any;
+}
 
 class PaymentService {
     /**
-     * Create a payment order
+     * Create payment order
      */
     async createOrder(planId: number): Promise<PaymentOrder> {
         const response = await api.post<ApiResponse<PaymentOrder>>(
@@ -26,27 +55,35 @@ class PaymentService {
         razorpay_order_id: string;
         razorpay_payment_id: string;
         razorpay_signature: string;
-    }): Promise<{
-        paymentId: number;
-        status: string;
-        planId: number;
-    }> {
-        const response = await api.post<ApiResponse<{
-            paymentId: number;
-            status: string;
-            planId: number;
-        }>>(API_ENDPOINTS.PAYMENTS.VERIFY, data);
+    }): Promise<PaymentVerification> {
+        const response = await api.post<ApiResponse<PaymentVerification>>(
+            API_ENDPOINTS.PAYMENTS.VERIFY,
+            data
+        );
         return response.data.data;
     }
 
     /**
-     * Get my payment history
+     * Get user's payment history
      */
-    async getMyPayments(): Promise<Payment[]> {
-        const response = await api.get<ApiResponse<Payment[]>>(
-            API_ENDPOINTS.PAYMENTS.MY_PAYMENTS
+    async getMyPayments(params?: {
+        page?: number;
+        limit?: number;
+        status?: 'SUCCESS' | 'FAILED' | 'PENDING';
+    }): Promise<{
+        results: Payment[];
+        pagination: PaginationResponse;
+    }> {
+        const response = await api.get<ApiResponse<{
+            results: Payment[];
+            pagination: PaginationResponse;
+        }>>(
+            API_ENDPOINTS.PAYMENTS.MY_PAYMENTS,
+            { params }
         );
-        return response.data.data;
+
+        const { results, ...pagination } = response.data.data as any;
+        return { results, pagination };
     }
 
     /**

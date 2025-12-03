@@ -7,6 +7,12 @@ import { Profile } from '../types';
 type OnboardingState = Partial<Profile> & {
   photos: string[]; // Store photo URIs
 
+  // Multi-Language Names
+  firstNameHi?: string;
+  firstNameCg?: string;
+  lastNameHi?: string;
+  lastNameCg?: string;
+
   // Chhattisgarh-Specific Location (additional)
   nativeTehsil?: string;
   nativeVillage?: string;
@@ -67,6 +73,10 @@ const initialState: OnboardingState = {
   // Basic Info
   firstName: '',
   lastName: '',
+  firstNameHi: '',
+  firstNameCg: '',
+  lastNameHi: '',
+  lastNameCg: '',
   dateOfBirth: undefined,
   gender: undefined,
   height: undefined,

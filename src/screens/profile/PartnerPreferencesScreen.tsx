@@ -16,6 +16,7 @@ import {
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../../navigation/types';
+import { Theme } from '../../constants/theme';
 import partnerPreferenceService from '../../services/partnerPreference.service';
 import { PartnerPreference, Religion, MaritalStatus } from '../../types';
 
@@ -95,7 +96,7 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#D81B60" />
+                <ActivityIndicator size="large" color={Theme.colors.primary} />
                 <Text style={styles.loadingText}>Loading preferences...</Text>
             </View>
         );
@@ -248,7 +249,9 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={handleSave}
                 loading={isSaving}
                 disabled={isSaving}
-                style={styles.saveButton}>
+                style={styles.saveButton}
+                buttonColor={Theme.colors.secondary}
+                textColor={Theme.colors.primaryDark}>
                 Save Preferences
             </Button>
         </ScrollView>
@@ -258,7 +261,7 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: Theme.colors.background,
     },
     content: {
         padding: 16,
@@ -268,20 +271,23 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: Theme.colors.background,
     },
     loadingText: {
         marginTop: 16,
-        color: '#666',
+        color: Theme.colors.textSecondary,
     },
     section: {
         padding: 16,
-        borderRadius: 8,
-        backgroundColor: '#fff',
+        borderRadius: 12,
+        backgroundColor: Theme.colors.white,
         marginBottom: 16,
+        ...Theme.shadows.md,
     },
     sectionTitle: {
         fontWeight: 'bold',
         marginBottom: 12,
+        color: Theme.colors.text,
     },
     row: {
         flexDirection: 'row',
@@ -305,7 +311,7 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         marginTop: 8,
-        backgroundColor: '#D81B60',
+        borderRadius: 8,
     },
 });
 

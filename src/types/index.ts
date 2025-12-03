@@ -46,6 +46,8 @@ export interface User {
   preferredLanguage: Language;
   isActive: boolean;
   isBanned: boolean;
+  referralCode?: string;  // Agent referral code used during sign-up
+  referredBy?: number;    // ID of referring agent/user
   createdAt: string;
   profile?: Profile;
 }
@@ -56,12 +58,16 @@ export interface Profile {
   profileId: string;
   firstName: string;
   lastName: string;
+  nameHi?: string;        // Full name in Hindi (Roman script)
+  nameCg?: string;        // Full name in Chhattisgarhi (Roman script)
   dateOfBirth: string;
   gender: Gender;
   maritalStatus: MaritalStatus;
   religion: Religion;
   motherTongue: MotherTongue;
   caste?: string;
+  subCaste?: string;
+  gothram?: string;
   country: string;
   state: string;
   city: string;
@@ -311,10 +317,28 @@ export interface BlockedUser {
 export interface SubscriptionPlan {
   id: number;
   name: string;
-  price: number;
-  durationInMonths: number;
-  features: string[];
+  slug: string;
+  nameEn: string;
+  nameHi: string;
+  nameCg: string;
+  description: string;
+  price: string;
+  currency: string;
+  duration: number;
+  features: string; // JSON string
+  maxContactViews: number;
+  maxMessagesSend: number;
+  maxInterestsSend: number;
+  canSeeProfileVisitors: boolean;
+  priorityListing: boolean;
+  verifiedBadge: boolean;
+  incognitoMode: boolean;
+  dedicatedManager: boolean;
   isActive: boolean;
+  displayOrder: number;
+  isPopular: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export enum ReportType {
@@ -428,4 +452,33 @@ export interface AccountSecuritySettings {
   maxActiveSessions?: number;
   recoveryEmail?: string;
   recoveryPhone?: string;
+}
+
+export interface MatchResult {
+  totalScore: number; // Out of 100
+  gunaMilan: {
+    score: number; // Out of 36
+    maxScore: number;
+    areaScores: {
+      varna: number;
+      vashya: number;
+      tara: number;
+      yoni: number;
+      grahaMaitri: number;
+      gana: number;
+      bhakoot: number;
+      nadi: number;
+    };
+  };
+  manglik: {
+    isCompatible: boolean;
+    status: 'COMPATIBLE' | 'NOT_COMPATIBLE' | 'CONSULT_ASTROLOGER';
+    myStatus: boolean;
+    otherStatus: boolean;
+  };
+  preferences: {
+    score: number; // Out of remaining 64 points (approx)
+    matches: string[];
+    mismatches: string[];
+  };
 }

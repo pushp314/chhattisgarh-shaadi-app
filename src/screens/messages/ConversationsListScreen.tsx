@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MessagesStackParamList } from '../../navigation/types';
 import { Conversation, Message } from '../../types';
+import { Theme } from '../../constants/theme';
 import messageService from '../../services/message.service';
 import socketService from '../../services/socket.service';
 import { SOCKET_EVENTS } from '../../constants/socket.constants';
@@ -34,6 +35,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
 
   useFocusEffect(
     React.useCallback(() => {
@@ -46,10 +48,26 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
         loadConversations();
       };
 
+      const handleUserOnline = (data: { userId: number }) => {
+        setOnlineUsers(prev => new Set(prev).add(data.userId));
+      };
+
+      const handleUserOffline = (data: { userId: number }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(data.userId);
+          return newSet;
+        });
+      };
+
       socketService.on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+      socketService.on(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
+      socketService.on(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
 
       return () => {
         socketService.off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
+        socketService.off(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
+        socketService.off(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
       };
     }, [])
   );
@@ -111,21 +129,29 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
       ? `${profile.firstName} ${profile.lastName}`
       : 'Unknown User';
     const profilePic = profile?.media?.[0]?.url;
+    const isUserOnline = onlineUsers.has(item.userId);
 
     return (
       <List.Item
         title={userName}
         description={item.lastMessage.content}
         descriptionNumberOfLines={1}
-        left={() =>
-          profilePic ? (
-            <Image source={{ uri: profilePic }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={32} color="#999" />
-            </View>
-          )
-        }
+        left={() => (
+          <View style={styles.avatarContainer}>
+            {profilePic ? (
+              <Image source={{ uri: profilePic }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Icon name="account" size={32} color="#999" />
+              </View>
+            )}
+            {isUserOnline && (
+              <View style={styles.onlineBadge}>
+                <View style={styles.onlineDot} />
+              </View>
+            )}
+          </View>
+        )}
         right={() => (
           <View style={styles.rightContent}>
             <Text variant="bodySmall" style={styles.timestamp}>
@@ -171,7 +197,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D81B60" />
+        <ActivityIndicator size="large" color={Theme.colors.primary} />
       </View>
     );
   }
@@ -206,7 +232,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -214,35 +240,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   searchbar: {
     elevation: 0,
+    backgroundColor: Theme.colors.background,
+    borderRadius: 12,
   },
   listItem: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Theme.colors.surfaceCard,
   },
   listItemUnread: {
-    backgroundColor: '#f8f9ff',
+    backgroundColor: Theme.colors.surfaceCard,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginLeft: 8,
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    marginLeft: 8,
   },
   avatarPlaceholder: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Theme.colors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Theme.colors.white,
+  },
+  onlineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Theme.colors.success,
   },
   rightContent: {
     alignItems: 'flex-end',
@@ -250,17 +299,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   timestamp: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginBottom: 4,
   },
   badge: {
-    backgroundColor: '#D81B60',
+    backgroundColor: Theme.colors.primary,
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    paddingTop: 120,
-    paddingHorizontal: 32,
+    alignItems: 'center',
+    paddingTop: 100,
   },
   emptyTitle: {
     marginTop: 16,
@@ -268,8 +317,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    color: '#666',
-    textAlign: 'center',
+    marginTop: 16,
+    color: Theme.colors.textSecondary,
   },
 });
 

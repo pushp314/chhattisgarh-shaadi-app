@@ -35,6 +35,8 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
   const { sendPhoneOTP, verifyPhoneOTP, isLoading } = useAuthStore();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [showReferralInput, setShowReferralInput] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
@@ -51,6 +53,32 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
     }
     return () => clearInterval(interval);
   }, [otpSent, resendTimer]);
+
+  // Check if phone is already verified on mount
+  React.useEffect(() => {
+    const { user } = useAuthStore.getState();
+    if (user?.isPhoneVerified) {
+      // Auto-redirect without showing Alert
+      // Navigate based on profile status
+      setTimeout(() => {
+        if (user?.profile) {
+          rootNavigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Main', params: { screen: 'Home' } }],
+            })
+          );
+        } else {
+          rootNavigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Main', params: { screen: 'Profile', params: { screen: 'CreateProfile' } } }],
+            })
+          );
+        }
+      }, 100);
+    }
+  }, []);
 
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
@@ -80,17 +108,36 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       setError('');
-      await verifyPhoneOTP(phone, otp);
+      await verifyPhoneOTP(phone, otp, '+91', referralCode || undefined);
 
-      // Navigate to Home tab after successful verification
-      // Get the parent navigator (Main tab navigator) and navigate to Home
-      const parent = rootNavigation.getParent();
-      if (parent) {
-        parent.navigate('Home');
-      } else {
-        // Fallback: navigate to Main -> Home
-        rootNavigation.navigate('Main', { screen: 'Home' });
-      }
+      // Get updated user state from auth store
+      const { user, isNewUser } = useAuthStore.getState();
+
+      Alert.alert('Success', 'Phone number verified successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Navigate based on user status
+            if (isNewUser || !user?.profile) {
+              // New user or user without profile - go to profile creation
+              rootNavigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Main', params: { screen: 'Profile', params: { screen: 'CreateProfile' } } }],
+                })
+              );
+            } else {
+              // Existing user with profile - go to home
+              rootNavigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Main', params: { screen: 'Home' } }],
+                })
+              );
+            }
+          },
+        },
+      ]);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Invalid OTP';
       setError(errorMessage);

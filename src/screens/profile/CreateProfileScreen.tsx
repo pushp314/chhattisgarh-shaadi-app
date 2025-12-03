@@ -93,6 +93,13 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         // Basic Info
         firstName: onboardingData.firstName,
         lastName: onboardingData.lastName,
+        // Construct full names for multi-language fields
+        nameHi: (onboardingData.firstNameHi || onboardingData.lastNameHi)
+          ? `${onboardingData.firstNameHi || ''} ${onboardingData.lastNameHi || ''}`.trim()
+          : undefined,
+        nameCg: (onboardingData.firstNameCg || onboardingData.lastNameCg)
+          ? `${onboardingData.firstNameCg || ''} ${onboardingData.lastNameCg || ''}`.trim()
+          : undefined,
         dateOfBirth: onboardingData.dateOfBirth ? new Date(onboardingData.dateOfBirth).toISOString() : undefined,
         gender: onboardingData.gender,
         bio: onboardingData.bio,
@@ -147,6 +154,32 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         rashi: onboardingData.rashi,
         nakshatra: onboardingData.nakshatra,
       };
+
+      // Validate required fields before submission
+      const requiredFields = {
+        firstName: onboardingData.firstName,
+        lastName: onboardingData.lastName,
+        dateOfBirth: onboardingData.dateOfBirth,
+        gender: onboardingData.gender,
+        maritalStatus: onboardingData.maritalStatus,
+        religion: onboardingData.religion,
+        state: onboardingData.state,
+        city: onboardingData.city,
+      };
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(([_, value]) => !value || value === '')
+        .map(([key]) => key);
+
+      if (missingFields.length > 0) {
+        Alert.alert(
+          'Incomplete Profile',
+          `Please complete all required fields:\n${missingFields.map(f => `• ${f.replace(/([A-Z])/g, ' $1').trim()}`).join('\n')}`,
+          [{ text: 'OK' }]
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
       // Remove undefined, null, and empty string values
       const cleanedProfileData = Object.entries(profilePayload).reduce((acc, [key, value]) => {

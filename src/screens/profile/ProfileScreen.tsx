@@ -17,9 +17,11 @@ import {
   ActivityIndicator,
   Divider,
 } from 'react-native-paper';
+import LinearGradient from 'react-native-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../../navigation/types';
 import { useProfileStore } from '../../store/profileStore';
+import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
@@ -70,7 +72,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (isLoading && !profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D81B60" />
+        <ActivityIndicator size="large" color={Theme.colors.primary} />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
@@ -116,7 +118,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <ProgressBar
             progress={completeness / 100}
-            color="#D81B60"
+            color={Theme.colors.accent}
             style={styles.completenessBar}
           />
           <Text variant="bodySmall" style={styles.completenessHint}>
@@ -142,8 +144,18 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text variant="titleLarge" style={styles.name}>
               {fullName}
             </Text>
+            {profile.nameHi && (
+              <Text variant="bodyMedium" style={styles.altName}>
+                हिंदी: {profile.nameHi}
+              </Text>
+            )}
+            {profile.nameCg && (
+              <Text variant="bodyMedium" style={styles.altName}>
+                छत्तीसगढ़ी: {profile.nameCg}
+              </Text>
+            )}
             {profile.isVerified && (
-              <Icon name="check-decagram" size={24} color="#4CAF50" />
+              <Icon name="check-decagram" size={24} color={Theme.colors.success} />
             )}
           </View>
           <IconButton
@@ -326,35 +338,40 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           mode="contained"
           icon="pencil"
           onPress={() => navigation.navigate('EditProfile')}
-          style={styles.actionButton}>
+          style={styles.actionButton}
+          buttonColor={Theme.colors.accent}>
           Edit Profile
         </Button>
         <Button
           mode="outlined"
           icon="image-multiple"
           onPress={() => navigation.navigate('PhotoManagement')}
-          style={styles.actionButton}>
+          style={styles.actionButton}
+          textColor={Theme.colors.primary}>
           Manage Photos
         </Button>
         <Button
           mode="outlined"
           icon="heart-multiple"
           onPress={() => navigation.navigate('PartnerPreferences')}
-          style={styles.actionButton}>
+          style={styles.actionButton}
+          textColor={Theme.colors.primary}>
           Partner Preferences
         </Button>
         <Button
           mode="outlined"
           icon="bookmark-multiple"
           onPress={() => navigation.navigate('Shortlist')}
-          style={styles.actionButton}>
+          style={styles.actionButton}
+          textColor={Theme.colors.primary}>
           My Shortlist
         </Button>
         <Button
           mode="outlined"
           icon="cog"
           onPress={() => navigation.navigate('Settings')}
-          style={styles.actionButton}>
+          style={styles.actionButton}
+          textColor={Theme.colors.primary}>
           Settings
         </Button>
       </View>
@@ -367,43 +384,45 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   loadingText: {
     marginTop: 16,
-    color: '#666',
+    color: Theme.colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
   },
   emptyTitle: {
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
+    color: Theme.colors.text,
   },
   emptyDescription: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   createButton: {
     paddingHorizontal: 24,
+    backgroundColor: Theme.colors.primary,
   },
   completenessCard: {
     margin: 16,
     padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    borderRadius: 12,
+    backgroundColor: Theme.colors.surfaceCard,
   },
   completenessHeader: {
     flexDirection: 'row',
@@ -412,7 +431,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   completenessPercentage: {
-    color: '#D81B60',
+    color: Theme.colors.accent,
     fontWeight: 'bold',
   },
   completenessBar: {
@@ -421,7 +440,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   completenessHint: {
-    color: '#666',
+    color: Theme.colors.textSecondary,
   },
   primaryPhotoContainer: {
     alignItems: 'center',
@@ -430,14 +449,17 @@ const styles = StyleSheet.create({
   primaryPhoto: {
     width: width - 32,
     height: width - 32,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: Theme.colors.accent,
   },
   card: {
     margin: 16,
     marginTop: 0,
     padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    ...Theme.shadows.md,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -452,12 +474,19 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: 'bold',
     marginBottom: 8,
+    color: Theme.colors.text,
   },
   divider: {
     marginBottom: 12,
+    backgroundColor: Theme.colors.surfaceCard,
   },
   name: {
     fontWeight: 'bold',
+    color: Theme.colors.text,
+  },
+  altName: {
+    color: Theme.colors.textSecondary,
+    marginTop: 2,
   },
   basicInfo: {
     gap: 8,
@@ -471,12 +500,12 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: '#333',
+    color: Theme.colors.text,
   },
   aboutText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: Theme.colors.text,
   },
   hobbiesContainer: {
     flexDirection: 'row',
@@ -485,6 +514,7 @@ const styles = StyleSheet.create({
   },
   hobbyChip: {
     marginBottom: 8,
+    backgroundColor: Theme.colors.surfaceCardAlt,
   },
   photoGallery: {
     flexDirection: 'row',
@@ -497,13 +527,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionsContainer: {
-    flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 16,
     marginTop: 8,
   },
   actionButton: {
-    flex: 1,
+    marginBottom: 12,
+    borderRadius: 8,
   },
   bottomPadding: {
     height: 32,

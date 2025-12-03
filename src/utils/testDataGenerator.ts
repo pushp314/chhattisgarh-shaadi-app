@@ -55,8 +55,8 @@ const randomDate = (startYear: number, endYear: number): Date => {
     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 };
 
-export const generateBasicInfo = () => {
-    const gender = random([Gender.MALE, Gender.FEMALE]);
+export const generateBasicInfo = (specificGender?: Gender) => {
+    const gender = specificGender || random([Gender.MALE, Gender.FEMALE]);
     return {
         firstName: gender === Gender.MALE ? random(firstNamesMale) : random(firstNamesFemale),
         lastName: random(lastNames),
