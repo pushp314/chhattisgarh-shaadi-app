@@ -2,16 +2,14 @@
  * Authentication Service
  * Handles all authentication-related API calls using InAppBrowser for OAuth
  */
-import { Platform, Linking } from 'react-native';
+import { Platform } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 import DeviceInfo from 'react-native-device-info';
 import apiClient from '../config/api.config';
 import { useAuthStore } from '../store/authStore';
-import { API_ENDPOINTS } from '../config/api.config';
+import { API_ENDPOINTS, API_CONFIG } from '../config/api.config';
 
-const API_BASE_URL = 'https://chhattisgarhshadi-backend.onrender.com/api/v1';
-const GOOGLE_CLIENT_ID = '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com';
 // Use the backend callback URL (already authorized in Google Console)
 const BACKEND_CALLBACK_URL = 'https://chhattisgarhshadi-backend.onrender.com/api/v1/auth/google/callback';
 
@@ -43,7 +41,7 @@ const authService = {
       // The backend will handle the callback and redirect to our app
       const googleAuthUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+        `client_id=${encodeURIComponent(API_CONFIG.GOOGLE_CLIENT_ID)}` +
         `&redirect_uri=${encodeURIComponent(BACKEND_CALLBACK_URL)}` +
         `&response_type=code` +
         `&scope=${encodeURIComponent('openid email profile')}` +

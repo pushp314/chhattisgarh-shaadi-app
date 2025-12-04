@@ -27,9 +27,8 @@ export type SubscriptionStackParamList = {
 
 // Main Tab Navigator
 export type MainTabParamList = {
-  Home: undefined;
-  Search: undefined;
-  Matches: undefined;
+  Matches: undefined; // Formerly Home
+  Activity: undefined;
   Messages: undefined;
   Subscription: undefined;
 };
@@ -40,27 +39,24 @@ export type DrawerParamList = {
   ProfileStack: NavigatorScreenParams<ProfileStackParamList>;
 };
 
-// Home Stack
+// Home Stack (Matches Tab)
 export type HomeStackParamList = {
   HomeScreen: undefined;
   ProfileDetails: { userId: number };
   SendMatchRequest: { profile: Profile };
-};
-
-// Search Stack
-export type SearchStackParamList = {
   SearchScreen: undefined;
   SearchResults: {
     query?: string;
     filters?: any;
   };
-  ProfileDetails: { userId: number };
 };
 
-// Matches Stack
-export type MatchesStackParamList = {
-  MatchesScreen: undefined;
-  MatchDetails: { matchId: number };
+// Activity Stack
+export type ActivityStackParamList = {
+  ActivityScreen: undefined;
+  Interests: undefined;
+  Shortlist: undefined;
+  WhoViewedMe: undefined;
   ProfileDetails: { userId: number };
 };
 
@@ -77,7 +73,7 @@ export type ProfileStackParamList = {
   CreateProfile: undefined;
   PhoneVerification: undefined;
   Settings: undefined;
-  Subscription: undefined;
+  // Subscription removed in favor of SubscriptionPlans flow
   PhotoManagement: undefined;
   PartnerPreferences: undefined;
   Shortlist: undefined;
@@ -93,6 +89,14 @@ export type ProfileStackParamList = {
   OccupationManagement: undefined;
   PrivacyPolicy: undefined;
   TermsConditions: undefined;
+  SubscriptionPlans: undefined;
+  Payment: {
+    planId: number;
+    planName: string;
+    amount: number;
+    duration: number;
+  };
+  TransactionHistory: undefined;
 };
 
 // Root Navigator

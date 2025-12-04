@@ -9,12 +9,12 @@ import {
   Badge,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SearchStackParamList } from '../../navigation/types';
+import { HomeStackParamList } from '../../navigation/types';
 import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<
-  SearchStackParamList,
+  HomeStackParamList,
   'SearchScreen'
 >;
 

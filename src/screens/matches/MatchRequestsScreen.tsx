@@ -34,7 +34,9 @@ import matchService from '../../services/match.service';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 
-type MatchRequestsScreenNavigationProp = NativeStackNavigationProp<any>;
+import { ProfileStackParamList } from '../../navigation/types';
+
+type MatchRequestsScreenNavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'MatchRequests'>;
 
 type Props = {
     navigation: MatchRequestsScreenNavigationProp;

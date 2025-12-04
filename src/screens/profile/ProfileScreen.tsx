@@ -127,6 +127,63 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         </Surface>
       )}
 
+      {/* Profile Metrics Card */}
+      <Surface style={styles.metricsCard} elevation={1}>
+        <Text variant="titleMedium" style={styles.cardTitle}>
+          Profile Activity
+        </Text>
+        <Divider style={styles.divider} />
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricItem}>
+            <View style={styles.metricIconContainer}>
+              <Icon name="eye" size={24} color={Theme.colors.primary} />
+            </View>
+            <Text variant="headlineSmall" style={styles.metricValue}>
+              {profile.viewCount || 0}
+            </Text>
+            <Text variant="bodySmall" style={styles.metricLabel}>
+              Profile Views
+            </Text>
+          </View>
+
+          <View style={styles.metricItem}>
+            <View style={styles.metricIconContainer}>
+              <Icon name="phone" size={24} color={Theme.colors.success} />
+            </View>
+            <Text variant="headlineSmall" style={styles.metricValue}>
+              {profile.contactViewCount || 0}
+            </Text>
+            <Text variant="bodySmall" style={styles.metricLabel}>
+              Contact Views
+            </Text>
+          </View>
+
+          <View style={styles.metricItem}>
+            <View style={styles.metricIconContainer}>
+              <Icon name="bookmark" size={24} color={Theme.colors.secondary} />
+            </View>
+            <Text variant="headlineSmall" style={styles.metricValue}>
+              {profile.shortlistCount || 0}
+            </Text>
+            <Text variant="bodySmall" style={styles.metricLabel}>
+              Shortlisted
+            </Text>
+          </View>
+
+          <View style={styles.metricItem}>
+            <View style={styles.metricIconContainer}>
+              <Icon name="heart" size={24} color={Theme.colors.error} />
+            </View>
+            <Text variant="headlineSmall" style={styles.metricValue}>
+              {profile.matchRequestCount || 0}
+            </Text>
+            <Text variant="bodySmall" style={styles.metricLabel}>
+              Interests
+            </Text>
+          </View>
+        </View>
+      </Surface>
+
       {/* Primary Photo */}
       {profile.media && profile.media.length > 0 && (
         <View style={styles.primaryPhotoContainer}>
@@ -441,6 +498,46 @@ const styles = StyleSheet.create({
   },
   completenessHint: {
     color: Theme.colors.textSecondary,
+  },
+  metricsCard: {
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    ...Theme.shadows.md,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  metricItem: {
+    width: '48%',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: Theme.colors.background,
+    borderRadius: 12,
+  },
+  metricIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    ...Theme.shadows.sm,
+  },
+  metricValue: {
+    fontWeight: 'bold',
+    color: Theme.colors.text,
+    marginBottom: 4,
+  },
+  metricLabel: {
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
   },
   primaryPhotoContainer: {
     alignItems: 'center',

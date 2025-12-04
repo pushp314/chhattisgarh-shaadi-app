@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import fcmService from './src/services/fcm.service';
+import { ToastProvider } from './src/context/ToastContext';
 
 const App = () => {
   useEffect(() => {
@@ -16,7 +17,7 @@ const App = () => {
         await fcmService.registerTokenWithBackend();
         const unsubscribe = fcmService.listenForMessages();
         const unsubscribeToken = fcmService.onTokenRefresh();
-        
+
         return () => {
           unsubscribe();
           unsubscribeToken();
@@ -28,10 +29,10 @@ const App = () => {
   }, []);
 
   return (
-    <>
+    <ToastProvider>
       <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
       <AppNavigator />
-    </>
+    </ToastProvider>
   );
 };
 

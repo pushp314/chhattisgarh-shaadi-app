@@ -11,8 +11,8 @@ class ShortlistService {
     /**
      * Add to shortlist
      */
-    async addToShortlist(profileId: number): Promise<void> {
-        await api.post(API_ENDPOINTS.SHORTLISTS.CREATE, { profileId });
+    async addToShortlist(userId: number): Promise<void> {
+        await api.post(API_ENDPOINTS.SHORTLISTS.CREATE, { shortlistedUserId: userId });
     }
 
     /**
@@ -23,19 +23,20 @@ class ShortlistService {
         pagination: PaginationResponse;
     }> {
         const response = await api.get<ApiResponse<{
-            results: Shortlist[];
+            profiles: Shortlist[];
             pagination: PaginationResponse;
         }>>(API_ENDPOINTS.SHORTLISTS.LIST, { params });
 
-        const { results, ...pagination } = response.data.data as any;
-        return { results, pagination };
+        // Backend returns 'profiles', map to 'results' for consistent frontend usage
+        const { profiles, pagination } = response.data.data || { profiles: [], pagination: {} };
+        return { results: profiles || [], pagination: pagination as PaginationResponse };
     }
 
     /**
      * Remove from shortlist
      */
-    async removeFromShortlist(profileId: number): Promise<void> {
-        await api.delete(API_ENDPOINTS.SHORTLISTS.DELETE(profileId));
+    async removeFromShortlist(userId: number): Promise<void> {
+        await api.delete(API_ENDPOINTS.SHORTLISTS.DELETE(userId));
     }
 }
 

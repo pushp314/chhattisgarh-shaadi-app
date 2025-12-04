@@ -50,6 +50,7 @@ export interface User {
   referredBy?: number;    // ID of referring agent/user
   createdAt: string;
   profile?: Profile;
+  subscription?: Subscription;
 }
 
 export interface Profile {
@@ -83,7 +84,13 @@ export interface Profile {
   education?: string;
   profileCompleteness: number;
   isVerified: boolean;
+  isPremium?: boolean;
   isPublished: boolean;
+  // Profile metrics
+  viewCount?: number;
+  contactViewCount?: number;
+  shortlistCount?: number;
+  matchRequestCount?: number;
   createdAt: string;
   updatedAt: string;
   media?: Media[];
@@ -210,6 +217,10 @@ export interface SearchProfilesParams extends PaginationParams {
   state?: string;
   nativeDistrict?: string;
   speaksChhattisgarhi?: boolean;
+  isVerified?: boolean;
+  occupation?: string;
+  annualIncome?: string;
+  createdAfter?: string;
 }
 
 export interface DeviceInfo {

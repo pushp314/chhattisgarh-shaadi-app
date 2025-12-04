@@ -6,6 +6,7 @@
 import api from './api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import { Subscription, SubscriptionPlan, ApiResponse, PaginationResponse } from '../types';
+import userService from './user.service';
 
 class SubscriptionService {
     /**
@@ -68,31 +69,13 @@ class SubscriptionService {
      */
     async getCurrentSubscription(): Promise<Subscription | null> {
         try {
-            const response = await api.get<ApiResponse<Subscription>>(
-                API_ENDPOINTS.SUBSCRIPTION.CURRENT
-            );
-            return response.data.data;
+            // Fetch user details which includes subscription info
+            const user = await userService.getMe();
+            return user.subscription || null;
         } catch (error) {
+            console.error('Error fetching subscription:', error);
             return null;
         }
-    }
-
-    /**
-     * Create subscription
-     */
-    async createSubscription(planId: number): Promise<Subscription> {
-        const response = await api.post<ApiResponse<Subscription>>(
-            API_ENDPOINTS.SUBSCRIPTION.CREATE,
-            { planId }
-        );
-        return response.data.data;
-    }
-
-    /**
-     * Cancel subscription
-     */
-    async cancelSubscription(): Promise<void> {
-        await api.delete(API_ENDPOINTS.SUBSCRIPTION.CANCEL);
     }
 }
 

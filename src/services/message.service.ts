@@ -33,10 +33,16 @@ class MessageService {
    * Get all conversations
    */
   async getConversations(): Promise<Conversation[]> {
-    const response = await api.get<ApiResponse<{ conversations: Conversation[] }>>(
+    const response = await api.get<ApiResponse<{ conversations: any[] }>>(
       API_ENDPOINTS.MESSAGES.CONVERSATIONS
     );
-    return response.data.data.conversations;
+
+    // Transform to add userId from user.id
+    const conversations = response.data.data?.conversations || [];
+    return conversations.map((conv: any) => ({
+      ...conv,
+      userId: conv.user?.id || conv.userId,
+    }));
   }
 
   /**

@@ -15,7 +15,6 @@ import {
     Surface,
     Button,
     ActivityIndicator,
-    Chip,
     Divider,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,6 +22,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 import subscriptionService from '../../services/subscription.service';
 import { SubscriptionPlan } from '../../types';
+import GradientBackground from '../../components/common/GradientBackground';
 
 type SubscriptionPlansScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -202,56 +202,60 @@ const SubscriptionPlansScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Surface style={styles.headerCard} elevation={1}>
-                <Icon name="crown" size={48} color={Theme.colors.secondary} />
-                <Text variant="headlineMedium" style={styles.headerTitle}>
-                    Choose Your Plan
-                </Text>
-                <Text variant="bodyMedium" style={styles.headerSubtitle}>
-                    Unlock premium features and find your perfect match faster
-                </Text>
-                <Button
-                    mode="outlined"
-                    icon="receipt"
-                    onPress={() => navigation.navigate('TransactionHistory')}
-                    style={styles.historyButton}
-                    textColor={Theme.colors.secondary}>
-                    View Transaction History
-                </Button>
-            </Surface>
+        <View style={styles.container}>
+            <GradientBackground variant="gold">
+                <ScrollView contentContainerStyle={styles.content}>
+                    <Surface style={styles.headerCard} elevation={1}>
+                        <Icon name="crown" size={48} color={Theme.colors.secondary} />
+                        <Text variant="headlineMedium" style={styles.headerTitle}>
+                            Choose Your Plan
+                        </Text>
+                        <Text variant="bodyMedium" style={styles.headerSubtitle}>
+                            Unlock premium features and find your perfect match faster
+                        </Text>
+                        <Button
+                            mode="outlined"
+                            icon="receipt"
+                            onPress={() => navigation.navigate('TransactionHistory')}
+                            style={styles.historyButton}
+                            textColor={Theme.colors.secondary}>
+                            View Transaction History
+                        </Button>
+                    </Surface>
 
-            <View style={styles.plansContainer}>
-                {plans.map(plan => renderPlanCard(plan))}
-            </View>
+                    <View style={styles.plansContainer}>
+                        {plans.map(plan => renderPlanCard(plan))}
+                    </View>
 
-            <Surface style={styles.infoCard} elevation={1}>
-                <Icon name="information" size={24} color={Theme.colors.secondary} />
-                <View style={styles.infoContent}>
-                    <Text variant="titleSmall" style={styles.infoTitle}>
-                        Money-Back Guarantee
-                    </Text>
-                    <Text variant="bodySmall" style={styles.infoText}>
-                        Not satisfied? Get a full refund within 7 days of purchase. No questions asked.
-                    </Text>
-                </View>
-            </Surface>
+                    <Surface style={styles.infoCard} elevation={1}>
+                        <Icon name="information" size={24} color={Theme.colors.secondary} />
+                        <View style={styles.infoContent}>
+                            <Text variant="titleSmall" style={styles.infoTitle}>
+                                Money-Back Guarantee
+                            </Text>
+                            <Text variant="bodySmall" style={styles.infoText}>
+                                Not satisfied? Get a full refund within 7 days of purchase. No questions asked.
+                            </Text>
+                        </View>
+                    </Surface>
 
-            <Surface style={styles.infoCard} elevation={1}>
-                <Icon name="shield-check" size={24} color={Theme.colors.success} />
-                <View style={styles.infoContent}>
-                    <Text variant="titleSmall" style={styles.infoTitle}>
-                        Secure Payments
-                    </Text>
-                    <Text variant="bodySmall" style={styles.infoText}>
-                        All payments are processed securely through Razorpay. Your financial information
-                        is encrypted and protected.
-                    </Text>
-                </View>
-            </Surface>
+                    <Surface style={styles.infoCard} elevation={1}>
+                        <Icon name="shield-check" size={24} color={Theme.colors.success} />
+                        <View style={styles.infoContent}>
+                            <Text variant="titleSmall" style={styles.infoTitle}>
+                                Secure Payments
+                            </Text>
+                            <Text variant="bodySmall" style={styles.infoText}>
+                                All payments are processed securely through Razorpay. Your financial information
+                                is encrypted and protected.
+                            </Text>
+                        </View>
+                    </Surface>
 
-            <View style={styles.bottomPadding} />
-        </ScrollView>
+                    <View style={styles.bottomPadding} />
+                </ScrollView>
+            </GradientBackground>
+        </View>
     );
 };
 

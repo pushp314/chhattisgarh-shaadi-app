@@ -74,16 +74,21 @@ class PaymentService {
         results: Payment[];
         pagination: PaginationResponse;
     }> {
-        const response = await api.get<ApiResponse<{
-            results: Payment[];
-            pagination: PaginationResponse;
-        }>>(
+        const response = await api.get<ApiResponse<Payment[]>>(
             API_ENDPOINTS.PAYMENTS.MY_PAYMENTS,
             { params }
         );
 
-        const { results, ...pagination } = response.data.data as any;
-        return { results, pagination };
+        // Backend returns just the array, no pagination metadata currently
+        return {
+            results: response.data.data,
+            pagination: {
+                page: 1,
+                limit: 100,
+                total: response.data.data.length,
+                totalPages: 1
+            }
+        };
     }
 
     /**

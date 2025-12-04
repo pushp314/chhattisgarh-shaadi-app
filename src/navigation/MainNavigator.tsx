@@ -12,25 +12,20 @@ import { useAuthStore } from '../store/authStore';
 import { useProfileStore } from '../store/profileStore';
 
 // Import stack navigators
-import HomeStack from './stacks/HomeStack.tsx';
-import SearchStack from './stacks/SearchStack.tsx';
-import MatchesStack from './stacks/MatchesStack.tsx';
+import HomeStack from './stacks/HomeStack.tsx'; // This will be the "Matches" tab
+import ActivityStack from './stacks/ActivityStack.tsx';
 import MessagesStack from './stacks/MessagesStack.tsx';
 import SubscriptionStack from './stacks/SubscriptionStack.tsx';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // Icon render functions to avoid creating components during render
-const HomeIcon = ({ color, size }: { color: string; size: number }) => (
-  <Icon name="home" size={size} color={color} />
-);
-
-const SearchIcon = ({ color, size }: { color: string; size: number }) => (
-  <Icon name="search" size={size} color={color} />
-);
-
 const MatchesIcon = ({ color, size }: { color: string; size: number }) => (
   <Icon name="favorite" size={size} color={color} />
+);
+
+const ActivityIcon = ({ color, size }: { color: string; size: number }) => (
+  <Icon name="notifications" size={size} color={color} />
 );
 
 const MessagesIcon = ({ color, size }: { color: string; size: number }) => (
@@ -47,7 +42,7 @@ const MainNavigator: React.FC = () => {
 
   return (
     <Tab.Navigator
-      initialRouteName="Home"
+      initialRouteName="Matches"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#E7383F', // Love Red
@@ -71,27 +66,19 @@ const MainNavigator: React.FC = () => {
       })}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeStack}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: HomeIcon,
-        }}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchStack}
-        options={{
-          tabBarLabel: 'Search',
-          tabBarIcon: SearchIcon,
-        }}
-      />
-      <Tab.Screen
         name="Matches"
-        component={MatchesStack}
+        component={HomeStack}
         options={{
           tabBarLabel: 'Matches',
           tabBarIcon: MatchesIcon,
+        }}
+      />
+      <Tab.Screen
+        name="Activity"
+        component={ActivityStack}
+        options={{
+          tabBarLabel: 'Activity',
+          tabBarIcon: ActivityIcon,
         }}
       />
       <Tab.Screen

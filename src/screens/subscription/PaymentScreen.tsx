@@ -3,20 +3,18 @@
  * Handles Razorpay payment integration for subscription plans
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
     Alert,
-    Platform,
 } from 'react-native';
 import {
     Text,
     Surface,
     Button,
     Divider,
-    ActivityIndicator,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';

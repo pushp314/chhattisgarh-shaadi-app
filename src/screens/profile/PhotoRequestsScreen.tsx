@@ -29,6 +29,7 @@ import { PhotoRequest, PhotoRequestStatus } from '../../types';
 import photoRequestService from '../../services/photoRequest.service';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
+import GradientBackground from '../../components/common/GradientBackground';
 
 type PhotoRequestsScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -225,60 +226,62 @@ const PhotoRequestsScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header Info */}
-            <Surface style={styles.header} elevation={1}>
-                <Icon name="image-lock" size={24} color={Theme.colors.secondary} />
-                <Text variant="bodyMedium" style={styles.headerText}>
-                    Photo view requests allow you to access private photos
-                </Text>
-            </Surface>
+            <GradientBackground variant="card">
+                {/* Header Info */}
+                <Surface style={styles.header} elevation={1}>
+                    <Icon name="image-lock" size={24} color={Theme.colors.secondary} />
+                    <Text variant="bodyMedium" style={styles.headerText}>
+                        Photo view requests allow you to access private photos
+                    </Text>
+                </Surface>
 
-            {/* Tab Switcher */}
-            <Surface style={styles.tabContainer} elevation={2}>
-                <SegmentedButtons
-                    value={tab}
-                    onValueChange={(value) => setTab(value as 'received' | 'sent')}
-                    buttons={[
-                        {
-                            value: 'received',
-                            label: `Received${tab === 'received' && pendingCount > 0 ? ` (${pendingCount})` : ''}`,
-                            icon: 'inbox',
-                        },
-                        {
-                            value: 'sent',
-                            label: 'Sent',
-                            icon: 'send',
-                        },
-                    ]}
-                    style={styles.segmentedButtons}
+                {/* Tab Switcher */}
+                <Surface style={styles.tabContainer} elevation={2}>
+                    <SegmentedButtons
+                        value={tab}
+                        onValueChange={(value) => setTab(value as 'received' | 'sent')}
+                        buttons={[
+                            {
+                                value: 'received',
+                                label: `Received${tab === 'received' && pendingCount > 0 ? ` (${pendingCount})` : ''}`,
+                                icon: 'inbox',
+                            },
+                            {
+                                value: 'sent',
+                                label: 'Sent',
+                                icon: 'send',
+                            },
+                        ]}
+                        style={styles.segmentedButtons}
+                    />
+                </Surface>
+
+                {/* Requests List */}
+                <FlatList
+                    data={requests}
+                    renderItem={renderRequest}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <EmptyState
+                            icon={tab === 'received' ? 'inbox' : 'send'}
+                            title={`No ${tab === 'received' ? 'Received' : 'Sent'} Requests`}
+                            message={
+                                tab === 'received'
+                                    ? "You haven't received any photo view requests yet."
+                                    : "You haven't sent any photo view requests yet."
+                            }
+                        />
+                    }
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={() => loadRequests(true)}
+                            colors={[Theme.colors.primary]}
+                        />
+                    }
                 />
-            </Surface>
-
-            {/* Requests List */}
-            <FlatList
-                data={requests}
-                renderItem={renderRequest}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <EmptyState
-                        icon={tab === 'received' ? 'inbox' : 'send'}
-                        title={`No ${tab === 'received' ? 'Received' : 'Sent'} Requests`}
-                        message={
-                            tab === 'received'
-                                ? "You haven't received any photo view requests yet."
-                                : "You haven't sent any photo view requests yet."
-                        }
-                    />
-                }
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={() => loadRequests(true)}
-                        colors={[Theme.colors.primary]}
-                    />
-                }
-            />
+            </GradientBackground>
         </View>
     );
 };

@@ -61,11 +61,11 @@ class ProfileService {
   }
 
   /**
-   * Get profile by ID (profile ID, not user ID)
+   * Get profile by USER ID (Not Profile ID)
    */
-  async getProfileById(profileId: number): Promise<Profile> {
+  async getProfileByUserId(userId: number): Promise<Profile> {
     const response = await api.get<ApiResponse<Profile>>(
-      API_ENDPOINTS.PROFILES.BY_ID(profileId)
+      API_ENDPOINTS.PROFILES.BY_ID(userId)
     );
     return response.data.data;
   }

@@ -6,32 +6,32 @@ import LoadingSkeleton from '../common/LoadingSkeleton';
 const ProfileCardSkeleton: React.FC = () => {
     return (
         <Surface style={styles.card} elevation={2}>
-            {/* Profile Image Skeleton */}
-            <LoadingSkeleton width="100%" height={200} borderRadius={8} />
+            {/* Profile Image Skeleton - Aspect Ratio 4:5 */}
+            <View style={styles.imageContainer}>
+                <LoadingSkeleton width="100%" height="100%" borderRadius={0} />
+            </View>
 
             <View style={styles.content}>
                 {/* Name Skeleton */}
                 <LoadingSkeleton width="60%" height={24} style={styles.nameSkeleton} />
 
-                {/* Age & Location Skeleton */}
-                <LoadingSkeleton width="80%" height={16} style={styles.infoSkeleton} />
-
-                {/* Details Skeleton */}
-                <View style={styles.detailsContainer}>
-                    <LoadingSkeleton width="45%" height={14} style={styles.detailSkeleton} />
-                    <LoadingSkeleton width="45%" height={14} style={styles.detailSkeleton} />
+                {/* Details Row 1 */}
+                <View style={styles.detailsRow}>
+                    <LoadingSkeleton width="30%" height={24} borderRadius={8} />
+                    <LoadingSkeleton width="40%" height={24} borderRadius={8} />
                 </View>
 
-                {/* Bio Skeleton */}
-                <View style={styles.bioContainer}>
-                    <LoadingSkeleton width="100%" height={12} style={styles.bioLine} />
-                    <LoadingSkeleton width="90%" height={12} style={styles.bioLine} />
+                {/* Details Row 2 */}
+                <View style={styles.detailsRow}>
+                    <LoadingSkeleton width="35%" height={24} borderRadius={8} />
+                    <LoadingSkeleton width="25%" height={24} borderRadius={8} />
                 </View>
 
-                {/* Action Buttons Skeleton */}
-                <View style={styles.actionsContainer}>
-                    <LoadingSkeleton width="48%" height={40} borderRadius={20} />
-                    <LoadingSkeleton width="48%" height={40} borderRadius={20} />
+                {/* Tags Skeleton */}
+                <View style={styles.tagsContainer}>
+                    <LoadingSkeleton width={60} height={28} borderRadius={8} />
+                    <LoadingSkeleton width={80} height={28} borderRadius={8} />
+                    <LoadingSkeleton width={70} height={28} borderRadius={8} />
                 </View>
             </View>
         </Surface>
@@ -40,37 +40,36 @@ const ProfileCardSkeleton: React.FC = () => {
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: 12,
+        borderRadius: 16,
         overflow: 'hidden',
         backgroundColor: '#fff',
         marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    imageContainer: {
+        width: '100%',
+        aspectRatio: 4 / 5,
+        backgroundColor: '#f0f0f0',
     },
     content: {
         padding: 16,
     },
     nameSkeleton: {
+        marginBottom: 12,
+    },
+    detailsRow: {
+        flexDirection: 'row',
+        gap: 8,
         marginBottom: 8,
     },
-    infoSkeleton: {
-        marginBottom: 12,
-    },
-    detailsContainer: {
+    tagsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    detailSkeleton: {
-        marginBottom: 4,
-    },
-    bioContainer: {
-        marginBottom: 16,
-    },
-    bioLine: {
-        marginBottom: 6,
-    },
-    actionsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        gap: 8,
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
     },
 });
 

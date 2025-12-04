@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   Text,
   Surface,
@@ -30,7 +31,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
-import { ProfileStackParamList } from '../../navigation/types';
+import { ProfileStackParamList, HomeStackParamList, ActivityStackParamList } from '../../navigation/types';
 import { Profile, MatchResult } from '../../types';
 import profileService from '../../services/profile.service';
 import matchService from '../../services/match.service';
@@ -43,15 +44,17 @@ import { useProfileStore } from '../../store/profileStore';
 import ReportProfileDialog, { ReportReason } from '../../components/profile/ReportProfileDialog';
 
 type ProfileDetailsScreenNavigationProp = NativeStackNavigationProp<
-  ProfileStackParamList,
+  ProfileStackParamList & HomeStackParamList & ActivityStackParamList,
   'ProfileDetails'
 >;
-
-type ProfileDetailsScreenRouteProp = RouteProp<ProfileStackParamList, 'ProfileDetails'>;
+import ProfileDetailsSkeleton from '../../components/profile/ProfileDetailsSkeleton';
+import { useToast } from '../../context/ToastContext';
+import VerificationBadge from '../../components/common/VerificationBadge';
+import PremiumBadge from '../../components/common/PremiumBadge';
 
 type Props = {
   navigation: ProfileDetailsScreenNavigationProp;
-  route: ProfileDetailsScreenRouteProp;
+  route: any;
 };
 
 const { width } = Dimensions.get('window');
@@ -59,6 +62,7 @@ const PHOTO_SIZE = (width - 48) / 3;
 
 const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { userId } = route.params;
+  const { showToast } = useToast();
   const { profile: myProfile } = useProfileStore();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
@@ -101,7 +105,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       if (!userId) {
         throw new Error('User ID is required');
       }
-      const profileData = await profileService.getProfileById(userId);
+      const profileData = await profileService.getProfileByUserId(userId);
       setProfile(profileData);
     } catch (error: any) {
       console.error('Error loading profile:', error);
@@ -115,7 +119,8 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const checkShortlistStatus = async () => {
     try {
       const { results } = await shortlistService.getShortlist();
-      const isInShortlist = results.some((s: any) => s.profileId === userId);
+      // Backend returns profiles with 'id' as the user ID
+      const isInShortlist = results?.some((s: any) => s.id === userId) || false;
       setIsShortlisted(isInShortlist);
     } catch (error) {
       console.error('Error checking shortlist:', error);
@@ -127,14 +132,14 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       if (isShortlisted) {
         await shortlistService.removeFromShortlist(userId);
         setIsShortlisted(false);
-        Alert.alert('Success', 'Removed from shortlist');
+        showToast('Removed from shortlist', 'info');
       } else {
         await shortlistService.addToShortlist(userId);
         setIsShortlisted(true);
-        Alert.alert('Success', 'Added to shortlist');
+        showToast('Added to shortlist', 'success');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update shortlist');
+      showToast(error.response?.data?.message || 'Failed to update shortlist', 'error');
     }
   };
 
@@ -144,9 +149,9 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       await matchService.sendMatchRequest(userId, matchMessage);
       setShowMatchModal(false);
       setMatchMessage('');
-      Alert.alert('Success', 'Match request sent successfully!');
+      showToast('Match request sent successfully!', 'success');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to send match request');
+      showToast(error.response?.data?.message || 'Failed to send match request', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -162,9 +167,9 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       });
       setShowContactDialog(false);
       setContactMessage('');
-      Alert.alert('Success', 'Contact request sent successfully!');
+      showToast('Contact request sent successfully!', 'success');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to send contact request');
+      showToast(error.response?.data?.message || 'Failed to send contact request', 'error');
     } finally {
       setIsSendingContact(false);
     }
@@ -172,7 +177,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSendPhotoRequest = async () => {
     if (!profile?.media || profile.media.length === 0) {
-      Alert.alert('Error', 'This profile has no photos');
+      showToast('This profile has no photos', 'info');
       return;
     }
 
@@ -185,9 +190,9 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       });
       setShowPhotoRequestDialog(false);
       setPhotoRequestMessage('');
-      Alert.alert('Success', 'Photo view request sent successfully!');
+      showToast('Photo view request sent successfully!', 'success');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to send photo request');
+      showToast(error.response?.data?.message || 'Failed to send photo request', 'error');
     } finally {
       setIsSendingPhotoRequest(false);
     }
@@ -203,13 +208,9 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         reportType: 'PROFILE' as any,
       });
       setShowReportDialog(false);
-      Alert.alert(
-        'Report Submitted',
-        'Thank you for reporting. We will review this profile and take appropriate action.',
-        [{ text: 'OK' }]
-      );
+      showToast('Report submitted successfully!', 'success');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit report');
+      showToast(error.response?.data?.message || 'Failed to submit report', 'error');
     } finally {
       setIsReporting(false);
     }
@@ -227,12 +228,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
+    return <ProfileDetailsSkeleton />;
   }
 
   if (!profile) {
@@ -259,7 +255,10 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     <View style={styles.container}>
       <ScrollView>
         {/* Header with Back Button */}
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.6)', 'transparent']}
+          style={styles.header}
+        >
           <IconButton
             icon="arrow-left"
             size={24}
@@ -280,7 +279,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               iconColor={isShortlisted ? Theme.colors.secondary : Theme.colors.white}
             />
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Primary Photo */}
         {profile.media && profile.media.length > 0 && (
@@ -290,10 +289,10 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               style={styles.primaryPhoto}
             />
             {profile.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Icon name="check-decagram" size={32} color={Theme.colors.success} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
+              <VerificationBadge variant="overlay" size={24} showText style={styles.verifiedBadge} />
+            )}
+            {profile.isPremium && (
+              <PremiumBadge variant="overlay" size={24} showText style={styles.premiumBadge} />
             )}
           </View>
         )}
@@ -301,22 +300,17 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Basic Info Card */}
         <Surface style={styles.card} elevation={1}>
           <View style={styles.nameContainer}>
-            <Text variant="headlineMedium" style={styles.name}>
-              {fullName}
-            </Text>
-            {profile.nameHi && (
-              <Text variant="bodyMedium" style={styles.altName}>
-                हिंदी: {profile.nameHi}
+            <View style={styles.nameRow}>
+              <Text variant="headlineMedium" style={styles.name}>
+                {fullName}
               </Text>
-            )}
-            {profile.nameCg && (
-              <Text variant="bodyMedium" style={styles.altName}>
-                छत्तीसगढ़ी: {profile.nameCg}
-              </Text>
-            )}
-            {profile.isVerified && (
-              <Icon name="check-decagram" size={28} color={Theme.colors.success} />
-            )}
+              {profile.isVerified && (
+                <VerificationBadge size={28} />
+              )}
+              {profile.isPremium && (
+                <PremiumBadge variant="chip" size={20} />
+              )}
+            </View>
           </View>
 
           <View style={styles.basicInfo}>
@@ -744,7 +738,6 @@ const styles = StyleSheet.create({
     padding: 8,
     paddingTop: 40,
     zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   headerActions: {
     flexDirection: 'row',
@@ -763,17 +756,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-    backgroundColor: Theme.colors.white,
-    borderRadius: 12,
-    padding: 12,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    ...Theme.shadows.md,
-  },
-  verifiedText: {
-    color: Theme.colors.success,
-    fontWeight: 'bold',
+    flexWrap: 'wrap',
   },
   card: {
     margin: 16,

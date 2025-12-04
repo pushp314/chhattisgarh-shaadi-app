@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {
   Text,
-  ProgressBar,
   Surface,
   useTheme,
   IconButton,
@@ -35,6 +34,7 @@ import FamilyDetailsStep from '../../components/profile/FamilyDetailsStep';
 import AboutStep from '../../components/profile/AboutStep';
 import HoroscopeStep from '../../components/profile/HoroscopeStep';
 import PhotosStep from '../../components/profile/PhotosStep';
+import ProgressStepper from '../../components/common/ProgressStepper';
 
 type CreateProfileScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -370,10 +370,24 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleAutoFill}
           />
         </View>
-        <ProgressBar
-          progress={progress}
-          color={theme.colors.primary}
-          style={styles.progressBar}
+        <ProgressStepper
+          steps={[
+            'Basic',
+            'Location',
+            'Religion',
+            'Physical',
+            'Education',
+            'Family',
+            'About',
+            religion === 'HINDU' ? 'Horoscope' : 'Photos',
+            religion === 'HINDU' ? 'Photos' : '',
+          ].filter(Boolean)}
+          currentStep={currentStep}
+          onStepPress={(step) => {
+            if (step < currentStep) {
+              setCurrentStep(step);
+            }
+          }}
         />
       </Surface>
 

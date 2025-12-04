@@ -8,8 +8,10 @@ import { HomeStackParamList } from '../types';
 
 // Import screens
 import HomeScreen from '../../screens/home/HomeScreen.tsx';
-import ProfileDetailsScreen from '../../screens/search/ProfileDetailsScreen.tsx';
+import ProfileDetailsScreen from '../../screens/profile/ProfileDetailsScreen.tsx';
 import SendMatchRequestScreen from '../../screens/matches/SendMatchRequestScreen.tsx';
+import SearchScreen from '../../screens/search/SearchScreen.tsx';
+import SearchResultsScreen from '../../screens/search/SearchResultsScreen.tsx';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -19,7 +21,7 @@ const HomeStack: React.FC = () => {
       <Stack.Screen
         name="HomeScreen"
         component={HomeScreen}
-        options={{ title: 'Chhattisgarh Shaadi' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ProfileDetails"
@@ -30,6 +32,16 @@ const HomeStack: React.FC = () => {
         name="SendMatchRequest"
         component={SendMatchRequestScreen}
         options={{ title: 'Send Match Request' }}
+      />
+      <Stack.Screen
+        name="SearchScreen"
+        component={SearchScreen}
+        options={{ title: 'Search' }}
+      />
+      <Stack.Screen
+        name="SearchResults"
+        component={SearchResultsScreen}
+        options={{ title: 'Search Results' }}
       />
     </Stack.Navigator>
   );

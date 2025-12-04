@@ -3,7 +3,7 @@
  * Display user's payment transaction history
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     FlatList,
@@ -31,7 +31,7 @@ type Props = {
     navigation: TransactionHistoryScreenNavigationProp;
 };
 
-const TransactionHistoryScreen: React.FC<Props> = ({ navigation }) => {
+const TransactionHistoryScreen: React.FC<Props> = () => {
     const [transactions, setTransactions] = useState<Payment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -142,11 +142,10 @@ const TransactionHistoryScreen: React.FC<Props> = ({ navigation }) => {
                             styles.statusChip,
                             { backgroundColor: getStatusColor(item.status) + '20' },
                         ]}
-                        textStyle={{
-                            color: getStatusColor(item.status),
-                            fontSize: 12,
-                            fontWeight: '600',
-                        }}>
+                        textStyle={[
+                            styles.chipText,
+                            { color: getStatusColor(item.status) },
+                        ]}>
                         {item.status}
                     </Chip>
                 </View>
@@ -369,6 +368,10 @@ const styles = StyleSheet.create({
     amount: {
         fontWeight: 'bold',
         color: Theme.colors.primary,
+    },
+    chipText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
 

@@ -35,6 +35,52 @@ type Props = {
     navigation: SettingsScreenNavigationProp;
 };
 
+// Reusable Icon Components to prevent re-renders
+const EyeIcon = (props: any) => <List.Icon {...props} icon="eye" color={Theme.colors.textSecondary} />;
+const ChevronRightIcon = (props: any) => <List.Icon {...props} icon="chevron-right" />;
+const AccountDetailsIcon = (props: any) => <List.Icon {...props} icon="account-details" color={Theme.colors.textSecondary} />;
+const MagnifyIcon = (props: any) => <List.Icon {...props} icon="magnify" color={Theme.colors.textSecondary} />;
+const LightbulbIcon = (props: any) => <List.Icon {...props} icon="lightbulb" color={Theme.colors.textSecondary} />;
+const HeartIcon = (props: any) => <List.Icon {...props} icon="heart" color={Theme.colors.textSecondary} />;
+const MessageIcon = (props: any) => <List.Icon {...props} icon="message" color={Theme.colors.textSecondary} />;
+const EmailIcon = (props: any) => <List.Icon {...props} icon="email" color={Theme.colors.textSecondary} />;
+const CellphoneIcon = (props: any) => <List.Icon {...props} icon="cellphone" color={Theme.colors.textSecondary} />;
+const AccountEditIcon = (props: any) => <List.Icon {...props} icon="account-edit" color={Theme.colors.textSecondary} />;
+const HeartSettingsIcon = (props: any) => <List.Icon {...props} icon="heart-settings" color={Theme.colors.textSecondary} />;
+const SchoolIcon = (props: any) => <List.Icon {...props} icon="school" color={Theme.colors.textSecondary} />;
+const BriefcaseIcon = (props: any) => <List.Icon {...props} icon="briefcase" color={Theme.colors.textSecondary} />;
+const ImageLockIcon = (props: any) => <List.Icon {...props} icon="image-lock" color={Theme.colors.textSecondary} />;
+const ImageMultipleIcon = (props: any) => <List.Icon {...props} icon="image-multiple" color={Theme.colors.textSecondary} />;
+const AccountCancelIcon = (props: any) => <List.Icon {...props} icon="account-cancel" color={Theme.colors.textSecondary} />;
+const AccountMultipleIcon = (props: any) => <List.Icon {...props} icon="account-multiple" color={Theme.colors.textSecondary} />;
+const HeartMultipleIcon = (props: any) => <List.Icon {...props} icon="heart-multiple" color={Theme.colors.textSecondary} />;
+const HelpCircleIcon = (props: any) => <List.Icon {...props} icon="help-circle" color={Theme.colors.textSecondary} />;
+const InformationIcon = (props: any) => <List.Icon {...props} icon="information" color={Theme.colors.textSecondary} />;
+
+type SettingsSwitchItemProps = {
+    title: string;
+    description: string;
+    left: (props: any) => React.ReactNode;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+};
+
+const SettingsSwitchItem = React.memo(({ title, description, left, value, onValueChange }: SettingsSwitchItemProps) => (
+    <List.Item
+        title={title}
+        description={description}
+        left={left}
+        // eslint-disable-next-line react/no-unstable-nested-components
+        right={() => (
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                color={Theme.colors.secondary}
+            />
+        )}
+    />
+));
+
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     const { logout } = useAuthStore();
     const [isLoading, setIsLoading] = useState(true);
@@ -171,8 +217,8 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 <List.Item
                     title="Profile Visibility"
                     description={profileVisibility}
-                    left={props => <List.Icon {...props} icon="eye" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={EyeIcon}
+                    right={ChevronRightIcon}
                     onPress={() => {
                         // Show visibility picker dialog
                         Alert.alert(
@@ -189,43 +235,28 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     }}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Show Last Name"
                     description="Display your last name on profile"
-                    left={props => <List.Icon {...props} icon="account-details" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={showLastName}
-                            onValueChange={setShowLastName}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={AccountDetailsIcon}
+                    value={showLastName}
+                    onValueChange={setShowLastName}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Show in Search"
                     description="Appear in search results"
-                    left={props => <List.Icon {...props} icon="magnify" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={showInSearch}
-                            onValueChange={setShowInSearch}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={MagnifyIcon}
+                    value={showInSearch}
+                    onValueChange={setShowInSearch}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Show in Suggestions"
                     description="Appear in match suggestions"
-                    left={props => <List.Icon {...props} icon="lightbulb" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={showInSuggestions}
-                            onValueChange={setShowInSuggestions}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={LightbulbIcon}
+                    value={showInSuggestions}
+                    onValueChange={setShowInSuggestions}
                 />
 
                 <Button
@@ -250,69 +281,44 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <Divider style={styles.divider} />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Match Requests"
                     description="Get notified about new match requests"
-                    left={props => <List.Icon {...props} icon="heart" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={matchRequestNotif}
-                            onValueChange={setMatchRequestNotif}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={HeartIcon}
+                    value={matchRequestNotif}
+                    onValueChange={setMatchRequestNotif}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Messages"
                     description="Get notified about new messages"
-                    left={props => <List.Icon {...props} icon="message" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={messageNotif}
-                            onValueChange={setMessageNotif}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={MessageIcon}
+                    value={messageNotif}
+                    onValueChange={setMessageNotif}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Profile Views"
                     description="Get notified when someone views your profile"
-                    left={props => <List.Icon {...props} icon="eye" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={profileViewNotif}
-                            onValueChange={setProfileViewNotif}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={EyeIcon}
+                    value={profileViewNotif}
+                    onValueChange={setProfileViewNotif}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Email Notifications"
                     description="Receive notifications via email"
-                    left={props => <List.Icon {...props} icon="email" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={emailNotif}
-                            onValueChange={setEmailNotif}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={EmailIcon}
+                    value={emailNotif}
+                    onValueChange={setEmailNotif}
                 />
 
-                <List.Item
+                <SettingsSwitchItem
                     title="Push Notifications"
                     description="Receive push notifications"
-                    left={props => <List.Icon {...props} icon="cellphone" color={Theme.colors.textSecondary} />}
-                    right={() => (
-                        <Switch
-                            value={pushNotif}
-                            onValueChange={setPushNotif}
-                            color={Theme.colors.secondary}
-                        />
-                    )}
+                    left={CellphoneIcon}
+                    value={pushNotif}
+                    onValueChange={setPushNotif}
                 />
 
                 <Button
@@ -340,80 +346,80 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 <List.Item
                     title="Edit Profile"
                     description="Update your profile information"
-                    left={props => <List.Icon {...props} icon="account-edit" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={AccountEditIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('EditProfile')}
                 />
 
                 <List.Item
                     title="Partner Preferences"
                     description="Set your match preferences"
-                    left={props => <List.Icon {...props} icon="heart-settings" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={HeartSettingsIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('PartnerPreferences')}
                 />
 
                 <List.Item
                     title="Education Management"
                     description="Manage your education records"
-                    left={props => <List.Icon {...props} icon="school" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={SchoolIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('EducationManagement')}
                 />
 
                 <List.Item
                     title="Occupation Management"
                     description="Manage your professional details"
-                    left={props => <List.Icon {...props} icon="briefcase" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={BriefcaseIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('OccupationManagement')}
                 />
 
                 <List.Item
                     title="Photo Privacy"
                     description="Manage photo privacy settings"
-                    left={props => <List.Icon {...props} icon="image-lock" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={ImageLockIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('PhotoPrivacy')}
                 />
 
                 <List.Item
                     title="Photo Requests"
                     description="Manage photo view requests"
-                    left={props => <List.Icon {...props} icon="image-multiple" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={ImageMultipleIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('PhotoRequests')}
                 />
 
                 <List.Item
                     title="Blocked Users"
                     description="Manage blocked profiles"
-                    left={props => <List.Icon {...props} icon="account-cancel" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={AccountCancelIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('BlockedUsers')}
                 />
 
                 <List.Item
                     title="Contact Requests"
                     description="Manage contact requests"
-                    left={props => <List.Icon {...props} icon="account-multiple" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={AccountMultipleIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('ContactRequests')}
                 />
 
                 <List.Item
                     title="Match Requests"
                     description="Manage match requests"
-                    left={props => <List.Icon {...props} icon="heart-multiple" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={HeartMultipleIcon}
+                    right={ChevronRightIcon}
                     onPress={() => navigation.navigate('MatchRequests')}
                 />
 
                 <List.Item
                     title="Help & Support"
                     description="Get help or contact support"
-                    left={props => <List.Icon {...props} icon="help-circle" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={HelpCircleIcon}
+                    right={ChevronRightIcon}
                     onPress={() => {
                         Alert.alert('Help & Support', 'For support, please email: support@chhattisgarhshaadi.com');
                     }}
@@ -422,8 +428,8 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 <List.Item
                     title="About"
                     description="App version and information"
-                    left={props => <List.Icon {...props} icon="information" color={Theme.colors.textSecondary} />}
-                    right={props => <List.Icon {...props} icon="chevron-right" />}
+                    left={InformationIcon}
+                    right={ChevronRightIcon}
                     onPress={() => {
                         Alert.alert('About', 'Chhattisgarh Shaadi\nVersion 1.0.0\n\nA premium matrimonial platform for Chhattisgarh community.');
                     }}
@@ -496,22 +502,22 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     setShowDeleteDialog(false);
                     setDeleteConfirmText('');
                 }}>
-                    <Dialog.Title style={{ color: Theme.colors.primary }}>⚠️ Delete Account</Dialog.Title>
+                    <Dialog.Title style={styles.dialogTitle}>⚠️ Delete Account</Dialog.Title>
                     <Dialog.Content>
-                        <Text variant="bodyMedium" style={{ marginBottom: 16, lineHeight: 24 }}>
-                            This action is <Text style={{ fontWeight: 'bold', color: Theme.colors.primary }}>permanent and cannot be undone</Text>.
+                        <Text variant="bodyMedium" style={styles.warningText}>
+                            This action is <Text style={styles.permanentText}>permanent and cannot be undone</Text>.
                         </Text>
-                        <Text variant="bodyMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>
+                        <Text variant="bodyMedium" style={styles.listHeader}>
                             You will lose:
                         </Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 4 }}>• All your profile information</Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 4 }}>• All your photos and media</Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 4 }}>• All your matches and connections</Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 4 }}>• All your messages and conversations</Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 4 }}>• Your subscription (no refund)</Text>
-                        <Text variant="bodySmall" style={{ marginLeft: 16, marginBottom: 16 }}>• All other account data</Text>
+                        <Text variant="bodySmall" style={styles.listItem}>• All your profile information</Text>
+                        <Text variant="bodySmall" style={styles.listItem}>• All your photos and media</Text>
+                        <Text variant="bodySmall" style={styles.listItem}>• All your matches and connections</Text>
+                        <Text variant="bodySmall" style={styles.listItem}>• All your messages and conversations</Text>
+                        <Text variant="bodySmall" style={styles.listItem}>• Your subscription (no refund)</Text>
+                        <Text variant="bodySmall" style={styles.lastListItem}>• All other account data</Text>
 
-                        <Text variant="bodyMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>
+                        <Text variant="bodyMedium" style={styles.inputLabel}>
                             Type "DELETE" to confirm:
                         </Text>
                         <TextInput
@@ -519,7 +525,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                             onChangeText={setDeleteConfirmText}
                             mode="outlined"
                             placeholder="Type DELETE here"
-                            style={{ marginBottom: 8 }}
+                            style={styles.input}
                             outlineColor={Theme.colors.border}
                             activeOutlineColor={Theme.colors.primary}
                         />
@@ -618,6 +624,36 @@ const styles = StyleSheet.create({
     },
     bottomPadding: {
         height: 32,
+    },
+    dialogTitle: {
+        color: Theme.colors.primary,
+    },
+    warningText: {
+        marginBottom: 16,
+        lineHeight: 24,
+    },
+    permanentText: {
+        fontWeight: 'bold',
+        color: Theme.colors.primary,
+    },
+    listHeader: {
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    listItem: {
+        marginLeft: 16,
+        marginBottom: 4,
+    },
+    lastListItem: {
+        marginLeft: 16,
+        marginBottom: 16,
+    },
+    inputLabel: {
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    input: {
+        marginBottom: 8,
     },
 });
 

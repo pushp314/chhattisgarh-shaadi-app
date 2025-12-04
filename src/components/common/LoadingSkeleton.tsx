@@ -3,7 +3,7 @@ import { View, StyleSheet, Animated } from 'react-native';
 
 type Props = {
     width?: number | string;
-    height?: number;
+    height?: number | string;
     borderRadius?: number;
     style?: any;
 };

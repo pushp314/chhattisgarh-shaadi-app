@@ -32,6 +32,13 @@ class UserService {
             // Don't throw, just log, as this shouldn't block app usage
         }
     }
+    /**
+     * Get current user details
+     */
+    async getMe() {
+        const response = await apiClient.get(API_ENDPOINTS.USERS.ME);
+        return response.data.data;
+    }
 }
 
 export default new UserService();

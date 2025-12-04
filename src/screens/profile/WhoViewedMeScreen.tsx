@@ -19,7 +19,7 @@ import {
     Chip,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 import { ProfileView } from '../../types';
@@ -29,11 +29,10 @@ import ErrorState from '../../components/common/ErrorState';
 
 type WhoViewedMeScreenNavigationProp = NativeStackNavigationProp<any>;
 
-type Props = {
-    navigation: WhoViewedMeScreenNavigationProp;
-};
+// type Props removed as we use useNavigation
 
-const WhoViewedMeScreen: React.FC<Props> = ({ navigation }) => {
+const WhoViewedMeScreen: React.FC = () => {
+    const navigation = useNavigation<WhoViewedMeScreenNavigationProp>();
     const [views, setViews] = useState<ProfileView[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -105,14 +104,15 @@ const WhoViewedMeScreen: React.FC<Props> = ({ navigation }) => {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const safeViews = views || [];
 
         switch (filter) {
             case 'today':
-                return views.filter(v => new Date(v.createdAt) >= todayStart);
+                return safeViews.filter(v => new Date(v.createdAt) >= todayStart);
             case 'week':
-                return views.filter(v => new Date(v.createdAt) >= weekStart);
+                return safeViews.filter(v => new Date(v.createdAt) >= weekStart);
             default:
-                return views;
+                return safeViews;
         }
     };
 
@@ -194,13 +194,13 @@ const WhoViewedMeScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     const filteredViews = filterViews();
-    const todayCount = views.filter(v => {
+    const todayCount = (views || []).filter(v => {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         return new Date(v.createdAt) >= todayStart;
     }).length;
 
-    const weekCount = views.filter(v => {
+    const weekCount = (views || []).filter(v => {
         const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         return new Date(v.createdAt) >= weekStart;
     }).length;
@@ -229,7 +229,7 @@ const WhoViewedMeScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.statsContainer}>
                     <View style={styles.statCard}>
                         <Text variant="headlineSmall" style={styles.statNumber}>
-                            {views.length}
+                            {(views || []).length}
                         </Text>
                         <Text variant="bodySmall" style={styles.statLabel}>
                             Total Views
@@ -260,7 +260,7 @@ const WhoViewedMeScreen: React.FC<Props> = ({ navigation }) => {
                         onPress={() => setFilter('all')}
                         style={styles.filterChip}
                         selectedColor={Theme.colors.primary}>
-                        All ({views.length})
+                        All ({(views || []).length})
                     </Chip>
                     <Chip
                         selected={filter === 'today'}

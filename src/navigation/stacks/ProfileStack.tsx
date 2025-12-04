@@ -14,7 +14,9 @@ import EditProfileScreen from '../../screens/profile/EditProfileScreen.tsx';
 import CreateProfileScreen from '../../screens/profile/CreateProfileScreen.tsx';
 import PhoneVerificationScreen from '../../screens/auth/PhoneVerificationScreen.tsx';
 import SettingsScreen from '../../screens/settings/SettingsScreen.tsx';
-import SubscriptionScreen from '../../screens/profile/SubscriptionScreen.tsx';
+import SubscriptionPlansScreen from '../../screens/subscription/SubscriptionPlansScreen.tsx';
+import PaymentScreen from '../../screens/subscription/PaymentScreen.tsx';
+import TransactionHistoryScreen from '../../screens/subscription/TransactionHistoryScreen.tsx';
 import PhotoManagementScreen from '../../screens/profile/PhotoManagementScreen.tsx';
 import PartnerPreferencesScreen from '../../screens/profile/PartnerPreferencesScreen.tsx';
 import ShortlistScreen from '../../screens/profile/ShortlistScreen.tsx';
@@ -92,9 +94,19 @@ const ProfileStack: React.FC = () => {
         options={{ title: 'Settings' }}
       />
       <Stack.Screen
-        name="Subscription"
-        component={SubscriptionScreen}
-        options={{ title: 'Subscription' }}
+        name="SubscriptionPlans"
+        component={SubscriptionPlansScreen}
+        options={{ title: 'Subscription Plans' }}
+      />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{ title: 'Payment' }}
+      />
+      <Stack.Screen
+        name="TransactionHistory"
+        component={TransactionHistoryScreen}
+        options={{ title: 'Transaction History' }}
       />
       <Stack.Screen
         name="PartnerPreferences"

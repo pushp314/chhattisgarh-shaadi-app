@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
     View,
     FlatList,
@@ -8,14 +8,12 @@ import {
     Animated,
 } from 'react-native';
 import {
-    Text,
-    Surface,
     ActivityIndicator,
     IconButton,
     Snackbar,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { ProfileStackParamList } from '../../navigation/types';
 import shortlistService from '../../services/shortlist.service';
 import { Shortlist } from '../../types';
@@ -23,17 +21,70 @@ import ProfileCard from '../../components/ProfileCard';
 import ProfileCardSkeleton from '../../components/profile/ProfileCardSkeleton';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
+import GradientBackground from '../../components/common/GradientBackground';
 
 type ShortlistScreenNavigationProp = NativeStackNavigationProp<
     ProfileStackParamList,
     'Shortlist'
 >;
 
-type Props = {
-    navigation: ShortlistScreenNavigationProp;
-};
+// type Props removed as we use useNavigation
 
-const ShortlistScreen: React.FC<Props> = ({ navigation }) => {
+const ShortlistItem = React.memo(({ item, index, onRemove }: { item: Shortlist; index: number; onRemove: (profileId: number) => void }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+    // Entrance animation
+    React.useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 300,
+                delay: index * 50,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 8,
+                tension: 40,
+                delay: index * 50,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [fadeAnim, scaleAnim, index]);
+
+    if (!item.profile) return null;
+
+    return (
+        <Animated.View
+            style={[
+                styles.itemContainer,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }],
+                },
+            ]}>
+            <View style={styles.cardWrapper}>
+                <ProfileCard
+                    profile={item.profile}
+                    onPress={() => {
+                        Alert.alert('Profile', `Viewing profile: ${item.profile?.firstName}`);
+                    }}
+                />
+            </View>
+            <IconButton
+                icon="heart-off"
+                size={24}
+                iconColor="#D81B60"
+                style={styles.removeButton}
+                onPress={() => onRemove(item.profileId)}
+            />
+        </Animated.View>
+    );
+});
+
+const ShortlistScreen: React.FC = () => {
+    const navigation = useNavigation<ShortlistScreenNavigationProp>();
     const [shortlist, setShortlist] = useState<Shortlist[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -46,7 +97,7 @@ const ShortlistScreen: React.FC<Props> = ({ navigation }) => {
     useFocusEffect(
         useCallback(() => {
             loadShortlist(true);
-        }, []),
+        }, []), // eslint-disable-line react-hooks/exhaustive-deps
     );
 
     const loadShortlist = async (refresh: boolean = false) => {
@@ -83,7 +134,7 @@ const ShortlistScreen: React.FC<Props> = ({ navigation }) => {
         }
     };
 
-    const handleRemove = async (profileId: number, itemIndex: number) => {
+    const handleRemove = async (profileId: number) => {
         Alert.alert(
             'Remove from Shortlist',
             'Are you sure you want to remove this profile from your shortlist?',
@@ -113,58 +164,13 @@ const ShortlistScreen: React.FC<Props> = ({ navigation }) => {
         );
     };
 
-    const renderItem = ({ item, index }: { item: Shortlist; index: number }) => {
-        if (!item.profile) return null;
-
-        const fadeAnim = useRef(new Animated.Value(0)).current;
-        const scaleAnim = useRef(new Animated.Value(0.9)).current;
-
-        // Entrance animation
-        React.useEffect(() => {
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 300,
-                    delay: index * 50,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    friction: 8,
-                    tension: 40,
-                    delay: index * 50,
-                    useNativeDriver: true,
-                }),
-            ]).start();
-        }, []);
-
-        return (
-            <Animated.View
-                style={[
-                    styles.itemContainer,
-                    {
-                        opacity: fadeAnim,
-                        transform: [{ scale: scaleAnim }],
-                    },
-                ]}>
-                <View style={styles.cardWrapper}>
-                    <ProfileCard
-                        profile={item.profile}
-                        onPress={() => {
-                            Alert.alert('Profile', `Viewing profile: ${item.profile?.firstName}`);
-                        }}
-                    />
-                </View>
-                <IconButton
-                    icon="heart-off"
-                    size={24}
-                    iconColor="#D81B60"
-                    style={styles.removeButton}
-                    onPress={() => handleRemove(item.profileId, index)}
-                />
-            </Animated.View>
-        );
-    };
+    const renderItem = ({ item, index }: { item: Shortlist; index: number }) => (
+        <ShortlistItem
+            item={item}
+            index={index}
+            onRemove={handleRemove}
+        />
+    );
 
     const renderEmpty = () => {
         if (isLoading) {
@@ -209,38 +215,40 @@ const ShortlistScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <FlatList
-                data={shortlist}
-                renderItem={renderItem}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={renderEmpty}
-                ListFooterComponent={renderFooter}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefreshing}
-                        onRefresh={() => loadShortlist(true)}
-                        colors={['#D81B60']}
-                    />
-                }
-                onEndReached={() => {
-                    if (hasMore && !isLoading) {
-                        loadShortlist(false);
+            <GradientBackground variant="card">
+                <FlatList
+                    data={shortlist}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={renderEmpty}
+                    ListFooterComponent={renderFooter}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={() => loadShortlist(true)}
+                            colors={['#D81B60']}
+                        />
                     }
-                }}
-                onEndReachedThreshold={0.5}
-            />
+                    onEndReached={() => {
+                        if (hasMore && !isLoading) {
+                            loadShortlist(false);
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
+                />
 
-            <Snackbar
-                visible={snackbarVisible}
-                onDismiss={() => setSnackbarVisible(false)}
-                duration={3000}
-                action={{
-                    label: 'OK',
-                    onPress: () => setSnackbarVisible(false),
-                }}>
-                {snackbarMessage}
-            </Snackbar>
+                <Snackbar
+                    visible={snackbarVisible}
+                    onDismiss={() => setSnackbarVisible(false)}
+                    duration={3000}
+                    action={{
+                        label: 'OK',
+                        onPress: () => setSnackbarVisible(false),
+                    }}>
+                    {snackbarMessage}
+                </Snackbar>
+            </GradientBackground>
         </View>
     );
 };

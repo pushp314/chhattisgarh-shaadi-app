@@ -42,6 +42,39 @@ export const Colors = {
     disabled: '#E0E0E0',
 };
 
+export const DarkColors = {
+    // Primary Brand Colors
+    loveRed: '#FF6B6B', // Lighter red for dark mode
+    deepMaroon: '#FF8A8A', // Lighter maroon
+
+    // Secondary & Accent Colors
+    romanticSoftPink: '#FFB3B3',
+    luxuryGold: '#FFD700',
+    luxuryGoldAlt: '#FFE066',
+    pastelPeach: '#4A3B3B', // Darker peach
+    pastelPeachAlt: '#3D2E2E',
+    blushPink: '#5C3A3A',
+
+    // Background & Surfaces
+    lightRomanticBg: '#121212',
+    lightRomanticBgAlt: '#1E1E1E',
+    cardBgPeach: '#2C2C2C',
+    cardBgBlush: '#332222',
+    white: '#1E1E1E', // Dark surface
+
+    // Text Colors
+    textPrimary: '#FFFFFF',
+    textSecondary: '#B0B0B0',
+    textTertiary: '#E0E0E0',
+    textLight: '#000000',
+
+    // Utility Colors
+    error: '#FF6B6B',
+    success: '#4CAF50',
+    warning: '#FFD700',
+    disabled: '#555555',
+};
+
 // ===== SEMANTIC COLOR TOKENS =====
 
 export const Theme = {
@@ -221,6 +254,56 @@ export const Theme = {
             },
         },
     },
+};
+
+export const DarkTheme = {
+    colors: {
+        // Primary
+        primary: DarkColors.loveRed,
+        primaryDark: DarkColors.deepMaroon,
+        primaryLight: DarkColors.romanticSoftPink,
+
+        // Secondary/Accent
+        secondary: DarkColors.luxuryGold,
+        secondaryAlt: DarkColors.luxuryGoldAlt,
+        accent: DarkColors.romanticSoftPink,
+
+        // Backgrounds
+        background: DarkColors.lightRomanticBg,
+        backgroundAlt: DarkColors.lightRomanticBgAlt,
+        surface: DarkColors.white,
+        surfaceCard: DarkColors.cardBgPeach,
+        surfaceCardAlt: DarkColors.cardBgBlush,
+        white: DarkColors.white,
+
+        // Text
+        text: DarkColors.textPrimary,
+        textSecondary: DarkColors.textSecondary,
+        textTertiary: DarkColors.textTertiary,
+        textOnPrimary: DarkColors.textLight,
+        textOnSecondary: DarkColors.deepMaroon,
+
+        // Status
+        success: DarkColors.success,
+        successLight: DarkColors.success,
+        error: DarkColors.error,
+        warning: DarkColors.warning,
+
+        // Borders
+        border: '#333333',
+        borderFocus: DarkColors.luxuryGold,
+        borderError: DarkColors.error,
+
+        // Overlays
+        overlay: 'rgba(0, 0, 0, 0.7)',
+        modalBackground: 'rgba(0, 0, 0, 0.8)',
+    },
+    gradients: Theme.gradients, // Reuse gradients for now
+    spacing: Theme.spacing,
+    typography: Theme.typography,
+    borderRadius: Theme.borderRadius,
+    shadows: Theme.shadows,
+    components: Theme.components, // Reuse component presets
 };
 
 // ===== UTILITY FUNCTIONS =====

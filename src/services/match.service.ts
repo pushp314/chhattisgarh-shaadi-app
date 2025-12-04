@@ -64,10 +64,29 @@ class MatchService {
     pagination: PaginationResponse;
   }> {
     const response = await api.get<ApiResponse<{
-      matches: MatchRequest[];
+      connections: any[];
       pagination: PaginationResponse;
     }>>(API_ENDPOINTS.MATCHES.ACCEPTED, { params });
-    return response.data.data;
+
+    // Transform backend 'connections' format to frontend 'matches' format
+    const data = response.data.data;
+    const connections = data?.connections || [];
+
+    // Map connections to MatchRequest format
+    const matches: MatchRequest[] = connections.map((conn: any) => ({
+      id: conn.matchId,
+      senderId: conn.user?.id, // The other user in the connection
+      receiverId: conn.user?.id,
+      status: conn.status,
+      message: '',
+      createdAt: conn.acceptedAt,
+      updatedAt: conn.acceptedAt,
+      expiresAt: conn.acceptedAt, // Accepted matches don't expire
+      sender: conn.user,
+      receiver: conn.user,
+    }));
+
+    return { matches, pagination: data?.pagination || {} as PaginationResponse };
   }
 
   /**

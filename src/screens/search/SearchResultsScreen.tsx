@@ -15,19 +15,20 @@ import {
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { SearchStackParamList } from '../../navigation/types';
 import ProfileCard from '../../components/ProfileCard';
 import SearchFilters from '../../components/SearchFilters';
+import { HomeStackParamList } from '../../navigation/types';
 import { Profile } from '../../types';
 import profileService from '../../services/profile.service';
+import EnhancedMatchCard from '../../components/matches/EnhancedMatchCard';
 
 type SearchResultsScreenNavigationProp = NativeStackNavigationProp<
-  SearchStackParamList,
+  HomeStackParamList,
   'SearchResults'
 >;
 
 type SearchResultsScreenRouteProp = RouteProp<
-  SearchStackParamList,
+  HomeStackParamList,
   'SearchResults'
 >;
 

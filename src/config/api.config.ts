@@ -9,6 +9,7 @@ export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
   SOCKET_URL: 'https://chhattisgarhshadi-backend.onrender.com',
   TIMEOUT: 10000,
+  GOOGLE_CLIENT_ID: '250704044564-r7usqdp7hrfotfjug73rph9qpuetvh1e.apps.googleusercontent.com',
 };
 
 // Create the main Axios instance
@@ -59,7 +60,6 @@ const clearAuthSession = async () => {
 // Handles 401 Unauthorized errors by attempting to refresh the token.
 apiClient.interceptors.response.use(
   (response) => {
-    // If the request was successful, just return the response
     return response;
   },
   async (error: AxiosError) => {
@@ -68,7 +68,6 @@ apiClient.interceptors.response.use(
     // Check if it's a 401 error and not a retry request
     if (error.response?.status === 401 && originalRequest && !(originalRequest as any)._retry) {
       if (isRefreshing) {
-        // If we are already refreshing, add this request to the queue
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(token => {
@@ -92,33 +91,27 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        // Make the refresh token API call
         const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken: refreshTokenCredentials.password,
         });
 
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
 
-        // Store the new tokens
         const userId = useAuthStore.getState().user?.id || 'user';
         await Keychain.setGenericPassword(String(userId), newAccessToken, { service: 'accessToken' });
         await Keychain.setGenericPassword(String(userId), newRefreshToken, { service: 'refreshToken' });
 
         console.log('Token refreshed successfully.');
 
-        // Update the header of the original request
         axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
         (originalRequest as any).headers['Authorization'] = `Bearer ${newAccessToken}`;
 
-        // Process the queue with the new token
         processQueue(null, newAccessToken);
 
-        // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError: any) {
         console.error('Failed to refresh token:', refreshError.response?.data || refreshError.message);
         processQueue(refreshError, null);
-        // If refresh fails, clear the session
         await clearAuthSession();
         return Promise.reject(refreshError);
       } finally {
@@ -126,7 +119,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // For all other errors, just reject the promise
     return Promise.reject(error);
   }
 );
@@ -147,6 +139,7 @@ export const API_ENDPOINTS = {
   USERS: {
     ME: '/users/me',
     BY_ID: (id: number) => `/users/${id}`,
+    FCM_TOKEN: '/users/fcm-token', // ✅ ADDED: Missing in previous config
   },
   PROFILES: {
     CREATE: '/profiles',
@@ -172,14 +165,14 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/occupation/${id}`,
   },
   PARTNER_PREFERENCE: {
-    GET: '/partner-preference',
-    UPDATE: '/partner-preference',
+    GET: '/preference',
+    UPDATE: '/preference',
   },
   CONTACT_REQUESTS: {
-    CREATE: '/contact-requests',
-    SENT: '/contact-requests/sent',
-    RECEIVED: '/contact-requests/received',
-    RESPOND: (id: number) => `/contact-requests/${id}/respond`,
+    CREATE: '/contact-request',
+    SENT: '/contact-request/sent',
+    RECEIVED: '/contact-request/received',
+    RESPOND: (id: number) => `/contact-request/${id}/respond`,
   },
   MATCHES: {
     SEND: '/matches',
@@ -206,28 +199,29 @@ export const API_ENDPOINTS = {
   },
   SUBSCRIPTION: {
     PLANS: '/plans',
-    CURRENT: '/subscriptions/current',
-    CREATE: '/subscriptions',
-    CANCEL: '/subscriptions/cancel',
   },
   NOTIFICATIONS: {
     LIST: '/notifications',
-    MARK_READ: '/notifications/mark-read',
-    SETTINGS: '/notification-settings',
+    MARK_AS_READ: (id: number) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/read-all',
+    DELETE: (id: number) => `/notifications/${id}`,
+    DELETE_ALL: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    SETTINGS: '/settings/notifications',
   },
   REPORTS: {
-    CREATE: '/reports',
+    CREATE: '/report',
   },
   SHORTLISTS: {
-    CREATE: '/shortlists',
-    LIST: '/shortlists',
-    DELETE: (id: number) => `/shortlists/${id}`,
+    CREATE: '/shortlist',
+    LIST: '/shortlist',
+    DELETE: (id: number) => `/shortlist/${id}`,
   },
   PHOTO_REQUESTS: {
-    CREATE: '/photo-requests',
-    SENT: '/photo-requests/sent',
-    RECEIVED: '/photo-requests/received',
-    RESPOND: (id: number) => `/photo-requests/${id}/respond`,
+    CREATE: '/photo-request',
+    SENT: '/photo-request/sent',
+    RECEIVED: '/photo-request/received',
+    RESPOND: (id: number) => `/photo-request/${id}/respond`,
   },
   PRIVACY: {
     PHOTO: (id: number) => `/photos/${id}/privacy`,
@@ -243,8 +237,8 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/payments/${id}`,
   },
   PROFILE_VIEWS: {
-    LOG: '/profile-views',
-    WHO_VIEWED_ME: '/profile-views/who-viewed-me',
-    MY_HISTORY: '/profile-views/my-history',
+    LOG: '/view',
+    WHO_VIEWED_ME: '/view/who-viewed-me',
+    MY_HISTORY: '/view/my-history',
   },
 };

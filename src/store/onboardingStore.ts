@@ -171,8 +171,13 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist the actual data, not the action functions
       partialize: (state) => {
-        const { updateOnboardingData, addPhoto, setPhotos, resetOnboardingState, ...data } = state as any;
-        return data;
+        // Exclude functions from persistence
+        const persistedState = { ...state };
+        delete (persistedState as any).updateOnboardingData;
+        delete (persistedState as any).addPhoto;
+        delete (persistedState as any).setPhotos;
+        delete (persistedState as any).resetOnboardingState;
+        return persistedState;
       },
     }
   )

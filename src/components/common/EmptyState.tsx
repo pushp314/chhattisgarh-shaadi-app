@@ -1,27 +1,37 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = {
-    icon: string;
+    icon?: string;
+    image?: any;
     title: string;
     message: string;
     actionLabel?: string;
     onAction?: () => void;
+    style?: any;
 };
 
 const EmptyState: React.FC<Props> = ({
-    icon,
+    icon = 'alert-circle-outline',
+    image,
     title,
     message,
     actionLabel,
     onAction,
+    style,
 }) => {
     return (
-        <View style={styles.container}>
-            <Icon name={icon} size={80} color={Theme.colors.textSecondary} />
+        <View style={[styles.container, style]}>
+            <View style={styles.iconContainer}>
+                {image ? (
+                    <Image source={image} style={styles.image} resizeMode="contain" />
+                ) : (
+                    <Icon name={icon} size={64} color={Theme.colors.primary} />
+                )}
+            </View>
             <Text variant="headlineSmall" style={styles.title}>
                 {title}
             </Text>
@@ -33,8 +43,8 @@ const EmptyState: React.FC<Props> = ({
                     mode="contained"
                     onPress={onAction}
                     style={styles.button}
-                    buttonColor={Theme.colors.secondary}
-                    textColor={Theme.colors.primaryDark}>
+                    contentStyle={styles.buttonContent}
+                    buttonColor={Theme.colors.primary}>
                     {actionLabel}
                 </Button>
             )}
@@ -48,23 +58,46 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 32,
+        minHeight: 400,
+    },
+    iconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: Theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    image: {
+        width: 80,
+        height: 80,
     },
     title: {
         fontWeight: 'bold',
-        marginTop: 16,
-        marginBottom: 8,
+        marginBottom: 12,
         textAlign: 'center',
         color: Theme.colors.text,
     },
     message: {
         color: Theme.colors.textSecondary,
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 22,
+        marginBottom: 32,
+        lineHeight: 24,
+        maxWidth: '80%',
     },
     button: {
-        marginTop: 8,
-        borderRadius: 8,
+        borderRadius: 24,
+        elevation: 4,
+    },
+    buttonContent: {
+        paddingHorizontal: 24,
+        height: 48,
     },
 });
 

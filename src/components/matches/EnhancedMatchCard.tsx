@@ -15,6 +15,10 @@ import { Text, Surface, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 import { Profile } from '../../types';
+import VerificationBadge from '../common/VerificationBadge';
+import PremiumBadge from '../common/PremiumBadge';
+
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 const { width } = Dimensions.get('window');
 const CARD_HEIGHT = width * 1.3; // Portrait aspect ratio
@@ -40,6 +44,8 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
     isShortlisted = false,
     canChat = false,
 }) => {
+    const { theme } = useAppTheme();
+
     const calculateAge = (dob: string) => {
         const birthDate = new Date(dob);
         const today = new Date();
@@ -63,25 +69,26 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
 
     const photoCount = profile.media?.length || 0;
     const age = calculateAge(profile.dateOfBirth);
+    const isPremium = profile.isPremium;
+    const primaryPhoto = profile.media?.[0]?.url;
 
     return (
-        <Surface style={styles.card} elevation={3}>
-            <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
-                {/* Profile Image */}
+        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }, isPremium && styles.premiumCard]} elevation={4}>
+            <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+                {/* Image Section */}
                 <View style={styles.imageContainer}>
-                    <Image
-                        source={{ uri: profile.media?.[0]?.url || 'https://via.placeholder.com/400x600' }}
-                        style={styles.profileImage}
-                        resizeMode="cover"
-                    />
+                    {primaryPhoto ? (
+                        <Image source={{ uri: primaryPhoto }} style={styles.profileImage} resizeMode="cover" />
+                    ) : (
+                        <View style={[styles.placeholderImage, { backgroundColor: theme.colors.surfaceCard }]}>
+                            <Icon name="account" size={80} color={theme.colors.textSecondary} />
+                        </View>
+                    )}
 
-                    {/* Activity Status Badge */}
-                    <View style={styles.activityBadge}>
-                        <Icon name="circle" size={8} color={Theme.colors.success} />
-                        <Text variant="labelSmall" style={styles.activityText}>
-                            {getActivityStatus()}
-                        </Text>
-                    </View>
+                    {/* Premium Badge */}
+                    {isPremium && (
+                        <PremiumBadge variant="overlay" size={20} showText style={styles.premiumBadge} />
+                    )}
 
                     {/* Photo Count Badge */}
                     {photoCount > 0 && (
@@ -97,24 +104,29 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
                 {/* Profile Information */}
                 <View style={styles.infoContainer}>
                     {/* Name and Age */}
-                    <Text variant="headlineSmall" style={styles.name}>
-                        {profile.firstName}, {age}
-                    </Text>
+                    <View style={styles.nameRow}>
+                        <Text variant="headlineSmall" style={[styles.name, { color: theme.colors.text }]}>
+                            {profile.firstName}, {age}
+                        </Text>
+                        {profile.isVerified && (
+                            <VerificationBadge size={24} style={styles.badge} />
+                        )}
+                    </View>
 
                     {/* Details Grid */}
                     <View style={styles.detailsGrid}>
-                        <InfoRow icon="human-male-height" label={`${profile.height || 0}cm`} />
-                        <InfoRow icon="map-marker" label={`${profile.city}, ${profile.state}`} />
-                        <InfoRow icon="account-group" label={`${profile.caste || 'Not specified'}`} />
-                        <InfoRow icon="briefcase" label={profile.occupation || 'Not specified'} />
-                        <InfoRow icon="currency-inr" label={formatIncome(profile.annualIncome)} />
-                        <InfoRow icon="school" label={profile.education || 'Not specified'} />
+                        <InfoRow icon="human-male-height" label={`${profile.height || 0}cm`} theme={theme} />
+                        <InfoRow icon="map-marker" label={`${profile.city}, ${profile.state}`} theme={theme} />
+                        <InfoRow icon="account-group" label={`${profile.caste || 'Not specified'}`} theme={theme} />
+                        <InfoRow icon="briefcase" label={profile.occupation || 'Not specified'} theme={theme} />
+                        <InfoRow icon="currency-inr" label={formatIncome(profile.annualIncome)} theme={theme} />
+                        <InfoRow icon="school" label={profile.education || 'Not specified'} theme={theme} />
                     </View>
 
                     {/* Profile Manager */}
-                    <View style={styles.managerRow}>
-                        <Icon name="account-circle" size={16} color={Theme.colors.textSecondary} />
-                        <Text variant="bodySmall" style={styles.managerText}>
+                    <View style={[styles.managerRow, { borderTopColor: theme.colors.border }]}>
+                        <Icon name="account-circle" size={16} color={theme.colors.textSecondary} />
+                        <Text variant="bodySmall" style={[styles.managerText, { color: theme.colors.textSecondary }]}>
                             Profile managed by: Self
                         </Text>
                     </View>
@@ -122,12 +134,13 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
             </TouchableOpacity>
 
             {/* Action Buttons */}
-            <View style={styles.actionBar}>
+            <View style={[styles.actionBar, { borderTopColor: theme.colors.border }]}>
                 <ActionButton
                     icon="heart-outline"
                     label="Interest"
                     onPress={onInterest}
-                    color={Theme.colors.primary}
+                    color={theme.colors.primary}
+                    theme={theme}
                 />
                 <ActionButton
                     icon="star"
@@ -135,30 +148,33 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
                     onPress={onSuperInterest}
                     color="#FFD700"
                     isPremium
+                    theme={theme}
                 />
                 <ActionButton
                     icon={isShortlisted ? 'bookmark' : 'bookmark-outline'}
                     label="Shortlist"
                     onPress={onShortlist}
-                    color={Theme.colors.secondary}
+                    color={theme.colors.secondary}
+                    theme={theme}
                 />
                 <ActionButton
                     icon="chat"
                     label="Chat"
                     onPress={onChat}
-                    color={Theme.colors.success}
+                    color={theme.colors.success}
                     disabled={!canChat}
+                    theme={theme}
                 />
             </View>
-        </Surface>
+        </Surface >
     );
 };
 
 // Info Row Component
-const InfoRow: React.FC<{ icon: string; label: string }> = ({ icon, label }) => (
+const InfoRow: React.FC<{ icon: string; label: string; theme: any }> = ({ icon, label, theme }) => (
     <View style={styles.infoRow}>
-        <Icon name={icon} size={16} color={Theme.colors.textSecondary} />
-        <Text variant="bodySmall" style={styles.infoText}>
+        <Icon name={icon} size={16} color={theme.colors.textSecondary} />
+        <Text variant="bodySmall" style={[styles.infoText, { color: theme.colors.text }]}>
             {label}
         </Text>
     </View>
@@ -172,7 +188,8 @@ const ActionButton: React.FC<{
     color: string;
     isPremium?: boolean;
     disabled?: boolean;
-}> = ({ icon, label, onPress, color, isPremium, disabled }) => (
+    theme: any;
+}> = ({ icon, label, onPress, color, isPremium, disabled, theme }) => (
     <TouchableOpacity
         style={[styles.actionButton, disabled && styles.actionButtonDisabled]}
         onPress={onPress}
@@ -180,14 +197,14 @@ const ActionButton: React.FC<{
         activeOpacity={0.7}
     >
         <View style={[styles.actionIconContainer, { backgroundColor: color + '20' }]}>
-            <Icon name={icon} size={24} color={disabled ? Theme.colors.textSecondary : color} />
+            <Icon name={icon} size={24} color={disabled ? theme.colors.textSecondary : color} />
             {isPremium && (
-                <View style={styles.premiumBadge}>
+                <View style={[styles.buttonPremiumBadge, { backgroundColor: theme.colors.surface }]}>
                     <Icon name="crown" size={10} color="#FFD700" />
                 </View>
             )}
         </View>
-        <Text variant="labelSmall" style={[styles.actionLabel, disabled && styles.actionLabelDisabled]}>
+        <Text variant="labelSmall" style={[styles.actionLabel, { color: theme.colors.text }, disabled && { color: theme.colors.textSecondary }]}>
             {label}
         </Text>
     </TouchableOpacity>
@@ -209,6 +226,13 @@ const styles = StyleSheet.create({
     profileImage: {
         width: '100%',
         height: '100%',
+    },
+    placeholderImage: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: Theme.colors.surfaceCard,
     },
     activityBadge: {
         position: 'absolute',
@@ -248,7 +272,25 @@ const styles = StyleSheet.create({
     name: {
         fontWeight: 'bold',
         color: Theme.colors.text,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 12,
+        gap: 8,
+    },
+    badge: {
+        marginTop: 2,
+    },
+    premiumCard: {
+        borderWidth: 2,
+        borderColor: '#FFD700',
+    },
+    premiumBadge: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        zIndex: 1,
     },
     detailsGrid: {
         gap: 8,
@@ -297,7 +339,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'relative',
     },
-    premiumBadge: {
+    buttonPremiumBadge: {
         position: 'absolute',
         top: -2,
         right: -2,
