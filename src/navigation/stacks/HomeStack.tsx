@@ -12,6 +12,7 @@ import ProfileDetailsScreen from '../../screens/profile/ProfileDetailsScreen.tsx
 import SendMatchRequestScreen from '../../screens/matches/SendMatchRequestScreen.tsx';
 import SearchScreen from '../../screens/search/SearchScreen.tsx';
 import SearchResultsScreen from '../../screens/search/SearchResultsScreen.tsx';
+import AdvancedFiltersScreen from '../../screens/matches/AdvancedFiltersScreen.tsx';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -42,6 +43,14 @@ const HomeStack: React.FC = () => {
         name="SearchResults"
         component={SearchResultsScreen}
         options={{ title: 'Search Results' }}
+      />
+      <Stack.Screen
+        name="AdvancedFilters"
+        component={AdvancedFiltersScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false
+        }}
       />
     </Stack.Navigator>
   );

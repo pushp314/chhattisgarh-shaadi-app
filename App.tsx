@@ -8,6 +8,7 @@ import { StatusBar } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import fcmService from './src/services/fcm.service';
 import { ToastProvider } from './src/context/ToastContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 const App = () => {
   useEffect(() => {
@@ -29,10 +30,12 @@ const App = () => {
   }, []);
 
   return (
-    <ToastProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
-      <AppNavigator />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
+        <AppNavigator />
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 

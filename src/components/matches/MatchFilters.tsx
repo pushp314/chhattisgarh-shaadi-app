@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
 import { Theme } from '../../constants/theme';
 
 export type FilterType = 'all' | 'verified' | 'justJoined' | 'nearby';
@@ -26,6 +27,7 @@ const MatchFilters: React.FC<MatchFiltersProps> = ({
     onFilterChange,
     onSortChange,
 }) => {
+    const navigation = useNavigation<any>();
     const [activeFilters, setActiveFilters] = useState<Set<FilterType>>(new Set(['all']));
     const [currentSort, setCurrentSort] = useState<SortOption>('newest');
     const [showSortModal, setShowSortModal] = useState(false);
@@ -78,10 +80,11 @@ const MatchFilters: React.FC<MatchFiltersProps> = ({
     return (
         <>
             <View style={styles.container}>
+
                 {/* Filters Button */}
                 <TouchableOpacity
                     style={styles.filterButton}
-                    onPress={() => handleFilterToggle('verified')}
+                    onPress={() => navigation.navigate('AdvancedFilters')}
                     activeOpacity={0.7}
                 >
                     <Icon name="tune-variant" size={20} color="#333" />

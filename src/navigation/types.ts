@@ -50,6 +50,7 @@ export type HomeStackParamList = {
     query?: string;
     filters?: any;
   };
+  AdvancedFilters: undefined;
 };
 
 // Activity Stack
