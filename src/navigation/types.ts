@@ -8,6 +8,7 @@ import { Profile } from '../types';
 
 // Auth Stack
 export type AuthStackParamList = {
+  Onboarding: undefined;
   Welcome: undefined;
   GoogleSignIn: undefined;
   PhoneVerification: undefined;
@@ -90,6 +91,9 @@ export type ProfileStackParamList = {
   PrivacyPolicy: undefined;
   TermsConditions: undefined;
   SubscriptionPlans: undefined;
+  SubscriptionScreen: undefined;
+  HelpSupport: undefined;
+  PrivacySettings: undefined;
   Payment: {
     planId: number;
     planName: string;

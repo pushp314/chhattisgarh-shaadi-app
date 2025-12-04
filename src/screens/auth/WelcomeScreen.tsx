@@ -1,6 +1,5 @@
 /**
- * Welcome Screen
- * First screen users see when opening the app
+ * Welcome Screen - Minimal & Clean Design
  */
 
 import React from 'react';
@@ -9,14 +8,16 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import LinearGradient from 'react-native-linear-gradient';
-import { SvgUri } from 'react-native-svg';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
+
+const { height } = Dimensions.get('window');
 
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -31,172 +32,179 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={Theme.gradients.romantic}
+        colors={['#FFF5F7', '#FFFFFF', '#F0F9FF']}
         style={styles.gradient}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
-            {/* Logo/Branding */}
-            <View style={styles.headerSection}>
-              <SvgUri
-                uri="https://res.cloudinary.com/dupmez35w/image/upload/v1764231088/25591183_VEC_SAV_304-01_dbi08v.svg"
-                width="150"
-                height="150"
-                style={styles.logo}
-              />
-              <Text style={styles.title}>Chhattisgarh Shaadi</Text>
-              <Text style={styles.subtitle}>
-                Find your perfect match in Chhattisgarh
-              </Text>
-            </View>
-
-            {/* Features */}
-            <View style={styles.featuresSection}>
-              <FeatureItem
-                icon="💑"
-                title="Verified Profiles"
-                description="Connect with genuine people"
-              />
-              <FeatureItem
-                icon="🗣️"
-                title="Chhattisgarhi Community"
-                description="Find matches who speak your language"
-              />
-              <FeatureItem
-                icon="✨"
-                title="Secure & Private"
-                description="Your data is safe with us"
-              />
-            </View>
-
-            {/* CTA Button */}
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('GoogleSignIn')}
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={styles.logoContainer}>
+            <LinearGradient
+              colors={[Theme.colors.primary, '#FF1744']}
+              style={styles.logoGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.buttonText}>Get Started</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.termsText}>
-              By continuing, you agree to our Terms of Service and Privacy Policy
-            </Text>
+              <Icon name="heart-multiple" size={80} color="#fff" />
+            </LinearGradient>
           </View>
-        </ScrollView>
+
+          <Text style={styles.appName}>Chhattisgarh Shaadi</Text>
+          <Text style={styles.tagline}>
+            Find Your Perfect Match
+          </Text>
+        </View>
+
+        {/* Stats Section */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>10K+</Text>
+            <Text style={styles.statLabel}>Happy Couples</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>50K+</Text>
+            <Text style={styles.statLabel}>Verified Profiles</Text>
+          </View>
+        </View>
+
+        {/* CTA Button */}
+        <View style={styles.ctaContainer}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('GoogleSignIn')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[Theme.colors.primary, '#FF1744']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Icon name="google" size={24} color="#fff" style={styles.buttonIcon} />
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <Text style={styles.footerText}>
+            By continuing, you agree to our{' '}
+            <Text style={styles.footerLink}>Terms</Text>
+            {' & '}
+            <Text style={styles.footerLink}>Privacy Policy</Text>
+          </Text>
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
 };
 
-interface FeatureItemProps {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-const FeatureItem: React.FC<FeatureItemProps> = ({ icon, title, description }) => (
-  <View style={styles.featureItem}>
-    <Text style={styles.featureIcon}>{icon}</Text>
-    <View style={styles.featureText}>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureDescription}>{description}</Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   gradient: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
     justifyContent: 'space-between',
-    paddingVertical: 20,
   },
-  headerSection: {
-    marginTop: 20,
+  logoSection: {
     alignItems: 'center',
+    paddingTop: height * 0.12,
   },
-  logo: {
-    marginBottom: 16,
+  logoContainer: {
+    marginBottom: 32,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+  logoGradient: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Theme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: '800',
     color: Theme.colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 17,
+  tagline: {
+    fontSize: 16,
     color: Theme.colors.textSecondary,
-    textAlign: 'center',
     fontWeight: '400',
   },
-  featuresSection: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  featureItem: {
+  statsContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 14,
-    borderRadius: Theme.borderRadius.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(250, 192, 53, 0.3)',
-    ...Theme.shadows.sm,
+    paddingHorizontal: 40,
+    gap: 32,
   },
-  featureIcon: {
-    fontSize: 36,
-    marginRight: 16,
+  statItem: {
+    alignItems: 'center',
   },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Theme.colors.text,
+  statNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Theme.colors.primary,
     marginBottom: 4,
   },
-  featureDescription: {
-    fontSize: 14,
+  statLabel: {
+    fontSize: 13,
     color: Theme.colors.textSecondary,
-    fontWeight: '400',
+    fontWeight: '500',
   },
-  button: {
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: 16,
-    borderRadius: Theme.borderRadius.round,
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E0E0E0',
+  },
+  ctaContainer: {
+    paddingHorizontal: 32,
+    paddingBottom: 40,
     alignItems: 'center',
-    marginTop: 16,
-    ...Theme.shadows.lg,
   },
-  buttonText: {
+  primaryButton: {
+    width: '100%',
+    marginBottom: 20,
+    borderRadius: 30,
+    overflow: 'hidden',
+    shadowColor: Theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+  buttonIcon: {
+    marginRight: 12,
+  },
+  primaryButtonText: {
     fontSize: 18,
     fontWeight: '700',
-    color: Theme.colors.textOnPrimary,
+    color: '#fff',
     letterSpacing: 0.5,
   },
-  termsText: {
+  footerText: {
     fontSize: 12,
     color: Theme.colors.textSecondary,
     textAlign: 'center',
-    marginTop: 16,
     lineHeight: 18,
+    paddingHorizontal: 20,
+  },
+  footerLink: {
+    color: Theme.colors.primary,
+    fontWeight: '600',
   },
 });
 

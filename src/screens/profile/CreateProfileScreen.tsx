@@ -6,23 +6,23 @@ import {
   Platform,
   Alert,
   View,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
   Surface,
   useTheme,
-  IconButton,
 } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../../navigation/types';
 import { ProfileFormData } from '../../types/profileForm';
 import profileService from '../../services/profile.service';
-import educationService from '../../services/education.service';
-import occupationService from '../../services/occupation.service';
 import { useProfileStore } from '../../store/profileStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { autoFillCompleteProfile } from '../../utils/autoFillProfile';
 import { Theme } from '../../constants/theme';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -85,15 +85,12 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // STEP 1: Create Profile
       console.log('Creating profile...');
 
       // Transform form data to match API requirements
       const profilePayload: any = {
-        // Basic Info
         firstName: onboardingData.firstName,
         lastName: onboardingData.lastName,
-        // Construct full names for multi-language fields
         nameHi: (onboardingData.firstNameHi || onboardingData.lastNameHi)
           ? `${onboardingData.firstNameHi || ''} ${onboardingData.lastNameHi || ''}`.trim()
           : undefined,
@@ -103,23 +100,17 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         dateOfBirth: onboardingData.dateOfBirth ? new Date(onboardingData.dateOfBirth).toISOString() : undefined,
         gender: onboardingData.gender,
         bio: onboardingData.bio,
-
-        // Location
         city: onboardingData.city,
-        state: onboardingData.state, // This is the main state field
+        state: onboardingData.state,
         country: 'INDIA',
         nativeDistrict: onboardingData.nativeDistrict,
         nativeTehsil: onboardingData.nativeTehsil,
         nativeVillage: onboardingData.nativeVillage,
         speaksChhattisgarhi: onboardingData.speaksChhattisgarhi ?? false,
-
-        // Religion
         religion: onboardingData.religion,
         caste: onboardingData.caste,
         subCaste: onboardingData.subCaste,
         gothram: onboardingData.gothram,
-
-        // Physical Details & Lifestyle
         height: onboardingData.height,
         weight: onboardingData.weight,
         bloodGroup: onboardingData.bloodGroup,
@@ -128,12 +119,8 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         diet: onboardingData.diet,
         smokingHabit: onboardingData.smokingHabit,
         drinkingHabit: onboardingData.drinkingHabit,
-
-        // Other Details
         maritalStatus: onboardingData.maritalStatus,
         motherTongue: onboardingData.motherTongue || 'HINDI',
-
-        // Family Details
         fatherName: onboardingData.fatherName,
         fatherOccupation: onboardingData.fatherOccupation,
         motherName: onboardingData.motherName,
@@ -142,12 +129,8 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         numberOfSisters: onboardingData.numberOfSisters,
         familyType: onboardingData.familyType,
         familyStatus: onboardingData.familyStatus,
-
-        // About & Partner Expectations
         hobbies: onboardingData.hobbies,
         partnerExpectations: onboardingData.partnerExpectations,
-
-        // Horoscope (for Hindu profiles)
         manglik: onboardingData.manglik,
         birthTime: onboardingData.birthTime,
         birthPlace: onboardingData.birthPlace,
@@ -155,7 +138,7 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
         nakshatra: onboardingData.nakshatra,
       };
 
-      // Validate required fields before submission
+      // Validate required fields
       const requiredFields = {
         firstName: onboardingData.firstName,
         lastName: onboardingData.lastName,
@@ -193,51 +176,7 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
       const profileResponse = await profileService.createProfile(cleanedProfileData);
       console.log('Profile created:', profileResponse);
 
-      // NOTE: Education and Occupation endpoints require 'requireCompleteProfile' middleware
-      // which blocks access until the profile is complete. We skip these during initial creation.
-      // Users can add education/occupation details later through the Edit Profile screen.
-
-      // // STEP 2: Add Education (if provided)
-      // // Note: The current UI collects 'education' (level) and 'educationDetails'.
-      // // We map 'education' to 'degree' and 'educationDetails' to 'field' for now.
-      // if (onboardingData.education) {
-      //   console.log('Adding education...');
-      //   try {
-      //     await educationService.createEducation({
-      //       degree: Array.isArray(onboardingData.education) ? onboardingData.education[0] : onboardingData.education,
-      //       institution: 'Not Specified', // Placeholder as UI doesn't collect this yet
-      //       field: onboardingData.educationDetails || 'General',
-      //       yearOfPassing: undefined, // UI doesn't collect this yet
-      //       isCurrent: false,
-      //     } as any);
-      //     console.log('Education added');
-      //   } catch (eduError) {
-      //     console.error('Failed to add education:', eduError);
-      //     // Don't block flow, just log error
-      //   }
-      // }
-
-      // // STEP 3: Add Occupation (if provided)
-      // if (onboardingData.occupation) {
-      //   console.log('Adding occupation...');
-      //   try {
-      //     await occupationService.createOccupation({
-      //       companyName: 'Not Specified', // Placeholder
-      //       designation: onboardingData.jobTitle || (onboardingData.occupation as string),
-      //       employmentType: onboardingData.occupationType || 'FULL_TIME',
-      //       industry: 'Not Specified',
-      //       annualIncome: onboardingData.annualIncome,
-      //       isCurrent: true,
-      //       location: onboardingData.workLocation,
-      //     } as any);
-      //     console.log('Occupation added');
-      //   } catch (occError) {
-      //     console.error('Failed to add occupation:', occError);
-      //     // Don't block flow
-      //   }
-      // }
-
-      // STEP 2: Upload Photos (if provided)
+      // Upload Photos
       if (onboardingData.photos && onboardingData.photos.length > 0) {
         console.log('Uploading photos...');
         try {
@@ -247,27 +186,18 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
           console.log('Photos uploaded');
         } catch (photoError) {
           console.error('Error uploading photos:', photoError);
-          // Continue even if photo upload fails
         }
       }
 
-      // SUCCESS!
       Alert.alert('Success', 'Profile created successfully!');
-
-      // Refresh profile data
       await fetchProfile();
-
-      // Reset store
       resetOnboardingState();
-
-      // Navigate to phone verification after profile creation
       navigation.navigate('PhoneVerification');
 
     } catch (error: any) {
       console.error('Profile creation failed:', error);
 
       if (error.response?.data?.errors) {
-        // Show validation errors
         const errors = error.response.data.errors;
         const errorMessage = Array.isArray(errors)
           ? errors.map((e: any) => e.message || e.msg).join('\n')
@@ -298,7 +228,6 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
       case 7:
         return <AboutStep onNext={handleNext} onBack={handleBack} />;
       case 8:
-        // If Hindu, show HoroscopeStep. Otherwise, show PhotosStep
         if (religion === 'HINDU') {
           return <HoroscopeStep onNext={handleNext} onBack={handleBack} />;
         } else {
@@ -311,7 +240,6 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
           );
         }
       case 9:
-        // PhotosStep for Hindu profiles (step 9)
         return (
           <PhotosStep
             onSubmit={handleSubmit}
@@ -349,27 +277,76 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const getStepIcon = () => {
+    switch (currentStep) {
+      case 1: return 'account-circle';
+      case 2: return 'map-marker';
+      case 3: return 'hands-pray';
+      case 4: return 'human';
+      case 5: return 'school';
+      case 6: return 'account-group';
+      case 7: return 'text-box';
+      case 8: return religion === 'HINDU' ? 'star-circle' : 'camera';
+      case 9: return 'camera';
+      default: return 'check';
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <Surface style={styles.header} elevation={2}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerTextContainer}>
-            <Text variant="titleLarge" style={styles.headerTitle}>
-              Create Your Profile
-            </Text>
-            <Text variant="bodyMedium" style={styles.stepIndicator}>
-              Step {currentStep} of {TOTAL_STEPS}: {getStepTitle()}
+
+      {/* Premium Header */}
+      <LinearGradient
+        colors={['#FFFFFF', '#FFF5F7']}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          {/* Step Icon */}
+          <View style={styles.stepIconContainer}>
+            <LinearGradient
+              colors={[Theme.colors.primary, '#FF1744']}
+              style={styles.stepIconGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Icon name={getStepIcon()} size={32} color="#fff" />
+            </LinearGradient>
+          </View>
+
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <View style={styles.titleRow}>
+              <Text style={styles.headerTitle}>Create Your Profile</Text>
+              <TouchableOpacity
+                style={styles.autoFillButton}
+                onPress={handleAutoFill}
+                activeOpacity={0.7}
+              >
+                <Icon name="auto-fix" size={18} color={Theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.stepIndicator}>
+              Step {currentStep} of {TOTAL_STEPS} • {getStepTitle()}
             </Text>
           </View>
-          <IconButton
-            icon="auto-fix"
-            mode="contained-tonal"
-            size={24}
-            onPress={handleAutoFill}
-          />
         </View>
+
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarBackground}>
+            <LinearGradient
+              colors={[Theme.colors.primary, '#FF1744']}
+              style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </View>
+          <Text style={styles.progressText}>{Math.round(progress * 100)}% Complete</Text>
+        </View>
+
+        {/* Stepper */}
         <ProgressStepper
           steps={[
             'Basic',
@@ -389,12 +366,14 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
             }
           }}
         />
-      </Surface>
+      </LinearGradient>
 
+      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
         {renderStep()}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -404,39 +383,92 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    padding: 16,
-    backgroundColor: Theme.colors.surfaceCardAlt,
+    paddingTop: 50,
+    paddingBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  headerRow: {
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  stepIconContainer: {
+    marginRight: 16,
+  },
+  stepIconGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  titleSection: {
+    flex: 1,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  headerTextContainer: {
-    flex: 1,
+    marginBottom: 4,
   },
   headerTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: Theme.colors.text,
+    letterSpacing: 0.3,
+  },
+  autoFillButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Theme.colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepIndicator: {
+    fontSize: 13,
     color: Theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  progressBarContainer: {
+    paddingHorizontal: 20,
     marginBottom: 12,
   },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Theme.colors.borderFocus,
+  progressBarBackground: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 11,
+    color: Theme.colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'right',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: 20,
   },
 });
 

@@ -1,6 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+/**
+ * Progress Stepper Component - Redesigned
+ * Premium horizontal stepper with smooth animations
+ */
+
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 
@@ -10,168 +15,153 @@ interface ProgressStepperProps {
     onStepPress?: (step: number) => void;
 }
 
-const { width } = Dimensions.get('window');
-
 const ProgressStepper: React.FC<ProgressStepperProps> = ({
     steps,
     currentStep,
     onStepPress,
 }) => {
-    const theme = useTheme();
-    const scrollViewRef = useRef<ScrollView>(null);
-
-    useEffect(() => {
-        // Scroll to active step
-        if (scrollViewRef.current) {
-            const x = (currentStep - 1) * 100 - (width / 2) + 50;
-            scrollViewRef.current.scrollTo({ x: Math.max(0, x), animated: true });
-        }
-    }, [currentStep]);
-
     return (
-        <View style={styles.container}>
-            <ScrollView
-                ref={scrollViewRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                {steps.map((step, index) => {
-                    const stepNumber = index + 1;
-                    const isActive = stepNumber === currentStep;
-                    const isCompleted = stepNumber < currentStep;
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.container}
+        >
+            {steps.map((step, index) => {
+                const stepNumber = index + 1;
+                const isActive = stepNumber === currentStep;
+                const isCompleted = stepNumber < currentStep;
+                const isClickable = stepNumber < currentStep && onStepPress;
 
-                    return (
-                        <View key={index} style={styles.stepContainer}>
+                return (
+                    <TouchableOpacity
+                        key={index}
+                        style={styles.stepContainer}
+                        onPress={() => isClickable && onStepPress(stepNumber)}
+                        disabled={!isClickable}
+                        activeOpacity={0.7}
+                    >
+                        {/* Step Circle */}
+                        <View style={styles.stepCircleContainer}>
+                            {isCompleted ? (
+                                <LinearGradient
+                                    colors={[Theme.colors.primary, '#FF1744']}
+                                    style={styles.stepCircle}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Icon name="check" size={16} color="#fff" />
+                                </LinearGradient>
+                            ) : isActive ? (
+                                <LinearGradient
+                                    colors={[Theme.colors.primary, '#FF1744']}
+                                    style={[styles.stepCircle, styles.activeCircle]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Text style={styles.activeStepNumber}>{stepNumber}</Text>
+                                </LinearGradient>
+                            ) : (
+                                <View style={[styles.stepCircle, styles.inactiveCircle]}>
+                                    <Text style={styles.inactiveStepNumber}>{stepNumber}</Text>
+                                </View>
+                            )}
+
                             {/* Connector Line */}
-                            {index > 0 && (
+                            {index < steps.length - 1 && (
                                 <View
                                     style={[
                                         styles.connector,
-                                        {
-                                            backgroundColor: isCompleted || isActive
-                                                ? Theme.colors.primary
-                                                : Theme.colors.border,
-                                        },
+                                        isCompleted && styles.connectorCompleted,
                                     ]}
                                 />
                             )}
-
-                            <TouchableOpacity
-                                style={styles.stepWrapper}
-                                onPress={() => onStepPress && isCompleted && onStepPress(stepNumber)}
-                                disabled={!onStepPress || !isCompleted}
-                            >
-                                {/* Circle */}
-                                <View
-                                    style={[
-                                        styles.circle,
-                                        isActive && styles.activeCircle,
-                                        isCompleted && styles.completedCircle,
-                                        !isActive && !isCompleted && styles.inactiveCircle,
-                                    ]}
-                                >
-                                    {isCompleted ? (
-                                        <Icon name="check" size={16} color="#fff" />
-                                    ) : (
-                                        <Text
-                                            style={[
-                                                styles.stepNumber,
-                                                isActive && styles.activeStepNumber,
-                                                !isActive && !isCompleted && styles.inactiveStepNumber,
-                                            ]}
-                                        >
-                                            {stepNumber}
-                                        </Text>
-                                    )}
-                                </View>
-
-                                {/* Label */}
-                                <Text
-                                    style={[
-                                        styles.label,
-                                        isActive && styles.activeLabel,
-                                        isCompleted && styles.completedLabel,
-                                    ]}
-                                    numberOfLines={1}
-                                >
-                                    {step}
-                                </Text>
-                            </TouchableOpacity>
                         </View>
-                    );
-                })}
-            </ScrollView>
-        </View>
+
+                        {/* Step Label */}
+                        <Text
+                            style={[
+                                styles.stepLabel,
+                                isActive && styles.activeStepLabel,
+                                isCompleted && styles.completedStepLabel,
+                            ]}
+                            numberOfLines={1}
+                        >
+                            {step}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: Theme.colors.surfaceCardAlt,
-        paddingVertical: 12,
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-        alignItems: 'flex-start',
+        paddingVertical: 16,
+        paddingHorizontal: 8,
     },
     stepContainer: {
-        flexDirection: 'row',
         alignItems: 'center',
-    },
-    connector: {
-        width: 40,
-        height: 2,
         marginHorizontal: 4,
-        marginBottom: 20, // Align with circle center
+        minWidth: 70,
     },
-    stepWrapper: {
+    stepCircleContainer: {
+        position: 'relative',
+        marginBottom: 8,
+    },
+    stepCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
-        width: 80,
-    },
-    circle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
         justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 4,
-        borderWidth: 2,
     },
     activeCircle: {
-        backgroundColor: Theme.colors.primary,
-        borderColor: Theme.colors.primary,
-        elevation: 4,
-    },
-    completedCircle: {
-        backgroundColor: Theme.colors.success,
-        borderColor: Theme.colors.success,
+        shadowColor: Theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 8,
     },
     inactiveCircle: {
-        backgroundColor: Theme.colors.surface,
-        borderColor: Theme.colors.border,
-    },
-    stepNumber: {
-        fontSize: 14,
-        fontWeight: 'bold',
+        backgroundColor: '#F5F5F5',
+        borderWidth: 2,
+        borderColor: '#E0E0E0',
     },
     activeStepNumber: {
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#fff',
     },
     inactiveStepNumber: {
-        color: Theme.colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#999',
     },
-    label: {
-        fontSize: 12,
+    connector: {
+        position: 'absolute',
+        left: 36,
+        top: 17,
+        width: 40,
+        height: 2,
+        backgroundColor: '#E0E0E0',
+    },
+    connectorCompleted: {
+        backgroundColor: Theme.colors.primary,
+    },
+    stepLabel: {
+        fontSize: 11,
+        color: '#999',
         textAlign: 'center',
-        color: Theme.colors.textSecondary,
+        fontWeight: '500',
     },
-    activeLabel: {
+    activeStepLabel: {
         color: Theme.colors.primary,
-        fontWeight: 'bold',
+        fontWeight: '700',
     },
-    completedLabel: {
-        color: Theme.colors.success,
+    completedStepLabel: {
+        color: Theme.colors.text,
+        fontWeight: '600',
     },
 });
 

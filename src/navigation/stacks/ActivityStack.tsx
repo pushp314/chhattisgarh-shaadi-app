@@ -8,7 +8,8 @@ import { ActivityStackParamList } from '../types';
 
 import ActivityScreen from '../../screens/activity/ActivityScreen';
 import ProfileDetailsScreen from '../../screens/profile/ProfileDetailsScreen';
-import ChatScreen from '../../screens/messages/ChatScreen';
+import ShortlistScreen from '../../screens/profile/ShortlistScreen';
+import WhoViewedMeScreen from '../../screens/profile/WhoViewedMeScreen';
 
 const Stack = createNativeStackNavigator<ActivityStackParamList>();
 
@@ -23,9 +24,24 @@ const ActivityStack: React.FC = () => {
             <Stack.Screen
                 name="ProfileDetails"
                 component={ProfileDetailsScreen}
-                options={{ title: 'Profile Details' }}
+                options={{ headerShown: false }}
             />
-            {/* Add other screens if needed, e.g. Chat if accessed directly from Activity */}
+            <Stack.Screen
+                name="Shortlist"
+                component={ShortlistScreen}
+                options={{
+                    title: 'Shortlisted Profiles',
+                    headerShown: true,
+                }}
+            />
+            <Stack.Screen
+                name="WhoViewedMe"
+                component={WhoViewedMeScreen}
+                options={{
+                    title: 'Who Viewed Me',
+                    headerShown: true,
+                }}
+            />
         </Stack.Navigator>
     );
 };

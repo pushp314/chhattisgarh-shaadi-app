@@ -26,8 +26,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 import { Notification, NotificationType } from '../../types';
 import notificationService from '../../services/notification.service';
+import matchService from '../../services/match.service';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
+import NotificationItem from '../../components/notifications/NotificationItem';
 
 type NotificationCenterScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -199,57 +201,70 @@ const NotificationCenterScreen: React.FC<Props> = ({ navigation }) => {
         }
     };
 
+    const getNotificationType = (type: NotificationType): 'match' | 'message' | 'view' | 'shortlist' => {
+        switch (type) {
+            case 'MATCH_REQUEST':
+            case 'MATCH_ACCEPTED':
+            case 'MATCH_REJECTED':
+                return 'match';
+            case 'NEW_MESSAGE':
+                return 'message';
+            case 'PROFILE_VIEW':
+                return 'view';
+            case 'SHORTLISTED':
+                return 'shortlist';
+            default:
+                return 'match';
+        }
+    };
+
+    const handleAcceptMatch = async (notificationId: number) => {
+        try {
+            const notification = notifications.find(n => n.id === notificationId);
+            if (notification && notification.data) {
+                const data = JSON.parse(notification.data);
+                if (data.matchRequestId) {
+                    await matchService.acceptMatch(data.matchRequestId);
+                    // Remove notification from list
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                }
+            }
+        } catch (error) {
+            console.error('Error accepting match:', error);
+        }
+    };
+
+    const handleDeclineMatch = async (notificationId: number) => {
+        try {
+            const notification = notifications.find(n => n.id === notificationId);
+            if (notification && notification.data) {
+                const data = JSON.parse(notification.data);
+                if (data.matchRequestId) {
+                    await matchService.rejectMatch(data.matchRequestId);
+                    // Remove notification from list
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                }
+            }
+        } catch (error) {
+            console.error('Error declining match:', error);
+        }
+    };
+
     const renderNotification = ({ item }: { item: Notification }) => {
-        const icon = getNotificationIcon(item.type);
-        const iconColor = getNotificationColor(item.type);
+        const notifType = getNotificationType(item.type);
+        const showActions = item.type === 'MATCH_REQUEST' && !item.isRead;
 
         return (
-            <TouchableOpacity onPress={() => handleNotificationPress(item)}>
-                <Surface
-                    style={[
-                        styles.notificationCard,
-                        !item.isRead && styles.unreadCard,
-                    ]}
-                    elevation={item.isRead ? 0 : 1}>
-                    <View style={styles.iconContainer}>
-                        <View
-                            style={[
-                                styles.iconCircle,
-                                { backgroundColor: iconColor + '20' },
-                            ]}>
-                            <Icon name={icon} size={24} color={iconColor} />
-                        </View>
-                        {!item.isRead && <View style={styles.unreadDot} />}
-                    </View>
-
-                    <View style={styles.contentContainer}>
-                        <Text
-                            variant="titleSmall"
-                            style={[
-                                styles.title,
-                                !item.isRead && styles.unreadTitle,
-                            ]}>
-                            {item.title}
-                        </Text>
-                        <Text
-                            variant="bodyMedium"
-                            style={styles.message}
-                            numberOfLines={2}>
-                            {item.message}
-                        </Text>
-                        <Text variant="bodySmall" style={styles.timestamp}>
-                            {formatTimestamp(item.createdAt)}
-                        </Text>
-                    </View>
-
-                    <IconButton
-                        icon="chevron-right"
-                        size={20}
-                        iconColor={Theme.colors.textSecondary}
-                    />
-                </Surface>
-                <Divider />
-            </TouchableOpacity>
+            <NotificationItem
+                type={notifType}
+                name={item.title}
+                message={item.message}
+                timestamp={formatTimestamp(item.createdAt)}
+                isUnread={!item.isRead}
+                onPress={() => handleNotificationPress(item)}
+                onAccept={showActions ? () => handleAcceptMatch(item.id) : undefined}
+                onDecline={showActions ? () => handleDeclineMatch(item.id) : undefined}
+            />
         );
     };
 

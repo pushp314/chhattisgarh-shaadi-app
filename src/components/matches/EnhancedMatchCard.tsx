@@ -1,50 +1,52 @@
 /**
- * Enhanced Match Card Component
- * Large, full-width profile card with comprehensive information and action buttons
+ * Enhanced Match Card Component - Redesigned to match reference
+ * Tinder-style card with rounded corners and action buttons
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     StyleSheet,
     Image,
     TouchableOpacity,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
-import { Text, Surface, IconButton } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../constants/theme';
 import { Profile } from '../../types';
-import VerificationBadge from '../common/VerificationBadge';
-import PremiumBadge from '../common/PremiumBadge';
-
-import { useAppTheme } from '../../hooks/useAppTheme';
+import matchService from '../../services/match.service';
+import retryRequest from '../../utils/retryRequest';
 
 const { width } = Dimensions.get('window');
-const CARD_HEIGHT = width * 1.3; // Portrait aspect ratio
+const CARD_WIDTH = width - 32; // 16px margin on each side
+const CARD_HEIGHT = CARD_WIDTH * 1.4; // Aspect ratio
 
 interface EnhancedMatchCardProps {
     profile: Profile;
-    onInterest: () => void;
-    onSuperInterest: () => void;
-    onShortlist: () => void;
-    onChat: () => void;
     onPress: () => void;
     isShortlisted?: boolean;
     canChat?: boolean;
+    onShortlistToggle?: () => void;
+    onChatPress?: () => void;
+    showToast?: (message: string) => void;
 }
 
 const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
     profile,
-    onInterest,
-    onSuperInterest,
-    onShortlist,
-    onChat,
     onPress,
     isShortlisted = false,
     canChat = false,
+    onShortlistToggle,
+    onChatPress,
+    showToast,
 }) => {
-    const { theme } = useAppTheme();
+    const [isLoadingInterest, setIsLoadingInterest] = useState(false);
+    const [isLoadingSuperInterest, setIsLoadingSuperInterest] = useState(false);
+    const [interestSent, setInterestSent] = useState(false);
+    const [superInterestSent, setSuperInterestSent] = useState(false);
 
     const calculateAge = (dob: string) => {
         const birthDate = new Date(dob);
@@ -57,170 +59,214 @@ const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
         return age;
     };
 
-    const formatIncome = (income?: string) => {
-        if (!income) return 'Not specified';
-        return income;
+    const handleInterest = async () => {
+        if (isLoadingInterest || interestSent) return;
+
+        // Optimistic update
+        setInterestSent(true);
+        showToast?.('Interest sent!');
+
+        try {
+            setIsLoadingInterest(true);
+            // Retry logic with exponential backoff
+            await retryRequest(
+                () => matchService.sendMatchRequest(profile.userId, 'Interested in your profile'),
+                {
+                    maxRetries: 3,
+                    onRetry: (attempt) => console.log(`Retrying interest (attempt ${attempt})...`)
+                }
+            );
+        } catch (error: any) {
+            // Rollback on error
+            setInterestSent(false);
+            console.error('Error sending interest:', error);
+            showToast?.(error.message || 'Failed to send interest after retries');
+        } finally {
+            setIsLoadingInterest(false);
+        }
     };
 
-    const getActivityStatus = () => {
-        // TODO: Calculate from lastActive field
-        return 'Active Yesterday';
+    const handleSuperInterest = async () => {
+        if (isLoadingSuperInterest || superInterestSent) return;
+
+        // Optimistic update
+        setSuperInterestSent(true);
+        showToast?.('Super interest sent!');
+
+        try {
+            setIsLoadingSuperInterest(true);
+            // Retry logic with exponential backoff
+            await retryRequest(
+                () => matchService.sendMatchRequest(profile.userId, '⭐ Super interested in your profile!'),
+                {
+                    maxRetries: 3,
+                    onRetry: (attempt) => console.log(`Retrying super interest (attempt ${attempt})...`)
+                }
+            );
+        } catch (error: any) {
+            // Rollback on error
+            setSuperInterestSent(false);
+            console.error('Error sending super interest:', error);
+            showToast?.(error.message || 'Failed to send super interest after retries');
+        } finally {
+            setIsLoadingSuperInterest(false);
+        }
     };
 
-    const photoCount = profile.media?.length || 0;
+    const handleChat = () => {
+        if (!canChat) {
+            showToast?.('You need to match first to start chatting');
+            return;
+        }
+        onChatPress?.();
+    };
+
     const age = calculateAge(profile.dateOfBirth);
-    const isPremium = profile.isPremium;
     const primaryPhoto = profile.media?.[0]?.url;
+    const isOnline = true; // TODO: Get from actual online status
 
     return (
-        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }, isPremium && styles.premiumCard]} elevation={4}>
-            <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
-                {/* Image Section */}
+        <View style={styles.card}>
+            <TouchableOpacity onPress={onPress} activeOpacity={0.95} style={styles.cardContent}>
+                {/* Profile Image */}
                 <View style={styles.imageContainer}>
                     {primaryPhoto ? (
-                        <Image source={{ uri: primaryPhoto }} style={styles.profileImage} resizeMode="cover" />
+                        <Image
+                            source={{ uri: primaryPhoto }}
+                            style={styles.profileImage}
+                            resizeMode="cover"
+                        />
                     ) : (
-                        <View style={[styles.placeholderImage, { backgroundColor: theme.colors.surfaceCard }]}>
-                            <Icon name="account" size={80} color={theme.colors.textSecondary} />
+                        <View style={styles.placeholderImage}>
+                            <Icon name="account" size={100} color="#999" />
                         </View>
                     )}
 
-                    {/* Premium Badge */}
-                    {isPremium && (
-                        <PremiumBadge variant="overlay" size={20} showText style={styles.premiumBadge} />
-                    )}
+                    {/* Info Overlay at Bottom with Gradient */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.75)']}
+                        style={styles.infoOverlay}
+                    >
+                        {/* Name and Age */}
+                        <View style={styles.nameRow}>
+                            <Text style={styles.nameText}>
+                                {profile.firstName} {profile.lastName?.charAt(0)}.
+                            </Text>
+                            <Text style={styles.ageText}>, {age}</Text>
+                            {isOnline && <View style={styles.onlineDot} />}
+                        </View>
 
-                    {/* Photo Count Badge */}
-                    {photoCount > 0 && (
-                        <View style={styles.photoCountBadge}>
-                            <Icon name="camera" size={14} color={Theme.colors.white} />
-                            <Text variant="labelSmall" style={styles.photoCountText}>
-                                {photoCount}
+                        {/* Occupation */}
+                        {profile.occupation && (
+                            <View style={styles.infoRow}>
+                                <Icon name="briefcase" size={16} color="#fff" />
+                                <Text style={styles.infoText}>{profile.occupation}</Text>
+                            </View>
+                        )}
+
+                        {/* Location */}
+                        <View style={styles.infoRow}>
+                            <Icon name="map-marker" size={16} color="#fff" />
+                            <Text style={styles.infoText}>
+                                {profile.city}, {profile.state}
                             </Text>
                         </View>
-                    )}
+                    </LinearGradient>
                 </View>
 
-                {/* Profile Information */}
-                <View style={styles.infoContainer}>
-                    {/* Name and Age */}
-                    <View style={styles.nameRow}>
-                        <Text variant="headlineSmall" style={[styles.name, { color: theme.colors.text }]}>
-                            {profile.firstName}, {age}
-                        </Text>
-                        {profile.isVerified && (
-                            <VerificationBadge size={24} style={styles.badge} />
-                        )}
-                    </View>
+                {/* Action Buttons Bar */}
+                <View style={styles.actionBar}>
+                    {/* Interest Button - Pink Filled */}
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleInterest}
+                        activeOpacity={0.7}
+                        disabled={isLoadingInterest}
+                    >
+                        <View style={[styles.actionCircle, styles.interestCircle]}>
+                            {isLoadingInterest ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Icon name="calendar-check" size={28} color="#fff" />
+                            )}
+                        </View>
+                        <Text style={styles.actionLabel}>Interest</Text>
+                    </TouchableOpacity>
 
-                    {/* Details Grid */}
-                    <View style={styles.detailsGrid}>
-                        <InfoRow icon="human-male-height" label={`${profile.height || 0}cm`} theme={theme} />
-                        <InfoRow icon="map-marker" label={`${profile.city}, ${profile.state}`} theme={theme} />
-                        <InfoRow icon="account-group" label={`${profile.caste || 'Not specified'}`} theme={theme} />
-                        <InfoRow icon="briefcase" label={profile.occupation || 'Not specified'} theme={theme} />
-                        <InfoRow icon="currency-inr" label={formatIncome(profile.annualIncome)} theme={theme} />
-                        <InfoRow icon="school" label={profile.education || 'Not specified'} theme={theme} />
-                    </View>
+                    {/* Super Interest Button - Pink Outlined */}
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleSuperInterest}
+                        activeOpacity={0.7}
+                        disabled={isLoadingSuperInterest}
+                    >
+                        <View style={[styles.actionCircle, styles.superInterestCircle]}>
+                            {isLoadingSuperInterest ? (
+                                <ActivityIndicator size="small" color={Theme.colors.primary} />
+                            ) : (
+                                <Icon name="heart" size={28} color={Theme.colors.primary} />
+                            )}
+                        </View>
+                        <Text style={styles.actionLabel}>Super{'\n'}Interest</Text>
+                    </TouchableOpacity>
 
-                    {/* Profile Manager */}
-                    <View style={[styles.managerRow, { borderTopColor: theme.colors.border }]}>
-                        <Icon name="account-circle" size={16} color={theme.colors.textSecondary} />
-                        <Text variant="bodySmall" style={[styles.managerText, { color: theme.colors.textSecondary }]}>
-                            Profile managed by: Self
-                        </Text>
-                    </View>
+                    {/* Shortlist Button - Outlined */}
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={onShortlistToggle}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.actionCircle, styles.outlinedCircle]}>
+                            <Icon
+                                name={isShortlisted ? "star" : "star-outline"}
+                                size={28}
+                                color={isShortlisted ? "#FFD700" : "rgba(255,255,255,0.8)"}
+                            />
+                        </View>
+                        <Text style={styles.actionLabel}>Shortlist</Text>
+                    </TouchableOpacity>
+
+                    {/* Chat Button - Outlined */}
+                    <TouchableOpacity
+                        style={[styles.actionButton, !canChat && styles.disabledAction]}
+                        onPress={handleChat}
+                        disabled={!canChat}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.actionCircle, styles.outlinedCircle]}>
+                            <Icon
+                                name="message-text"
+                                size={28}
+                                color={canChat ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.4)"}
+                            />
+                        </View>
+                        <Text style={[styles.actionLabel, !canChat && styles.disabledLabel]}>Chat</Text>
+                    </TouchableOpacity>
                 </View>
             </TouchableOpacity>
-
-            {/* Action Buttons */}
-            <View style={[styles.actionBar, { borderTopColor: theme.colors.border }]}>
-                <ActionButton
-                    icon="heart-outline"
-                    label="Interest"
-                    onPress={onInterest}
-                    color={theme.colors.primary}
-                    theme={theme}
-                />
-                <ActionButton
-                    icon="star"
-                    label="Super"
-                    onPress={onSuperInterest}
-                    color="#FFD700"
-                    isPremium
-                    theme={theme}
-                />
-                <ActionButton
-                    icon={isShortlisted ? 'bookmark' : 'bookmark-outline'}
-                    label="Shortlist"
-                    onPress={onShortlist}
-                    color={theme.colors.secondary}
-                    theme={theme}
-                />
-                <ActionButton
-                    icon="chat"
-                    label="Chat"
-                    onPress={onChat}
-                    color={theme.colors.success}
-                    disabled={!canChat}
-                    theme={theme}
-                />
-            </View>
-        </Surface >
+        </View>
     );
 };
-
-// Info Row Component
-const InfoRow: React.FC<{ icon: string; label: string; theme: any }> = ({ icon, label, theme }) => (
-    <View style={styles.infoRow}>
-        <Icon name={icon} size={16} color={theme.colors.textSecondary} />
-        <Text variant="bodySmall" style={[styles.infoText, { color: theme.colors.text }]}>
-            {label}
-        </Text>
-    </View>
-);
-
-// Action Button Component
-const ActionButton: React.FC<{
-    icon: string;
-    label: string;
-    onPress: () => void;
-    color: string;
-    isPremium?: boolean;
-    disabled?: boolean;
-    theme: any;
-}> = ({ icon, label, onPress, color, isPremium, disabled, theme }) => (
-    <TouchableOpacity
-        style={[styles.actionButton, disabled && styles.actionButtonDisabled]}
-        onPress={onPress}
-        disabled={disabled}
-        activeOpacity={0.7}
-    >
-        <View style={[styles.actionIconContainer, { backgroundColor: color + '20' }]}>
-            <Icon name={icon} size={24} color={disabled ? theme.colors.textSecondary : color} />
-            {isPremium && (
-                <View style={[styles.buttonPremiumBadge, { backgroundColor: theme.colors.surface }]}>
-                    <Icon name="crown" size={10} color="#FFD700" />
-                </View>
-            )}
-        </View>
-        <Text variant="labelSmall" style={[styles.actionLabel, { color: theme.colors.text }, disabled && { color: theme.colors.textSecondary }]}>
-            {label}
-        </Text>
-    </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
     card: {
         marginHorizontal: 16,
         marginVertical: 8,
-        borderRadius: 16,
+        borderRadius: 24,
         overflow: 'hidden',
-        backgroundColor: Theme.colors.white,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    cardContent: {
+        flex: 1,
     },
     imageContainer: {
         width: '100%',
-        height: CARD_HEIGHT * 0.6,
+        height: CARD_HEIGHT - 100, // Reserve space for action bar
         position: 'relative',
     },
     profileImage: {
@@ -232,127 +278,102 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Theme.colors.surfaceCard,
+        backgroundColor: '#f0f0f0',
     },
-    activityBadge: {
+    infoOverlay: {
         position: 'absolute',
-        top: 16,
-        left: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 6,
-    },
-    activityText: {
-        color: Theme.colors.text,
-        fontWeight: '600',
-    },
-    photoCountBadge: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 4,
-    },
-    photoCountText: {
-        color: Theme.colors.white,
-        fontWeight: '600',
-    },
-    infoContainer: {
-        padding: 16,
-    },
-    name: {
-        fontWeight: 'bold',
-        color: Theme.colors.text,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 20,
+        paddingBottom: 24,
+        // Gradient effect handled by parent container or LinearGradient component
     },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
-        gap: 8,
+        marginBottom: 8,
     },
-    badge: {
-        marginTop: 2,
+    nameText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#fff',
     },
-    premiumCard: {
+    ageText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    onlineDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#4CAF50',
+        marginLeft: 8,
         borderWidth: 2,
-        borderColor: '#FFD700',
-    },
-    premiumBadge: {
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        zIndex: 1,
-    },
-    detailsGrid: {
-        gap: 8,
+        borderColor: '#fff',
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        marginTop: 4,
     },
     infoText: {
-        color: Theme.colors.text,
-        flex: 1,
-    },
-    managerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginTop: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: Theme.colors.border,
-    },
-    managerText: {
-        color: Theme.colors.textSecondary,
+        fontSize: 15,
+        color: '#fff',
+        marginLeft: 8,
+        fontWeight: '500',
     },
     actionBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
+        alignItems: 'center',
         paddingVertical: 16,
-        paddingHorizontal: 8,
-        borderTopWidth: 1,
-        borderTopColor: Theme.colors.border,
+        paddingHorizontal: 12,
+        backgroundColor: 'rgba(0,0,0,0.03)',
     },
     actionButton: {
         alignItems: 'center',
-        gap: 6,
+        flex: 1,
     },
-    actionButtonDisabled: {
-        opacity: 0.5,
-    },
-    actionIconContainer: {
+    actionCircle: {
         width: 56,
         height: 56,
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'relative',
+        marginBottom: 6,
     },
-    buttonPremiumBadge: {
-        position: 'absolute',
-        top: -2,
-        right: -2,
-        backgroundColor: Theme.colors.white,
-        borderRadius: 10,
-        padding: 2,
+    interestCircle: {
+        backgroundColor: Theme.colors.primary,
+        shadowColor: Theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    superInterestCircle: {
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        borderColor: Theme.colors.primary,
+    },
+    outlinedCircle: {
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        borderColor: 'rgba(0,0,0,0.15)',
     },
     actionLabel: {
-        color: Theme.colors.text,
+        color: '#666',
+        fontSize: 11,
         fontWeight: '600',
+        textAlign: 'center',
+        lineHeight: 14,
     },
-    actionLabelDisabled: {
-        color: Theme.colors.textSecondary,
+    disabledAction: {
+        opacity: 0.5,
+    },
+    disabledLabel: {
+        color: '#999',
     },
 });
 

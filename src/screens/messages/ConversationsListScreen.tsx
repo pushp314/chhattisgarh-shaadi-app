@@ -1,31 +1,30 @@
+/**
+ * Conversations List Screen - Redesigned
+ * Clean message list with search bar
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Image, RefreshControl } from 'react-native';
 import {
-  Text,
-  Searchbar,
-  List,
-  Badge,
-  Surface,
-  ActivityIndicator,
-} from 'react-native-paper';
+  View,
+  FlatList,
+  StyleSheet,
+  Image,
+  RefreshControl,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MessagesStackParamList } from '../../navigation/types';
-import { Conversation, Message } from '../../types';
+import { Conversation } from '../../types';
 import { Theme } from '../../constants/theme';
 import messageService from '../../services/message.service';
 import matchService from '../../services/match.service';
 import socketService from '../../services/socket.service';
 import { SOCKET_EVENTS } from '../../constants/socket.constants';
 import { useFocusEffect } from '@react-navigation/native';
-
-// Unified type for list items (conversations or accepted matches)
-type ListItem = {
-  type: 'conversation' | 'match';
-  userId: number;
-  conversation?: Conversation;
-  match?: any; // Match object from accepted matches
-};
 
 type ConversationsListScreenNavigationProp = NativeStackNavigationProp<
   MessagesStackParamList,
@@ -34,6 +33,13 @@ type ConversationsListScreenNavigationProp = NativeStackNavigationProp<
 
 type Props = {
   navigation: ConversationsListScreenNavigationProp;
+};
+
+type ListItem = {
+  type: 'conversation' | 'match';
+  userId: number;
+  conversation?: Conversation;
+  match?: any;
 };
 
 const formatTimestamp = (dateString: string) => {
@@ -45,107 +51,12 @@ const formatTimestamp = (dateString: string) => {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-  });
+  if (diffDays < 7) return `${diffDays}d`;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
-
-const ConversationItem = React.memo(({ item, isOnline, onPress }: { item: Conversation; isOnline: boolean; onPress: () => void }) => {
-  const profile = item.user.profile;
-  const userName = profile
-    ? `${profile.firstName} ${profile.lastName}`
-    : 'Unknown User';
-  const profilePic = profile?.media?.[0]?.url;
-
-  return (
-    <List.Item
-      title={userName}
-      description={item.lastMessage.content}
-      descriptionNumberOfLines={1}
-      left={() => (
-        <View style={styles.avatarContainer}>
-          {profilePic ? (
-            <Image source={{ uri: profilePic }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={32} color="#999" />
-            </View>
-          )}
-          {isOnline && (
-            <View style={styles.onlineBadge}>
-              <View style={styles.onlineDot} />
-            </View>
-          )}
-        </View>
-      )}
-      right={() => (
-        <View style={styles.rightContent}>
-          <Text variant="bodySmall" style={styles.timestamp}>
-            {formatTimestamp(item.lastMessage.createdAt)}
-          </Text>
-          {item.unreadCount > 0 && (
-            <Badge size={20} style={styles.badge}>
-              {item.unreadCount > 9 ? '9+' : item.unreadCount}
-            </Badge>
-          )}
-        </View>
-      )}
-      onPress={onPress}
-      style={[
-        styles.listItem,
-        item.unreadCount > 0 && styles.listItemUnread,
-      ]}
-    />
-  );
-});
-
-const MatchItem = React.memo(({ item, isOnline, onPress }: { item: any; isOnline: boolean; onPress: () => void }) => {
-  // The user object contains profile directly
-  const user = item.sender || item.receiver;
-  const profile = user?.profile;
-  const userName = profile
-    ? `${profile.firstName} ${profile.lastName}`
-    : 'Unknown User';
-  // For accepted matches, use user's profilePicture or profile media
-  const profilePic = user?.profilePicture || profile?.media?.[0]?.url;
-
-  return (
-    <List.Item
-      title={userName}
-      description="Start chatting with your match!"
-      descriptionStyle={styles.matchDescription}
-      left={() => (
-        <View style={styles.avatarContainer}>
-          {profilePic ? (
-            <Image source={{ uri: profilePic }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={32} color="#999" />
-            </View>
-          )}
-          {isOnline && (
-            <View style={styles.onlineBadge}>
-              <View style={styles.onlineDot} />
-            </View>
-          )}
-        </View>
-      )}
-      right={() => (
-        <View style={styles.rightContent}>
-          <Icon name="chat-plus" size={24} color={Theme.colors.primary} />
-        </View>
-      )}
-      onPress={onPress}
-      style={styles.listItem}
-    />
-  );
-});
 
 const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -159,92 +70,35 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
 
   useFocusEffect(
     React.useCallback(() => {
-      loadConversations();
-
-      // Set up Socket.io listener for new messages
-      const handleNewMessage = (message: Message) => {
-        console.log('ConversationsList: New message received', message);
-        // Reload conversations to update list
-        loadConversations();
-      };
-
-      const handleUserOnline = (data: { userId: number }) => {
-        setOnlineUsers(prev => new Set(prev).add(data.userId));
-      };
-
-      const handleUserOffline = (data: { userId: number }) => {
-        setOnlineUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(data.userId);
-          return newSet;
-        });
-      };
-
-      socketService.on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
-      socketService.on(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
-      socketService.on(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
-
+      loadData();
+      setupSocketListeners();
       return () => {
-        socketService.off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleNewMessage);
-        socketService.off(SOCKET_EVENTS.USER_ONLINE, handleUserOnline);
-        socketService.off(SOCKET_EVENTS.USER_OFFLINE, handleUserOffline);
+        socketService.off(SOCKET_EVENTS.USER_ONLINE);
+        socketService.off(SOCKET_EVENTS.USER_OFFLINE);
+        socketService.off(SOCKET_EVENTS.MESSAGE_RECEIVED);
       };
     }, [])
   );
 
-  useEffect(() => {
-    // Add defensive checks to prevent errors
-    if (!conversations || !acceptedMatches) {
-      setListItems([]);
-      return;
-    }
+  const setupSocketListeners = () => {
+    socketService.on(SOCKET_EVENTS.USER_ONLINE, (data: { userId: number }) => {
+      setOnlineUsers(prev => new Set(prev).add(data.userId));
+    });
 
-    // Combine conversations and accepted matches into a unified list
-    const conversationUserIds = new Set(conversations.map(c => c.userId));
-
-    // Create list items from conversations
-    const conversationItems: ListItem[] = conversations.map(conv => ({
-      type: 'conversation' as const,
-      userId: conv.userId,
-      conversation: conv,
-    }));
-
-    // Create list items from accepted matches (exclude those with existing conversations)
-    const matchItems: ListItem[] = acceptedMatches
-      .filter(match => {
-        const otherUserId = match.sender?.id || match.receiver?.id;
-        return otherUserId && !conversationUserIds.has(otherUserId);
-      })
-      .map(match => ({
-        type: 'match' as const,
-        userId: match.sender?.id || match.receiver?.id,
-        match,
-      }));
-
-    // Combine and sort: conversations first (by last message time), then matches
-    const combined = [...conversationItems, ...matchItems];
-    setListItems(combined);
-  }, [conversations, acceptedMatches]);
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredItems(listItems);
-    } else {
-      const filtered = listItems.filter(item => {
-        let userName = '';
-        if (item.type === 'conversation') {
-          userName = `${item.conversation?.user.profile?.firstName} ${item.conversation?.user.profile?.lastName}`.toLowerCase();
-        } else if (item.type === 'match') {
-          const profile = item.match?.sender?.profile || item.match?.receiver?.profile;
-          userName = `${profile?.firstName} ${profile?.lastName}`.toLowerCase();
-        }
-        return userName.includes(searchQuery.toLowerCase());
+    socketService.on(SOCKET_EVENTS.USER_OFFLINE, (data: { userId: number }) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(data.userId);
+        return newSet;
       });
-      setFilteredItems(filtered);
-    }
-  }, [searchQuery, listItems]);
+    });
 
-  const loadConversations = async (isRefresh = false) => {
+    socketService.on(SOCKET_EVENTS.MESSAGE_RECEIVED, () => {
+      loadData();
+    });
+  };
+
+  const loadData = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     } else {
@@ -252,147 +106,265 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      console.log('Loading conversations and accepted matches');
-
-      // Fetch both conversations and accepted matches in parallel
       const [conversationsData, matchesData] = await Promise.all([
         messageService.getConversations(),
         matchService.getAcceptedMatches(),
       ]);
 
-      setConversations(conversationsData);
+      setConversations(conversationsData || []);
       setAcceptedMatches(matchesData?.matches || []);
+
+      // Combine conversations and matches
+      const items: ListItem[] = [];
+
+      // Add conversations
+      (conversationsData || []).forEach(conv => {
+        items.push({
+          type: 'conversation',
+          userId: conv.userId,
+          conversation: conv,
+        });
+      });
+
+      // Add accepted matches without conversations
+      (matchesData?.matches || []).forEach(match => {
+        const user = match.sender || match.receiver;
+        if (user && !items.find(item => item.userId === user.id)) {
+          items.push({
+            type: 'match',
+            userId: user.id,
+            match,
+          });
+        }
+      });
+
+      setListItems(items);
+      setFilteredItems(items);
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredItems(listItems);
+      return;
+    }
+
+    const filtered = listItems.filter(item => {
+      if (item.type === 'conversation') {
+        const userName = item.conversation?.user?.profile?.firstName || '';
+        return userName.toLowerCase().includes(query.toLowerCase());
+      } else {
+        const user = item.match?.sender || item.match?.receiver;
+        const userName = user?.profile?.firstName || '';
+        return userName.toLowerCase().includes(query.toLowerCase());
+      }
+    });
+    setFilteredItems(filtered);
+  };
+
   const renderItem = ({ item }: { item: ListItem }) => {
-    if (item.type === 'conversation' && item.conversation) {
-      return (
-        <ConversationItem
-          item={item.conversation}
-          isOnline={onlineUsers.has(item.userId)}
-          onPress={() =>
-            navigation.navigate('ChatScreen', {
-              userId: item.userId,
-              userName: item.conversation?.user.profile
-                ? `${item.conversation.user.profile.firstName} ${item.conversation.user.profile.lastName}`
-                : 'Unknown User',
-            })
-          }
-        />
-      );
-    } else if (item.type === 'match' && item.match) {
-      const user = item.match.sender || item.match.receiver;
+    if (item.type === 'conversation') {
+      const conv = item.conversation!;
+      const user = conv.user;
       const profile = user?.profile;
+      const isOnline = onlineUsers.has(item.userId);
+
       return (
-        <MatchItem
-          item={item.match}
-          isOnline={onlineUsers.has(item.userId)}
+        <TouchableOpacity
+          style={styles.conversationItem}
           onPress={() =>
             navigation.navigate('ChatScreen', {
               userId: item.userId,
-              userName: profile
-                ? `${profile.firstName} ${profile.lastName}`
-                : 'Unknown User',
+              userName: profile?.firstName || 'User',
             })
           }
-        />
+        >
+          <View style={styles.avatarContainer}>
+            {user?.profilePicture ? (
+              <Image source={{ uri: user.profilePicture }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Icon name="account" size={32} color="#999" />
+              </View>
+            )}
+            {isOnline && <View style={styles.onlineDot} />}
+          </View>
+
+          <View style={styles.messageContent}>
+            <View style={styles.messageHeader}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {profile?.firstName} {profile?.lastName}
+              </Text>
+              <Text style={styles.timestamp}>
+                {conv.lastMessage?.createdAt ? formatTimestamp(conv.lastMessage.createdAt) : ''}
+              </Text>
+            </View>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {conv.lastMessage?.content || 'No messages yet'}
+            </Text>
+          </View>
+
+          {conv.unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadText}>{conv.unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    } else {
+      // Match item
+      const user = item.match?.sender || item.match?.receiver;
+      const profile = user?.profile;
+      const isOnline = onlineUsers.has(item.userId);
+
+      return (
+        <TouchableOpacity
+          style={styles.conversationItem}
+          onPress={() =>
+            navigation.navigate('ChatScreen', {
+              userId: item.userId,
+              userName: profile?.firstName || 'User',
+            })
+          }
+        >
+          <View style={styles.avatarContainer}>
+            {user?.profilePicture ? (
+              <Image source={{ uri: user.profilePicture }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Icon name="account" size={32} color="#999" />
+              </View>
+            )}
+            {isOnline && <View style={styles.onlineDot} />}
+          </View>
+
+          <View style={styles.messageContent}>
+            <Text style={styles.userName} numberOfLines={1}>
+              {profile?.firstName} {profile?.lastName}
+            </Text>
+            <Text style={styles.matchMessage}>Start chatting with your match!</Text>
+          </View>
+
+          <Icon name="chat" size={24} color={Theme.colors.primary} />
+        </TouchableOpacity>
       );
     }
-    return null;
   };
 
-  const renderEmpty = () => {
-    if (isLoading) return null;
-
-    return (
-      <View style={styles.emptyContainer}>
-        <Icon name="message-outline" size={64} color="#ccc" />
-        <Text variant="titleLarge" style={styles.emptyTitle}>
-          No Conversations Yet
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptyText}>
-          Start connecting with matches to begin conversations
-        </Text>
-      </View>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Theme.colors.primary} />
-      </View>
-    );
-  }
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Icon name="message-outline" size={64} color="#ccc" />
+      <Text style={styles.emptyText}>No messages yet</Text>
+      <Text style={styles.emptySubtext}>Start connecting with matches!</Text>
+    </View>
+  );
 
   return (
-    <View style={styles.container}>
-      <Surface style={styles.searchContainer} elevation={2}>
-        <Searchbar
-          placeholder="Search conversations"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchbar}
-        />
-      </Surface>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <TouchableOpacity style={styles.menuButton}>
+          <Icon name="dots-vertical" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
 
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={item => item.userId.toString()}
-        ListEmptyComponent={renderEmpty}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => loadConversations(true)}
-          />
-        }
-      />
-    </View>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Icon name="magnify" size={20} color="#999" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by name"
+          placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+      </View>
+
+      {/* Messages List */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={item => `${item.type}-${item.userId}`}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmpty}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadData(true)}
+              colors={[Theme.colors.primary]}
+            />
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: '#fff',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#333',
+  },
+  menuButton: {
+    padding: 4,
   },
   searchContainer: {
-    backgroundColor: Theme.colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  searchbar: {
-    elevation: 0,
-    backgroundColor: Theme.colors.background,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    marginHorizontal: 20,
+    marginBottom: 16,
     borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  listItem: {
-    backgroundColor: Theme.colors.white,
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    padding: 0,
+  },
+  listContent: {
+    flexGrow: 1,
+  },
+  conversationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.surfaceCard,
-  },
-  listItemUnread: {
-    backgroundColor: Theme.colors.surfaceCard,
-  },
-  matchDescription: {
-    color: Theme.colors.primary,
-    fontStyle: 'italic',
+    borderBottomColor: '#F0F0F0',
   },
   avatarContainer: {
     position: 'relative',
-    marginLeft: 8,
+    marginRight: 12,
   },
   avatar: {
     width: 56,
@@ -400,58 +372,86 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Theme.colors.surfaceCard,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  onlineBadge: {
+  onlineDot: {
     position: 'absolute',
     bottom: 2,
     right: 2,
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: Theme.colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: Theme.colors.white,
+    borderColor: '#fff',
   },
-  onlineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Theme.colors.success,
+  messageContent: {
+    flex: 1,
   },
-  rightContent: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  timestamp: {
-    color: Theme.colors.textSecondary,
+  messageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  badge: {
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#999',
+    marginLeft: 8,
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#666',
+  },
+  matchMessage: {
+    fontSize: 14,
+    color: Theme.colors.primary,
+    fontStyle: 'italic',
+  },
+  unreadBadge: {
     backgroundColor: Theme.colors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginLeft: 8,
+  },
+  unreadText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
+    paddingTop: 80,
   },
   emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
     marginTop: 16,
-    color: Theme.colors.textSecondary,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
   },
 });
 

@@ -283,53 +283,34 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleAvatarPress = () => {
-    // Navigate to Profile tab
+    // Open the drawer when avatar is clicked
     const parent = navigation.getParent();
     const drawer = parent?.getParent();
-    if (drawer) {
-      drawer.navigate('ProfileStack');
+    if (drawer && 'toggleDrawer' in drawer) {
+      (drawer as any).toggleDrawer();
     }
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        {/* User Avatar */}
-        <TouchableOpacity onPress={handleAvatarPress}>
-          <Image
-            source={{ uri: profile?.media?.[0]?.url || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
-
-        {/* Title and Subtitle */}
-        <View style={styles.headerText}>
-          <Text variant="titleLarge" style={styles.headerTitle}>
-            My Matches
-          </Text>
-          <Text variant="bodySmall" style={styles.headerSubtitle}>
-            as per partner preferences
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.headerRight}>
-        {/* Notification Icon */}
-        <TouchableOpacity onPress={handleNotifications} style={styles.iconButton}>
-          <Icon name="bell-outline" size={24} color={Theme.colors.text} />
-          {notificationCount > 0 && (
-            <Badge style={styles.badge}>{notificationCount}</Badge>
-          )}
-        </TouchableOpacity>
-
-        {/* Search Icon */}
-        <IconButton
-          icon="magnify"
-          size={24}
-          iconColor={Theme.colors.text}
-          onPress={handleSearch}
+      {/* User Avatar - Opens Drawer */}
+      <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+        <Image
+          source={{ uri: profile?.media?.[0]?.url || 'https://via.placeholder.com/40' }}
+          style={styles.avatar}
         />
-      </View>
+      </TouchableOpacity>
+
+      {/* Centered Title */}
+      <Text style={styles.headerTitle}>Chhattisgarh Shadi</Text>
+
+      {/* Notification Icon */}
+      <TouchableOpacity onPress={handleNotifications} style={styles.iconButton}>
+        <Icon name="bell-outline" size={26} color={Theme.colors.text} />
+        {notificationCount > 0 && (
+          <Badge style={styles.badge}>{notificationCount}</Badge>
+        )}
+      </TouchableOpacity>
     </View>
   );
 
@@ -393,9 +374,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Filters */}
       <MatchFilters
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-        onAdvancedFilter={handleAdvancedFilter}
+        onFilterChange={(filters) => {
+          // Map filter object to SearchProfilesParams
+          const params: Partial<SearchProfilesParams> = {
+            isVerified: filters.verified,
+          };
+          loadProfiles(false, params);
+        }}
+        onSortChange={(sort) => {
+          // Sort is handled in loadProfiles logic
+          loadProfiles(false, {});
+        }}
       />
 
       {/* Profile List */}
@@ -405,13 +394,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         renderItem={({ item }) => (
           <EnhancedMatchCard
             profile={item}
-            onInterest={() => handleInterest(item.userId)}
-            onSuperInterest={() => handleSuperInterest(item.userId)}
-            onShortlist={() => handleShortlist(item.userId)}
-            onChat={() => handleChat(item.userId)}
             onPress={() => handleProfilePress(item.userId)}
             canChat={matchStatuses[item.userId] === 'ACCEPTED'}
             isShortlisted={shortlistedIds.has(item.userId)}
+            onShortlistToggle={() => handleShortlist(item.userId)}
+            onChatPress={() => handleChat(item.userId)}
+            showToast={showToast}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -450,7 +438,7 @@ const styles = StyleSheet.create({
     paddingTop: 50, // Account for status bar
     backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
+    borderBottomColor: '#F0F0F0',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -458,21 +446,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFE5D9',
   },
   headerText: {
     flex: 1,
   },
   headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: Theme.colors.text,
+    flex: 1,
+    textAlign: 'center',
   },
   headerSubtitle: {
     color: Theme.colors.textSecondary,
-    fontStyle: 'italic',
+  },
+  preferencesLink: {
+    color: '#FF6B35',
+    fontWeight: '500',
   },
   headerRight: {
     flexDirection: 'row',
@@ -489,8 +483,9 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.primary,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingVertical: 4,
     flexGrow: 1,
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
