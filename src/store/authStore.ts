@@ -22,8 +22,6 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setIsNewUser: (isNewUser: boolean) => void;
   signInWithGoogle: (agentCode?: string) => Promise<void>;
-  sendPhoneOTP: (phone: string, countryCode?: string) => Promise<void>;
-  verifyPhoneOTP: (phone: string, otp: string, countryCode?: string, referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUserData: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
@@ -62,41 +60,8 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      sendPhoneOTP: async (phone, countryCode = '+91') => {
-        try {
-          set({ isLoading: true });
-          await authService.sendPhoneOTP(phone, countryCode);
-          set({ isLoading: false });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      verifyPhoneOTP: async (phone, otp, countryCode = '+91', referralCode?: string) => {
-        try {
-          set({ isLoading: true });
-          await authService.verifyPhoneOTP(phone, otp, countryCode, referralCode);
-
-          // Update user data
-          const currentUser = get().user;
-          if (currentUser) {
-            const updatedUser = {
-              ...currentUser,
-              phone,
-              isPhoneVerified: true,
-              ...(referralCode && { referralCode }),
-            };
-            set({ user: updatedUser, isLoading: false });
-            await storeUserData(updatedUser);
-          } else {
-            set({ isLoading: false });
-          }
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+      // Note: Firebase phone OTP is handled directly in PhoneVerificationScreen
+      // No need for sendPhoneOTP/verifyPhoneOTP here anymore
 
       logout: async () => {
         try {
@@ -154,14 +119,24 @@ export const useAuthStore = create<AuthState>()(
           const { accessToken, refreshToken } = await getTokens();
           const userData = await getUserData();
 
-          // If no tokens or user data, clear everything and require login
-          if (!accessToken || !refreshToken || !userData) {
-            // This is expected on first launch - don't log as error
-            // console.log('No stored tokens or user data found');
+          if (__DEV__) {
+            console.log('🔐 loadUserData - Checking stored credentials:', {
+              hasAccessToken: !!accessToken,
+              hasRefreshToken: !!refreshToken,
+              hasUserData: !!userData,
+            });
+          }
+
+          // If no tokens, we definitely need to login
+          if (!accessToken || !refreshToken) {
+            if (__DEV__) console.log('🔐 No tokens found - requiring login');
             await clearStorage();
             set({ user: null, isAuthenticated: false, isNewUser: false });
             return;
           }
+
+          // If we have tokens but no userData, don't logout - try to fetch from server
+          // This handles edge case where AsyncStorage is cleared but Keychain isn't
 
           // Validate token by making a lightweight API call
           try {
@@ -179,11 +154,11 @@ export const useAuthStore = create<AuthState>()(
             // Update stored user data with latest from server
             await storeUserData(updatedUser);
 
-            console.log('User session restored successfully');
+            if (__DEV__) console.log('User session restored successfully');
           } catch (validationError: any) {
-            // Token might be expired, try to refresh
+            // Check if it's an auth error (401)
             if (validationError.response?.status === 401) {
-              console.log('Access token expired, attempting refresh...');
+              if (__DEV__) console.log('Access token expired, attempting refresh...');
 
               try {
                 // Try to refresh the token
@@ -200,10 +175,10 @@ export const useAuthStore = create<AuthState>()(
                 });
                 await storeUserData(updatedUser);
 
-                console.log('Token refreshed and session restored successfully');
+                if (__DEV__) console.log('Token refreshed and session restored successfully');
               } catch (refreshError) {
-                // Refresh failed - tokens are invalid, clear everything
-                console.log('Token refresh failed, clearing session');
+                // Refresh failed - ONLY clear if we can't refresh
+                if (__DEV__) console.log('Token refresh failed, clearing session');
                 await clearStorage();
                 set({
                   user: null,
@@ -212,9 +187,11 @@ export const useAuthStore = create<AuthState>()(
                 });
               }
             } else {
-              // Other error (network, server error, etc.)
-              // Still restore user data but mark as potentially stale
-              console.warn('Token validation failed, but restoring cached user data');
+              // Network error or server error (500)
+              // IMPORTANT: Do NOT logout the user. Assume offline/cached mode.
+              console.warn('Token validation failed (network/server), restoring cached session:', validationError.message);
+
+              // We already have userData from getUserData(), so just set it active
               set({
                 user: userData,
                 isAuthenticated: true,
@@ -224,9 +201,23 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Failed to load user data:', error);
-          // On any error, clear storage to be safe
-          await clearStorage();
-          set({ user: null, isAuthenticated: false, isNewUser: false });
+          // Don't clear storage here blindly.
+          // If we have tokens, we might just be offline.
+          try {
+            const { accessToken } = await getTokens();
+            if (accessToken) {
+              // We have a token but something else failed (e.g. AsyncStorage read error)
+              // Best effort: try to keep them logged in if state allows, otherwise allow retry later
+              if (__DEV__) console.log('Keeping potential session despite load error');
+            } else {
+              await clearStorage();
+              set({ user: null, isAuthenticated: false, isNewUser: false });
+            }
+          } catch {
+            // If we can't even read tokens, then we must reset
+            await clearStorage();
+            set({ user: null, isAuthenticated: false, isNewUser: false });
+          }
         }
       },
 

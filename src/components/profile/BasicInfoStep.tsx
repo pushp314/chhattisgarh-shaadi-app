@@ -13,10 +13,6 @@ import { generateBasicInfo } from '../../utils/testDataGenerator';
 const basicInfoSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  firstNameHi: z.string().optional(),
-  firstNameCg: z.string().optional(),
-  lastNameHi: z.string().optional(),
-  lastNameCg: z.string().optional(),
   dateOfBirth: z.date().refine((date) => {
     const age = (new Date()).getFullYear() - date.getFullYear();
     return age >= 18;
@@ -40,10 +36,6 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
   // Select specific fields to avoid infinite loop
   const firstName = useOnboardingStore((state) => state.firstName);
   const lastName = useOnboardingStore((state) => state.lastName);
-  const firstNameHi = useOnboardingStore((state) => state.firstNameHi);
-  const firstNameCg = useOnboardingStore((state) => state.firstNameCg);
-  const lastNameHi = useOnboardingStore((state) => state.lastNameHi);
-  const lastNameCg = useOnboardingStore((state) => state.lastNameCg);
   const dateOfBirth = useOnboardingStore((state) => state.dateOfBirth);
   const gender = useOnboardingStore((state) => state.gender);
   const height = useOnboardingStore((state) => state.height);
@@ -55,10 +47,6 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
     defaultValues: {
       firstName: firstName || '',
       lastName: lastName || '',
-      firstNameHi: firstNameHi || '',
-      firstNameCg: firstNameCg || '',
-      lastNameHi: lastNameHi || '',
-      lastNameCg: lastNameCg || '',
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
       gender: gender,
       height: height || undefined,
@@ -69,14 +57,10 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
   React.useEffect(() => {
     if (firstName) setValue('firstName', firstName);
     if (lastName) setValue('lastName', lastName);
-    if (firstNameHi) setValue('firstNameHi', firstNameHi);
-    if (firstNameCg) setValue('firstNameCg', firstNameCg);
-    if (lastNameHi) setValue('lastNameHi', lastNameHi);
-    if (lastNameCg) setValue('lastNameCg', lastNameCg);
     if (dateOfBirth) setValue('dateOfBirth', new Date(dateOfBirth));
     if (gender) setValue('gender', gender);
     if (height) setValue('height', height);
-  }, [firstName, lastName, firstNameHi, firstNameCg, lastNameHi, lastNameCg, dateOfBirth, gender, height, setValue]);
+  }, [firstName, lastName, dateOfBirth, gender, height, setValue]);
 
   // Auto-fill handler for testing
   const handleAutoFill = () => {
@@ -86,11 +70,6 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
 
     setValue('firstName', testData.firstName);
     setValue('lastName', testData.lastName);
-    // Auto-fill optional language fields for demo
-    setValue('firstNameHi', 'राम');
-    setValue('firstNameCg', 'राम');
-    setValue('lastNameHi', 'शर्मा');
-    setValue('lastNameCg', 'शर्मा');
     setValue('dateOfBirth', testData.dateOfBirth);
     setValue('gender', testData.gender);
     setValue('height', testData.height);
@@ -100,10 +79,6 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
   const onSubmit = (data: BasicInfoFormData) => {
     updateOnboardingData('firstName', data.firstName);
     updateOnboardingData('lastName', data.lastName);
-    updateOnboardingData('firstNameHi', data.firstNameHi);
-    updateOnboardingData('firstNameCg', data.firstNameCg);
-    updateOnboardingData('lastNameHi', data.lastNameHi);
-    updateOnboardingData('lastNameCg', data.lastNameCg);
     updateOnboardingData('dateOfBirth', data.dateOfBirth.toISOString());
     updateOnboardingData('gender', data.gender);
     updateOnboardingData('height', data.height);
@@ -165,79 +140,6 @@ const BasicInfoStep: React.FC<Props> = ({ onNext, onBack, submitLabel = 'Next', 
       <HelperText type="error" visible={!!errors.lastName}>
         {errors.lastName?.message}
       </HelperText>
-
-      {/* Multi-Language Fields (Optional) */}
-      <Text variant="bodySmall" style={styles.optionalLabel}>Optional: Names in local languages</Text>
-
-      <View style={styles.row}>
-        <View style={styles.halfWidth}>
-          <Controller
-            control={control}
-            name="firstNameHi"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="First Name (Hindi)"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                style={styles.input}
-              />
-            )}
-          />
-        </View>
-        <View style={styles.halfWidth}>
-          <Controller
-            control={control}
-            name="lastNameHi"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="Last Name (Hindi)"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                style={styles.input}
-              />
-            )}
-          />
-        </View>
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.halfWidth}>
-          <Controller
-            control={control}
-            name="firstNameCg"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="First Name (CG)"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                style={styles.input}
-              />
-            )}
-          />
-        </View>
-        <View style={styles.halfWidth}>
-          <Controller
-            control={control}
-            name="lastNameCg"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="Last Name (CG)"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                style={styles.input}
-              />
-            )}
-          />
-        </View>
-      </View>
 
       {/* Date of Birth */}
       <Controller

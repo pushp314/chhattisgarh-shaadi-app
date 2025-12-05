@@ -31,6 +31,7 @@ import reportService from '../../services/report.service';
 import socketService from '../../services/socket.service';
 import { SOCKET_EVENTS } from '../../constants/socket.constants';
 import { Theme } from '../../constants/theme';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 
 type ChatScreenNavigationProp = NativeStackNavigationProp<MessagesStackParamList, 'ChatScreen'>;
 type ChatScreenRouteProp = RouteProp<MessagesStackParamList, 'ChatScreen'>;
@@ -128,17 +129,37 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
     if (data.userId === otherUserId) setIsOnline(false);
   }, [otherUserId]);
 
+  // Optimistic send - instantly show message, then confirm with server
   const handleSendMessage = async () => {
     if (messageText.trim() === '' || isSending) return;
 
     const tempMessage = messageText;
+    const tempId = Date.now(); // Temporary ID for optimistic update
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: tempId,
+      senderId: currentUser?.id || 0,
+      receiverId: otherUserId,
+      content: tempMessage,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Instantly add to UI (optimistic update)
+    setMessages(prev => [optimisticMessage, ...prev]);
     setMessageText('');
     setIsSending(true);
 
     try {
       const newMessage = await messageService.sendMessage(otherUserId, tempMessage);
-      setMessages(prev => [newMessage, ...prev]);
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m =>
+        m.id === tempId ? newMessage : m
+      ));
     } catch (error: any) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       setMessageText(tempMessage);
       if (error.response?.status === 403) {
         setShowPremiumModal(true);
@@ -215,39 +236,60 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
     return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  // Memoized message renderer for performance
+  const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isMine = item.senderId === currentUser?.id;
 
     return (
       <View style={[styles.messageRow, isMine ? styles.myMessageRow : styles.theirMessageRow]}>
-        <View style={[styles.messageBubble, isMine ? styles.myBubble : styles.theirBubble]}>
-          <Text style={[styles.messageText, isMine ? styles.myMessageText : styles.theirMessageText]}>
-            {item.content}
-          </Text>
-          <View style={styles.messageFooter}>
-            <Text style={[styles.timestamp, isMine ? styles.myTimestamp : styles.theirTimestamp]}>
-              {formatTimestamp(item.createdAt)}
+        {isMine ? (
+          <LinearGradient
+            colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.messageBubble, styles.myBubble]}
+          >
+            <Text style={[styles.messageText, styles.myMessageText]}>
+              {item.content}
             </Text>
-            {isMine && (
+            <View style={styles.messageFooter}>
+              <Text style={styles.myTimestamp}>
+                {formatTimestamp(item.createdAt)}
+              </Text>
               <Icon
                 name={item.isRead ? 'check-all' : 'check'}
                 size={14}
-                color={item.isRead ? '#4CAF50' : 'rgba(255,255,255,0.6)'}
+                color={item.isRead ? Theme.colors.success : 'rgba(255,255,255,0.7)'}
                 style={styles.readIcon}
               />
-            )}
+            </View>
+          </LinearGradient>
+        ) : (
+          <View style={[styles.messageBubble, styles.theirBubble]}>
+            <Text style={[styles.messageText, styles.theirMessageText]}>
+              {item.content}
+            </Text>
+            <View style={styles.messageFooter}>
+              <Text style={styles.theirTimestamp}>
+                {formatTimestamp(item.createdAt)}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
       </View>
     );
-  };
+  }, [currentUser?.id]);
 
   const renderTypingIndicator = () => {
     if (!isTyping) return null;
     return (
       <View style={styles.typingContainer}>
         <View style={styles.typingBubble}>
-          <Text style={styles.typingText}>{userName} is typing...</Text>
+          <View style={styles.typingDotsContainer}>
+            <SkeletonLoader width={8} height={8} borderRadius={4} />
+            <SkeletonLoader width={8} height={8} borderRadius={4} />
+            <SkeletonLoader width={8} height={8} borderRadius={4} />
+          </View>
         </View>
       </View>
     );
@@ -360,12 +402,12 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#333" />
+          <Icon name="arrow-left" size={24} color={Theme.colors.text} />
         </TouchableOpacity>
 
         <View style={styles.headerInfo}>
           <View style={styles.headerAvatar}>
-            <Icon name="account" size={24} color="#999" />
+            <Icon name="account" size={24} color={Theme.colors.textSecondary} />
           </View>
           <View>
             <Text style={styles.headerName}>{userName}</Text>
@@ -374,7 +416,7 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
-          <Icon name="dots-vertical" size={24} color="#333" />
+          <Icon name="dots-vertical" size={24} color={Theme.colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -394,6 +436,12 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
           ListEmptyComponent={renderEmpty}
           ListHeaderComponent={renderTypingIndicator}
           showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          maxToRenderPerBatch={15}
+          windowSize={10}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={20}
+          updateCellsBatchingPeriod={50}
         />
 
         {/* Simple Input Bar */}
@@ -403,7 +451,7 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
             value={messageText}
             onChangeText={handleTextChange}
             placeholder="Type a message..."
-            placeholderTextColor="#999"
+            placeholderTextColor={Theme.colors.textSecondary}
             multiline
             maxLength={1000}
           />
@@ -425,16 +473,16 @@ const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: Theme.colors.white },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Theme.colors.border,
   },
   backButton: { padding: 8 },
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 8, gap: 12 },
@@ -442,60 +490,66 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Theme.colors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  headerOnline: { fontSize: 12, color: '#4CAF50', fontWeight: '500' },
+  headerName: { fontSize: 16, fontWeight: '600', color: Theme.colors.text },
+  headerOnline: { fontSize: 12, color: Theme.colors.success, fontWeight: '500' },
   menuButton: { padding: 8 },
-  chatContainer: { flex: 1, backgroundColor: '#F5F5F5' },
+  chatContainer: { flex: 1, backgroundColor: Theme.colors.background },
   messagesList: { paddingHorizontal: 16, paddingVertical: 8 },
   messageRow: { marginVertical: 4, maxWidth: '80%' },
   myMessageRow: { alignSelf: 'flex-end' },
   theirMessageRow: { alignSelf: 'flex-start' },
   messageBubble: { padding: 12, paddingBottom: 8, borderRadius: 18 },
-  myBubble: { backgroundColor: Theme.colors.primary, borderBottomRightRadius: 4 },
+  myBubble: { borderBottomRightRadius: 4 },
   theirBubble: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...Theme.shadows.sm,
   },
   messageText: { fontSize: 15, lineHeight: 21 },
-  myMessageText: { color: '#fff' },
-  theirMessageText: { color: '#333' },
+  myMessageText: { color: Theme.colors.white },
+  theirMessageText: { color: Theme.colors.text },
   messageFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
   timestamp: { fontSize: 11 },
-  myTimestamp: { color: 'rgba(255,255,255,0.7)' },
-  theirTimestamp: { color: '#999' },
+  myTimestamp: { color: 'rgba(255,255,255,0.8)' },
+  theirTimestamp: { color: Theme.colors.textSecondary },
   readIcon: { marginLeft: 4 },
-  typingContainer: { alignSelf: 'flex-start', marginVertical: 4 },
-  typingBubble: { backgroundColor: '#fff', padding: 12, borderRadius: 18, borderBottomLeftRadius: 4 },
-  typingText: { fontSize: 13, color: '#666', fontStyle: 'italic' },
+  typingContainer: { alignSelf: 'flex-start', marginVertical: 4, paddingHorizontal: 16 },
+  typingBubble: {
+    backgroundColor: Theme.colors.white,
+    padding: 12,
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    ...Theme.shadows.sm,
+  },
+  typingDotsContainer: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, transform: [{ scaleY: -1 }] },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#333', marginTop: 16 },
-  emptySubtext: { fontSize: 14, color: '#666', marginTop: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: Theme.colors.text, marginTop: 16 },
+  emptySubtext: { fontSize: 14, color: Theme.colors.textSecondary, marginTop: 8 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: Theme.colors.border,
     gap: 10,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Theme.colors.surfaceCard,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#333',
+    color: Theme.colors.text,
     maxHeight: 100,
     minHeight: 44,
   },
@@ -507,34 +561,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: { backgroundColor: '#ccc' },
+  sendButtonDisabled: { backgroundColor: Theme.colors.border },
   // Menu Modal
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 80, paddingRight: 16 },
   menuContent: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 8, minWidth: 180, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   menuItemDanger: { borderTopWidth: 1, borderTopColor: '#F0F0F0' },
-  menuItemText: { fontSize: 15, color: '#333' },
-  menuItemTextDanger: { fontSize: 15, color: '#FF3B30' },
+  menuItemText: { fontSize: 15, color: Theme.colors.text },
+  menuItemTextDanger: { fontSize: 15, color: Theme.colors.error },
   // Report Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   reportModalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
-  reportTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8 },
-  reportSubtitle: { fontSize: 14, color: '#666', marginBottom: 16 },
-  reportInput: { backgroundColor: '#F5F5F5', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', minHeight: 100, textAlignVertical: 'top' },
+  reportTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, marginBottom: 8 },
+  reportSubtitle: { fontSize: 14, color: Theme.colors.textSecondary, marginBottom: 16 },
+  reportInput: { backgroundColor: Theme.colors.surfaceCard, borderRadius: 12, padding: 12, fontSize: 14, color: Theme.colors.text, minHeight: 100, textAlignVertical: 'top' },
   reportActions: { flexDirection: 'row', marginTop: 16, gap: 12 },
-  reportCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: '#F5F5F5' },
-  reportCancelText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  reportCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Theme.colors.surfaceCard },
+  reportCancelText: { fontSize: 14, fontWeight: '600', color: Theme.colors.textSecondary },
   reportSubmitBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Theme.colors.primary },
   reportSubmitText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   // Premium Modal
   premiumModalContent: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center' },
   premiumIcon: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  premiumTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
-  premiumSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  premiumTitle: { fontSize: 20, fontWeight: '700', color: Theme.colors.text, marginBottom: 8 },
+  premiumSubtitle: { fontSize: 14, color: Theme.colors.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
   premiumButton: { width: '100%', borderRadius: 24, overflow: 'hidden', marginBottom: 12 },
   premiumGradient: { paddingVertical: 14, alignItems: 'center' },
   premiumButtonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  premiumLaterText: { fontSize: 14, color: '#999', paddingVertical: 8 },
+  premiumLaterText: { fontSize: 14, color: Theme.colors.textSecondary, paddingVertical: 8 },
 });
 
 export default ChatScreen;

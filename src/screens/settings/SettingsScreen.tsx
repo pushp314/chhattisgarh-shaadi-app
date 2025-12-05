@@ -28,6 +28,7 @@ import { Theme } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import privacyService from '../../services/privacy.service';
 import notificationService from '../../services/notification.service';
+import LinearGradient from 'react-native-linear-gradient';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<any>;
 
@@ -75,7 +76,8 @@ const SettingsSwitchItem = React.memo(({ title, description, left, value, onValu
             <Switch
                 value={value}
                 onValueChange={onValueChange}
-                color={Theme.colors.secondary}
+                color={Theme.colors.primary}
+                trackColor={{ false: Theme.colors.border, true: Theme.colors.primaryLight }}
             />
         )}
     />
@@ -88,6 +90,11 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+    // Accordion expanded states
+    const [privacyExpanded, setPrivacyExpanded] = useState(false); // Start collapsed
+    const [notificationExpanded, setNotificationExpanded] = useState(false);
+    const [accountExpanded, setAccountExpanded] = useState(false);
 
     // Privacy Settings
     const [profileVisibility, setProfileVisibility] = useState<'PUBLIC' | 'REGISTERED' | 'MATCHED' | 'HIDDEN'>('REGISTERED');
@@ -204,247 +211,272 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <ScrollView style={styles.container}>
-            {/* Privacy Settings */}
-            <Surface style={styles.section} elevation={1}>
-                <View style={styles.sectionHeader}>
-                    <Icon name="shield-account" size={24} color={Theme.colors.primary} />
-                    <Text variant="titleLarge" style={styles.sectionTitle}>
-                        Privacy Settings
-                    </Text>
+            {/* Privacy Settings Accordion */}
+            <List.Accordion
+                title="Privacy Settings"
+                description="Control who can see your profile"
+                left={props => <List.Icon {...props} icon="shield-account" color={Theme.colors.primary} />}
+                expanded={privacyExpanded}
+                onPress={() => setPrivacyExpanded(!privacyExpanded)}
+                style={styles.accordion}
+                titleStyle={styles.accordionTitle}
+                descriptionStyle={styles.accordionDescription}
+            >
+                <View style={styles.accordionContent}>
+                    <List.Item
+                        title="Profile Visibility"
+                        description={profileVisibility}
+                        left={EyeIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => {
+                            Alert.alert(
+                                'Profile Visibility',
+                                'Choose who can see your profile',
+                                [
+                                    { text: 'Public', onPress: () => setProfileVisibility('PUBLIC') },
+                                    { text: 'Registered Users', onPress: () => setProfileVisibility('REGISTERED') },
+                                    { text: 'Matched Only', onPress: () => setProfileVisibility('MATCHED') },
+                                    { text: 'Hidden', onPress: () => setProfileVisibility('HIDDEN') },
+                                    { text: 'Cancel', style: 'cancel' },
+                                ]
+                            );
+                        }}
+                    />
+
+                    <SettingsSwitchItem
+                        title="Show Last Name"
+                        description="Display your last name on profile"
+                        left={AccountDetailsIcon}
+                        value={showLastName}
+                        onValueChange={setShowLastName}
+                    />
+
+                    <SettingsSwitchItem
+                        title="Show in Search"
+                        description="Appear in search results"
+                        left={MagnifyIcon}
+                        value={showInSearch}
+                        onValueChange={setShowInSearch}
+                    />
+
+                    <SettingsSwitchItem
+                        title="Show in Suggestions"
+                        description="Appear in match suggestions"
+                        left={LightbulbIcon}
+                        value={showInSuggestions}
+                        onValueChange={setShowInSuggestions}
+                    />
+
+                    <Button
+                        mode="contained"
+                        onPress={savePrivacySettings}
+                        loading={isSaving}
+                        disabled={isSaving}
+                        style={styles.saveButton}
+                        buttonColor={Theme.colors.secondary}
+                        textColor={Theme.colors.primaryDark}>
+                        Save Privacy Settings
+                    </Button>
                 </View>
-                <Divider style={styles.divider} />
+            </List.Accordion>
 
-                <List.Item
-                    title="Profile Visibility"
-                    description={profileVisibility}
-                    left={EyeIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => {
-                        // Show visibility picker dialog
-                        Alert.alert(
-                            'Profile Visibility',
-                            'Choose who can see your profile',
-                            [
-                                { text: 'Public', onPress: () => setProfileVisibility('PUBLIC') },
-                                { text: 'Registered Users', onPress: () => setProfileVisibility('REGISTERED') },
-                                { text: 'Matched Only', onPress: () => setProfileVisibility('MATCHED') },
-                                { text: 'Hidden', onPress: () => setProfileVisibility('HIDDEN') },
-                                { text: 'Cancel', style: 'cancel' },
-                            ]
-                        );
-                    }}
-                />
+            {/* Notification Settings Accordion */}
+            <List.Accordion
+                title="Notification Settings"
+                description="Manage your notification preferences"
+                left={props => <List.Icon {...props} icon="bell" color={Theme.colors.primary} />}
+                expanded={notificationExpanded}
+                onPress={() => setNotificationExpanded(!notificationExpanded)}
+                style={styles.accordion}
+                titleStyle={styles.accordionTitle}
+                descriptionStyle={styles.accordionDescription}
+            >
+                <View style={styles.accordionContent}>
+                    <SettingsSwitchItem
+                        title="Match Requests"
+                        description="Get notified about new match requests"
+                        left={HeartIcon}
+                        value={matchRequestNotif}
+                        onValueChange={setMatchRequestNotif}
+                    />
 
-                <SettingsSwitchItem
-                    title="Show Last Name"
-                    description="Display your last name on profile"
-                    left={AccountDetailsIcon}
-                    value={showLastName}
-                    onValueChange={setShowLastName}
-                />
+                    <SettingsSwitchItem
+                        title="Messages"
+                        description="Get notified about new messages"
+                        left={MessageIcon}
+                        value={messageNotif}
+                        onValueChange={setMessageNotif}
+                    />
 
-                <SettingsSwitchItem
-                    title="Show in Search"
-                    description="Appear in search results"
-                    left={MagnifyIcon}
-                    value={showInSearch}
-                    onValueChange={setShowInSearch}
-                />
+                    <SettingsSwitchItem
+                        title="Profile Views"
+                        description="Get notified when someone views your profile"
+                        left={EyeIcon}
+                        value={profileViewNotif}
+                        onValueChange={setProfileViewNotif}
+                    />
 
-                <SettingsSwitchItem
-                    title="Show in Suggestions"
-                    description="Appear in match suggestions"
-                    left={LightbulbIcon}
-                    value={showInSuggestions}
-                    onValueChange={setShowInSuggestions}
-                />
+                    <SettingsSwitchItem
+                        title="Email Notifications"
+                        description="Receive notifications via email"
+                        left={EmailIcon}
+                        value={emailNotif}
+                        onValueChange={setEmailNotif}
+                    />
 
-                <Button
-                    mode="contained"
-                    onPress={savePrivacySettings}
-                    loading={isSaving}
-                    disabled={isSaving}
-                    style={styles.saveButton}
-                    buttonColor={Theme.colors.secondary}
-                    textColor={Theme.colors.primaryDark}>
-                    Save Privacy Settings
-                </Button>
-            </Surface>
+                    <SettingsSwitchItem
+                        title="Push Notifications"
+                        description="Receive push notifications"
+                        left={CellphoneIcon}
+                        value={pushNotif}
+                        onValueChange={setPushNotif}
+                    />
 
-            {/* Notification Settings */}
-            <Surface style={styles.section} elevation={1}>
-                <View style={styles.sectionHeader}>
-                    <Icon name="bell" size={24} color={Theme.colors.secondary} />
-                    <Text variant="titleLarge" style={styles.sectionTitle}>
-                        Notification Settings
-                    </Text>
+                    <Button
+                        mode="contained"
+                        onPress={saveNotificationSettings}
+                        loading={isSaving}
+                        disabled={isSaving}
+                        style={styles.saveButton}
+                        buttonColor={Theme.colors.primary}
+                        textColor={Theme.colors.white}>
+                        Save Notification Settings
+                    </Button>
                 </View>
-                <Divider style={styles.divider} />
+            </List.Accordion>
 
-                <SettingsSwitchItem
-                    title="Match Requests"
-                    description="Get notified about new match requests"
-                    left={HeartIcon}
-                    value={matchRequestNotif}
-                    onValueChange={setMatchRequestNotif}
-                />
+            {/* Account Settings Accordion */}
+            <List.Accordion
+                title="Account Settings"
+                description="Manage your account and profile"
+                left={props => <List.Icon {...props} icon="account-cog" color={Theme.colors.primary} />}
+                expanded={accountExpanded}
+                onPress={() => setAccountExpanded(!accountExpanded)}
+                style={styles.accordion}
+                titleStyle={styles.accordionTitle}
+                descriptionStyle={styles.accordionDescription}
+            >
+                <View style={styles.accordionContent}>
+                    <List.Item
+                        title="Verify Phone Number"
+                        description="Verify your phone for better security"
+                        left={(props: any) => <List.Icon {...props} icon="cellphone-check" color={Theme.colors.textSecondary} />}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('PhoneVerification')}
+                    />
 
-                <SettingsSwitchItem
-                    title="Messages"
-                    description="Get notified about new messages"
-                    left={MessageIcon}
-                    value={messageNotif}
-                    onValueChange={setMessageNotif}
-                />
+                    <List.Item
+                        title="Preview My Profile"
+                        description="See how your profile looks to others"
+                        left={(props: any) => <List.Icon {...props} icon="eye-outline" color={Theme.colors.textSecondary} />}
+                        right={ChevronRightIcon}
+                        onPress={() => {
+                            const { user } = useAuthStore.getState();
+                            if (user?.id) {
+                                navigation.navigate('ProfileDetails', { userId: user.id });
+                            } else {
+                                Alert.alert('Error', 'Unable to load profile');
+                            }
+                        }}
+                    />
 
-                <SettingsSwitchItem
-                    title="Profile Views"
-                    description="Get notified when someone views your profile"
-                    left={EyeIcon}
-                    value={profileViewNotif}
-                    onValueChange={setProfileViewNotif}
-                />
+                    <List.Item
+                        title="Edit Profile"
+                        description="Update your profile information"
+                        left={AccountEditIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('EditProfile')}
+                    />
 
-                <SettingsSwitchItem
-                    title="Email Notifications"
-                    description="Receive notifications via email"
-                    left={EmailIcon}
-                    value={emailNotif}
-                    onValueChange={setEmailNotif}
-                />
+                    <List.Item
+                        title="Partner Preferences"
+                        description="Set your match preferences"
+                        left={HeartSettingsIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('PartnerPreferences')}
+                    />
 
-                <SettingsSwitchItem
-                    title="Push Notifications"
-                    description="Receive push notifications"
-                    left={CellphoneIcon}
-                    value={pushNotif}
-                    onValueChange={setPushNotif}
-                />
+                    <List.Item
+                        title="Education Management"
+                        description="Manage your education records"
+                        left={SchoolIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('EducationManagement')}
+                    />
 
-                <Button
-                    mode="contained"
-                    onPress={saveNotificationSettings}
-                    loading={isSaving}
-                    disabled={isSaving}
-                    style={styles.saveButton}
-                    buttonColor={Theme.colors.secondary}
-                    textColor={Theme.colors.primaryDark}>
-                    Save Notification Settings
-                </Button>
-            </Surface>
+                    <List.Item
+                        title="Occupation Management"
+                        description="Manage your professional details"
+                        left={BriefcaseIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('OccupationManagement')}
+                    />
 
-            {/* Account Settings */}
-            <Surface style={styles.section} elevation={1}>
-                <View style={styles.sectionHeader}>
-                    <Icon name="account-cog" size={24} color={Theme.colors.success} />
-                    <Text variant="titleLarge" style={styles.sectionTitle}>
-                        Account Settings
-                    </Text>
+                    <List.Item
+                        title="Photo Privacy"
+                        description="Manage photo privacy settings"
+                        left={ImageLockIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('PhotoPrivacy')}
+                    />
+
+                    <List.Item
+                        title="Photo Requests"
+                        description="Manage photo view requests"
+                        left={ImageMultipleIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('PhotoRequests')}
+                    />
+
+                    <List.Item
+                        title="Blocked Users"
+                        description="Manage blocked profiles"
+                        left={AccountCancelIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('BlockedUsers')}
+                    />
+
+                    <List.Item
+                        title="Contact Requests"
+                        description="Manage contact requests"
+                        left={AccountMultipleIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('ContactRequests')}
+                    />
+
+                    <List.Item
+                        title="Match Requests"
+                        description="Manage match requests"
+                        left={HeartMultipleIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => navigation.navigate('MatchRequests')}
+                    />
+
+                    <List.Item
+                        title="Help & Support"
+                        description="Get help or contact support"
+                        left={HelpCircleIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => {
+                            Alert.alert('Help & Support', 'For support, please email: support@chhattisgarhshaadi.com');
+                        }}
+                    />
+
+                    <List.Item
+                        title="About"
+                        description="App version and information"
+                        left={InformationIcon}
+                        right={ChevronRightIcon}
+                        onPress={() => {
+                            Alert.alert('About', 'Chhattisgarh Shaadi\nVersion 1.0.0\n\nA premium matrimonial platform for Chhattisgarh community.');
+                        }}
+                    />
                 </View>
-                <Divider style={styles.divider} />
+            </List.Accordion>
 
-                <List.Item
-                    title="Edit Profile"
-                    description="Update your profile information"
-                    left={AccountEditIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('EditProfile')}
-                />
-
-                <List.Item
-                    title="Partner Preferences"
-                    description="Set your match preferences"
-                    left={HeartSettingsIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('PartnerPreferences')}
-                />
-
-                <List.Item
-                    title="Education Management"
-                    description="Manage your education records"
-                    left={SchoolIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('EducationManagement')}
-                />
-
-                <List.Item
-                    title="Occupation Management"
-                    description="Manage your professional details"
-                    left={BriefcaseIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('OccupationManagement')}
-                />
-
-                <List.Item
-                    title="Photo Privacy"
-                    description="Manage photo privacy settings"
-                    left={ImageLockIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('PhotoPrivacy')}
-                />
-
-                <List.Item
-                    title="Photo Requests"
-                    description="Manage photo view requests"
-                    left={ImageMultipleIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('PhotoRequests')}
-                />
-
-                <List.Item
-                    title="Blocked Users"
-                    description="Manage blocked profiles"
-                    left={AccountCancelIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('BlockedUsers')}
-                />
-
-                <List.Item
-                    title="Contact Requests"
-                    description="Manage contact requests"
-                    left={AccountMultipleIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('ContactRequests')}
-                />
-
-                <List.Item
-                    title="Match Requests"
-                    description="Manage match requests"
-                    left={HeartMultipleIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => navigation.navigate('MatchRequests')}
-                />
-
-                <List.Item
-                    title="Help & Support"
-                    description="Get help or contact support"
-                    left={HelpCircleIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => {
-                        Alert.alert('Help & Support', 'For support, please email: support@chhattisgarhshaadi.com');
-                    }}
-                />
-
-                <List.Item
-                    title="About"
-                    description="App version and information"
-                    left={InformationIcon}
-                    right={ChevronRightIcon}
-                    onPress={() => {
-                        Alert.alert('About', 'Chhattisgarh Shaadi\nVersion 1.0.0\n\nA premium matrimonial platform for Chhattisgarh community.');
-                    }}
-                />
-            </Surface>
-
-            {/* Danger Zone */}
-            <Surface style={styles.section} elevation={1}>
-                <View style={styles.sectionHeader}>
-                    <Icon name="alert" size={24} color={Theme.colors.primary} />
-                    <Text variant="titleLarge" style={styles.sectionTitle}>
-                        Danger Zone
-                    </Text>
-                </View>
-                <Divider style={styles.divider} />
+            {/* Danger Zone - Always visible at bottom */}
+            <View style={styles.dangerZone}>
+                <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
 
                 <Button
                     mode="outlined"
@@ -478,7 +510,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     icon="delete">
                     Delete Account
                 </Button>
-            </Surface>
+            </View>
 
             {/* Logout Confirmation Dialog */}
             <Portal>
@@ -588,33 +620,47 @@ const styles = StyleSheet.create({
         backgroundColor: Theme.colors.background,
     },
     loadingText: {
-        marginTop: 16,
+        marginTop: 12,
         color: Theme.colors.textSecondary,
     },
     section: {
-        margin: 16,
-        marginBottom: 0,
-        padding: 16,
+        marginHorizontal: 16,
+        marginTop: 12,
+        marginBottom: 4,
         borderRadius: 12,
         backgroundColor: Theme.colors.white,
-        ...Theme.shadows.md,
+        padding: 16,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        marginBottom: 8,
+        marginBottom: 16,
     },
     sectionTitle: {
-        fontWeight: 'bold',
         color: Theme.colors.text,
+        fontWeight: '600',
+    },
+    sectionHeaderGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 16,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+    },
+    sectionTitleGradient: {
+        color: Theme.colors.white,
+        fontWeight: '600',
+        fontSize: 18,
     },
     divider: {
-        marginVertical: 12,
+        marginBottom: 16,
         backgroundColor: Theme.colors.surfaceCard,
     },
     saveButton: {
         marginTop: 16,
+        marginHorizontal: 8,
         borderRadius: 8,
     },
     dangerButton: {
@@ -654,6 +700,46 @@ const styles = StyleSheet.create({
     },
     input: {
         marginBottom: 8,
+    },
+    // Accordion styles
+    accordion: {
+        backgroundColor: Theme.colors.white,
+        marginHorizontal: 12,
+        marginTop: 12,
+        borderRadius: 12,
+        overflow: 'hidden',
+        elevation: 1,
+    },
+    accordionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Theme.colors.text,
+    },
+    accordionDescription: {
+        fontSize: 12,
+        color: Theme.colors.textSecondary,
+    },
+    accordionContent: {
+        paddingHorizontal: 0,
+        paddingBottom: 8,
+        backgroundColor: Theme.colors.white,
+    },
+    // Danger Zone styles
+    dangerZone: {
+        marginHorizontal: 12,
+        marginTop: 24,
+        marginBottom: 24,
+        padding: 16,
+        backgroundColor: Theme.colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#FFE5E5',
+    },
+    dangerZoneTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Theme.colors.primary,
+        marginBottom: 12,
     },
 });
 

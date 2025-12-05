@@ -71,7 +71,7 @@ class FCMService {
         try {
             const token = await messaging().getToken();
             if (token) {
-                console.log('FCM Token:', token.substring(0, 20) + '...');
+                if (__DEV__) console.log('FCM Token:', token.substring(0, 20) + '...');
                 return token;
             }
         } catch (error) {
@@ -87,7 +87,7 @@ class FCMService {
         try {
             const user = useAuthStore.getState().user;
             if (!user) {
-                console.log('No user logged in, skipping FCM registration');
+                if (__DEV__) console.log('No user logged in, skipping FCM registration');
                 return;
             }
 
@@ -98,7 +98,7 @@ class FCMService {
                 const deviceType = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
 
                 await userService.registerFcmToken(token, deviceId, deviceName, deviceType);
-                console.log('FCM token registered with backend');
+                if (__DEV__) console.log('FCM token registered with backend');
             }
         } catch (error) {
             console.error('Failed to register FCM token with backend:', error);
@@ -110,7 +110,7 @@ class FCMService {
      */
     listenForMessages(): () => void {
         this.messageUnsubscribe = messaging().onMessage(async remoteMessage => {
-            console.log('Foreground FCM message received:', remoteMessage);
+            if (__DEV__) console.log('Foreground FCM message received:', remoteMessage);
 
             // Show in-app alert for foreground notifications
             const { notification, data } = remoteMessage;
@@ -140,7 +140,7 @@ class FCMService {
      * Handle notification press - navigate based on data
      */
     private handleNotificationPress(data: any): void {
-        console.log('Notification pressed with data:', data);
+        if (__DEV__) console.log('Notification pressed with data:', data);
         // Navigation logic can be handled here
         // You can emit an event or use a navigation ref
     }
@@ -150,7 +150,7 @@ class FCMService {
      */
     onTokenRefresh(): () => void {
         this.tokenRefreshUnsubscribe = messaging().onTokenRefresh(token => {
-            console.log('FCM Token Refreshed');
+            if (__DEV__) console.log('FCM Token Refreshed');
             this.registerTokenWithBackend();
         });
 
@@ -167,7 +167,7 @@ class FCMService {
      */
     static setBackgroundMessageHandler(): void {
         messaging().setBackgroundMessageHandler(async remoteMessage => {
-            console.log('Background FCM message:', remoteMessage);
+            if (__DEV__) console.log('Background FCM message:', remoteMessage);
             // Handle background message (e.g., update badge count)
         });
     }
@@ -179,7 +179,7 @@ class FCMService {
         try {
             const remoteMessage = await messaging().getInitialNotification();
             if (remoteMessage) {
-                console.log('App opened from quit state by notification:', remoteMessage);
+                if (__DEV__) console.log('App opened from quit state by notification:', remoteMessage);
                 return remoteMessage;
             }
         } catch (error) {
@@ -193,7 +193,7 @@ class FCMService {
      */
     onNotificationOpenedApp(callback: (data: any) => void): () => void {
         return messaging().onNotificationOpenedApp(remoteMessage => {
-            console.log('App opened from background by notification:', remoteMessage);
+            if (__DEV__) console.log('App opened from background by notification:', remoteMessage);
             callback(remoteMessage.data);
         });
     }

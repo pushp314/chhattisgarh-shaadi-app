@@ -12,14 +12,21 @@ import {
     ScrollView,
     SafeAreaView,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Theme } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
+import { useTheme } from '../../context/ThemeContext';
 
-const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation }) => {
+type Props = DrawerContentComponentProps;
+
+const CustomDrawerContent: React.FC<Props> = (props) => {
+    const { navigation } = props;
+    const { theme } = useTheme();
+    const styles = createStyles(theme);
     const user = useAuthStore(state => state.user);
     const { profile } = useProfileStore();
     const logout = useAuthStore(state => state.logout);
@@ -47,6 +54,17 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation
         }
     };
 
+    const handleProfilePreview = () => {
+        navigation.closeDrawer();
+        if (user?.id) {
+            // Navigate to ProfileStack's ProfileDetails screen
+            navigation.navigate('ProfileStack', {
+                screen: 'ProfileDetails',
+                params: { userId: user.id },
+            });
+        }
+    };
+
     const handleLogout = async () => {
         navigation.closeDrawer();
         await logout();
@@ -55,15 +73,20 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Profile Section */}
-                <View style={styles.profileSection}>
+                {/* Profile Section - Tap to preview profile */}
+                <TouchableOpacity
+                    style={styles.profileSection}
+                    onPress={handleProfilePreview}
+                    activeOpacity={0.7}
+                >
                     <Image
                         source={{ uri: profilePicture || 'https://via.placeholder.com/80' }}
                         style={styles.profileImage}
                     />
                     <Text style={styles.profileName}>{fullName}</Text>
                     <Text style={styles.profileId}>{profileId}</Text>
-                </View>
+                    <Text style={styles.viewProfileText}>Tap to view your profile ➔</Text>
+                </TouchableOpacity>
 
                 {/* Upgrade Button */}
                 <TouchableOpacity
@@ -74,36 +97,42 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation
                     <Text style={styles.upgradeButtonText}>Upgrade Membership</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.offerText}>UPTO 75% OFF ALL MEMBERSHIP PLANS</Text>
+
 
                 {/* Menu Items */}
                 <View style={styles.menuSection}>
                     <MenuItem
+                        styles={styles}
                         icon="account-edit-outline"
                         label="Edit Profile"
                         onPress={() => handleNavigation('EditProfile')}
                     />
                     <MenuItem
+                        styles={styles}
                         icon="account-heart-outline"
                         label="Partner Preferences"
                         onPress={() => handleNavigation('PartnerPreferences')}
                     />
                     <MenuItem
+                        styles={styles}
                         icon="image-multiple"
                         label="Photo Album"
                         onPress={() => handleNavigation('PhotoManagement')}
                     />
                     <MenuItem
+                        styles={styles}
                         icon="cog-outline"
                         label="Account & Settings"
                         onPress={() => handleNavigation('Settings')}
                     />
                     <MenuItem
+                        styles={styles}
                         icon="help-circle-outline"
                         label="Help & Support"
                         onPress={() => handleNavigation('Help')}
                     />
                     <MenuItem
+                        styles={styles}
                         icon="shield-lock-outline"
                         label="Privacy Policy"
                         onPress={() => handleNavigation('Privacy')}
@@ -119,7 +148,7 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({ navigation
                     onPress={handleLogout}
                     activeOpacity={0.6}
                 >
-                    <Icon name="logout" size={24} color={Theme.colors.error} />
+                    <Icon name="logout" size={24} color={theme.colors.error} />
                     <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
             </ScrollView>
@@ -133,7 +162,7 @@ interface MenuItemProps {
     onPress: () => void;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress }) => (
+const MenuItem: React.FC<MenuItemProps & { styles: any }> = ({ icon, label, onPress, styles }) => (
     <TouchableOpacity
         style={styles.menuItem}
         onPress={onPress}
@@ -145,7 +174,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onPress }) => (
     </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
@@ -177,14 +206,14 @@ const styles = StyleSheet.create({
         color: '#888',
     },
     upgradeButton: {
-        backgroundColor: Theme.colors.primary,
+        backgroundColor: theme.colors.primary,
         marginHorizontal: 28,
         paddingVertical: 14,
         borderRadius: 25,
         alignItems: 'center',
         marginTop: 8,
         marginBottom: 12,
-        shadowColor: Theme.colors.primary,
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -234,8 +263,14 @@ const styles = StyleSheet.create({
     },
     logoutText: {
         fontSize: 16,
-        color: Theme.colors.error,
+        color: theme.colors.error,
         fontWeight: '600',
+    },
+    viewProfileText: {
+        fontSize: 12,
+        color: theme.colors.primary,
+        marginTop: 8,
+        fontWeight: '500',
     },
 });
 

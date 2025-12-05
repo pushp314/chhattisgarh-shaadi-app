@@ -91,18 +91,12 @@ const CreateProfileScreen: React.FC<Props> = ({ navigation }) => {
       const profilePayload: any = {
         firstName: onboardingData.firstName,
         lastName: onboardingData.lastName,
-        nameHi: (onboardingData.firstNameHi || onboardingData.lastNameHi)
-          ? `${onboardingData.firstNameHi || ''} ${onboardingData.lastNameHi || ''}`.trim()
-          : undefined,
-        nameCg: (onboardingData.firstNameCg || onboardingData.lastNameCg)
-          ? `${onboardingData.firstNameCg || ''} ${onboardingData.lastNameCg || ''}`.trim()
-          : undefined,
         dateOfBirth: onboardingData.dateOfBirth ? new Date(onboardingData.dateOfBirth).toISOString() : undefined,
         gender: onboardingData.gender,
         bio: onboardingData.bio,
         city: onboardingData.city,
         state: onboardingData.state,
-        country: 'INDIA',
+        country: onboardingData.country || 'India',
         nativeDistrict: onboardingData.nativeDistrict,
         nativeTehsil: onboardingData.nativeTehsil,
         nativeVillage: onboardingData.nativeVillage,

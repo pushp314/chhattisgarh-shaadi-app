@@ -17,7 +17,7 @@ const MessagesStack: React.FC = () => {
       <Stack.Screen
         name="ConversationsList"
         component={ConversationsListScreen}
-        options={{ title: 'Messages' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ChatScreen"

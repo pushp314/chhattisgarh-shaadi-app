@@ -23,6 +23,8 @@ import { ProfileStackParamList } from '../../navigation/types';
 import { useProfileStore } from '../../store/profileStore';
 import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import PremiumBadge from '../../components/common/PremiumBadge';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -38,6 +40,7 @@ const PHOTO_SIZE = (width - 48) / 3; // 3 photos per row with padding
 
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { profile, isLoading, fetchProfile } = useProfileStore();
+  const { isPremium } = useSubscriptionStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -81,7 +84,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (!profile) {
     return (
       <View style={styles.emptyContainer}>
-        <Icon name="account-alert" size={64} color="#999" />
+        <Icon name="account-alert" size={64} color={Theme.colors.textSecondary} />
         <Text variant="titleLarge" style={styles.emptyTitle}>
           No Profile Found
         </Text>
@@ -105,8 +108,31 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[Theme.colors.primary]}
+        />
       }>
+      {/* Gradient Hero Section */}
+      {profile.media && profile.media.length > 0 && (
+        <View style={styles.heroContainer}>
+          <Image
+            source={{ uri: profile.media[0].url }}
+            style={styles.heroImage}
+            blurRadius={2}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <Text style={styles.heroName}>{fullName}</Text>
+              {isPremium && <PremiumBadge variant="chip" size={20} />}
+            </View>
+          </LinearGradient>
+        </View>
+      )}
       {/* Profile Completeness */}
       {completeness < 100 && (
         <Surface style={styles.completenessCard} elevation={1}>
@@ -135,9 +161,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Divider style={styles.divider} />
         <View style={styles.metricsGrid}>
           <View style={styles.metricItem}>
-            <View style={styles.metricIconContainer}>
-              <Icon name="eye" size={24} color={Theme.colors.primary} />
-            </View>
+            <LinearGradient
+              colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+              style={styles.metricIconGradient}
+            >
+              <Icon name="eye" size={24} color={Theme.colors.white} />
+            </LinearGradient>
             <Text variant="headlineSmall" style={styles.metricValue}>
               {profile.viewCount || 0}
             </Text>
@@ -147,9 +176,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.metricItem}>
-            <View style={styles.metricIconContainer}>
-              <Icon name="phone" size={24} color={Theme.colors.success} />
-            </View>
+            <LinearGradient
+              colors={[Theme.colors.success, '#4CAF50']}
+              style={styles.metricIconGradient}
+            >
+              <Icon name="phone" size={24} color={Theme.colors.white} />
+            </LinearGradient>
             <Text variant="headlineSmall" style={styles.metricValue}>
               {profile.contactViewCount || 0}
             </Text>
@@ -159,9 +191,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.metricItem}>
-            <View style={styles.metricIconContainer}>
-              <Icon name="bookmark" size={24} color={Theme.colors.secondary} />
-            </View>
+            <LinearGradient
+              colors={[Theme.colors.secondary, Theme.colors.secondaryAlt]}
+              style={styles.metricIconGradient}
+            >
+              <Icon name="bookmark" size={24} color={Theme.colors.white} />
+            </LinearGradient>
             <Text variant="headlineSmall" style={styles.metricValue}>
               {profile.shortlistCount || 0}
             </Text>
@@ -171,9 +206,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.metricItem}>
-            <View style={styles.metricIconContainer}>
-              <Icon name="heart" size={24} color={Theme.colors.error} />
-            </View>
+            <LinearGradient
+              colors={[Theme.colors.error, '#FF6B6B']}
+              style={styles.metricIconGradient}
+            >
+              <Icon name="heart" size={24} color={Theme.colors.white} />
+            </LinearGradient>
             <Text variant="headlineSmall" style={styles.metricValue}>
               {profile.matchRequestCount || 0}
             </Text>
@@ -184,15 +222,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </Surface>
 
-      {/* Primary Photo */}
-      {profile.media && profile.media.length > 0 && (
-        <View style={styles.primaryPhotoContainer}>
-          <Image
-            source={{ uri: profile.media[0].url }}
-            style={styles.primaryPhoto}
-          />
-        </View>
-      )}
+
 
       {/* Basic Info Card */}
       <Surface style={styles.card} elevation={1}>
@@ -225,7 +255,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.basicInfo}>
           {profile.dateOfBirth && (
             <View style={styles.infoRow}>
-              <Icon name="cake" size={20} color="#666" />
+              <Icon name="cake" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>
                 {calculateAge(profile.dateOfBirth)} years old
               </Text>
@@ -233,13 +263,13 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           )}
           {profile.height && (
             <View style={styles.infoRow}>
-              <Icon name="human-male-height" size={20} color="#666" />
+              <Icon name="human-male-height" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.height} cm</Text>
             </View>
           )}
           {profile.gender && (
             <View style={styles.infoRow}>
-              <Icon name="gender-male-female" size={20} color="#666" />
+              <Icon name="gender-male-female" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.gender}</Text>
             </View>
           )}
@@ -255,7 +285,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Divider style={styles.divider} />
           {profile.city && profile.state && (
             <View style={styles.infoRow}>
-              <Icon name="map-marker" size={20} color="#666" />
+              <Icon name="map-marker" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>
                 {profile.city}, {profile.state}
               </Text>
@@ -263,7 +293,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           )}
           {profile.nativeDistrict && (
             <View style={styles.infoRow}>
-              <Icon name="home-city" size={20} color="#666" />
+              <Icon name="home-city" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>
                 Native: {profile.nativeDistrict}
               </Text>
@@ -271,7 +301,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           )}
           {profile.nativeVillage && (
             <View style={styles.infoRow}>
-              <Icon name="domain" size={20} color="#666" />
+              <Icon name="domain" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>
                 Village: {profile.nativeVillage}
               </Text>
@@ -289,25 +319,25 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Divider style={styles.divider} />
           {profile.religion && (
             <View style={styles.infoRow}>
-              <Icon name="book-cross" size={20} color="#666" />
+              <Icon name="book-cross" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.religion}</Text>
             </View>
           )}
           {profile.caste && (
             <View style={styles.infoRow}>
-              <Icon name="account-group" size={20} color="#666" />
+              <Icon name="account-group" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.caste}</Text>
             </View>
           )}
           {profile.maritalStatus && (
             <View style={styles.infoRow}>
-              <Icon name="ring" size={20} color="#666" />
+              <Icon name="ring" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.maritalStatus}</Text>
             </View>
           )}
           {profile.motherTongue && (
             <View style={styles.infoRow}>
-              <Icon name="translate" size={20} color="#666" />
+              <Icon name="translate" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.motherTongue}</Text>
             </View>
           )}
@@ -323,19 +353,19 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Divider style={styles.divider} />
           {profile.education && (
             <View style={styles.infoRow}>
-              <Icon name="school" size={20} color="#666" />
+              <Icon name="school" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.education}</Text>
             </View>
           )}
           {profile.occupation && (
             <View style={styles.infoRow}>
-              <Icon name="briefcase" size={20} color="#666" />
+              <Icon name="briefcase" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.occupation}</Text>
             </View>
           )}
           {profile.annualIncome && (
             <View style={styles.infoRow}>
-              <Icon name="currency-inr" size={20} color="#666" />
+              <Icon name="currency-inr" size={20} color={Theme.colors.textSecondary} />
               <Text style={styles.infoText}>{profile.annualIncome}</Text>
             </View>
           )}
@@ -443,6 +473,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
+  heroContainer: {
+    width: '100%',
+    height: 300,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  heroContent: {
+    gap: 12,
+  },
+  heroName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Theme.colors.white,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -520,15 +580,13 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
     borderRadius: 12,
   },
-  metricIconContainer: {
+  metricIconGradient: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Theme.colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    ...Theme.shadows.sm,
   },
   metricValue: {
     fontWeight: 'bold',

@@ -10,9 +10,16 @@ import fcmService from './src/services/fcm.service';
 import { ToastProvider } from './src/context/ToastContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 
+import { permissionService } from './src/services/permission.service';
+import ErrorBoundary from './src/utils/ErrorBoundary';
+
 const App = () => {
   useEffect(() => {
-    const initFCM = async () => {
+    const initApp = async () => {
+      // 1. Request core permissions (Camera, Gallery, Notifs)
+      await permissionService.requestInitialPermissions();
+
+      // 2. Init FCM
       const hasPermission = await fcmService.requestUserPermission();
       if (hasPermission) {
         await fcmService.registerTokenWithBackend();
@@ -26,16 +33,18 @@ const App = () => {
       }
     };
 
-    initFCM();
+    initApp();
   }, []);
 
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
-        <AppNavigator />
-      </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#D81B60" />
+          <AppNavigator />
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

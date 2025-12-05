@@ -38,6 +38,8 @@ const WhoViewedMeScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<'all' | 'today' | 'week'>('all');
+    const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+    const [totalViewers, setTotalViewers] = useState(0);
 
     useFocusEffect(
         useCallback(() => {
@@ -54,11 +56,13 @@ const WhoViewedMeScreen: React.FC = () => {
         setError(null);
 
         try {
-            const { results } = await profileViewService.getWhoViewedMe({
+            const response = await profileViewService.getWhoViewedMe({
                 page: 1,
                 limit: 50,
             });
-            setViews(results);
+            setViews(response.results);
+            setUpgradeMessage(response.message || null);
+            setTotalViewers(response.totalViewers || response.results.length);
         } catch (err: any) {
             console.error('Error loading profile views:', err);
             setError(err.response?.data?.message || 'Failed to load profile views');
@@ -277,6 +281,18 @@ const WhoViewedMeScreen: React.FC = () => {
                         This Week ({weekCount})
                     </Chip>
                 </View>
+
+                {/* Premium Upgrade Banner */}
+                {upgradeMessage && (
+                    <TouchableOpacity
+                        style={styles.upgradeBanner}
+                        onPress={() => navigation.navigate('Subscription' as any)}
+                    >
+                        <Icon name="crown" size={20} color={Theme.colors.warning} />
+                        <Text style={styles.upgradeText}>{upgradeMessage}</Text>
+                        <Icon name="chevron-right" size={20} color={Theme.colors.primary} />
+                    </TouchableOpacity>
+                )}
             </Surface>
 
             {/* Views List */}
@@ -430,6 +446,21 @@ const styles = StyleSheet.create({
     timestamp: {
         color: Theme.colors.textSecondary,
         marginTop: 4,
+    },
+    upgradeBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Theme.colors.surfaceCardAlt,
+        padding: 12,
+        borderRadius: 12,
+        marginTop: 12,
+        gap: 8,
+    },
+    upgradeText: {
+        flex: 1,
+        fontSize: 13,
+        color: Theme.colors.text,
+        fontWeight: '500',
     },
 });
 

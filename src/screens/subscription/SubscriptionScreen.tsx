@@ -1,250 +1,393 @@
 /**
- * Subscription Screen - Choose Your Plan
- * Premium, Gold, and Silver subscription plans
+ * Subscription Screen - Unified Premium Subscription Experience
+ * Displays available premium plans with Razorpay integration
+ * Shows PremiumDashboard if user already has active subscription
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    StyleSheet,
     ScrollView,
-    TouchableOpacity,
+    StyleSheet,
     Alert,
+    TouchableOpacity,
 } from 'react-native';
-import { Text, ActivityIndicator } from 'react-native-paper';
+import {
+    Text,
+    Surface,
+    Button,
+    ActivityIndicator,
+    Divider,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import RazorpayCheckout from 'react-native-razorpay';
 import { Theme } from '../../constants/theme';
 import subscriptionService from '../../services/subscription.service';
 import paymentService from '../../services/payment.service';
-import RazorpayCheckout from 'react-native-razorpay';
+import { SubscriptionPlan } from '../../types';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
+import { useAuthStore } from '../../store/authStore';
+import { useProfileStore } from '../../store/profileStore';
+import PremiumDashboardScreen from './PremiumDashboardScreen';
 
-type SubscriptionScreenNavigationProp = NativeStackNavigationProp<any>;
+type NavigationProp = NativeStackNavigationProp<any>;
 
 const SubscriptionScreen: React.FC = () => {
-    const navigation = useNavigation<SubscriptionScreenNavigationProp>();
-    const [plans, setPlans] = useState<any[]>([]);
+    const navigation = useNavigation<NavigationProp>();
+    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [processingPlanId, setProcessingPlanId] = useState<number | null>(null);
+
+    // Subscription and user state
+    const { isPremium, subscription, fetchSubscription, refreshAfterPayment } = useSubscriptionStore();
+    const { user } = useAuthStore();
+    const { profile } = useProfileStore();
+
+    // Check subscription status on screen focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchSubscription();
+        }, [])
+    );
 
     useEffect(() => {
         loadPlans();
     }, []);
 
     const loadPlans = async () => {
+        setIsLoading(true);
         try {
             const response = await subscriptionService.getPlans();
-            setPlans(response.results || []);
+            if (response && response.results && Array.isArray(response.results)) {
+                // Sort by display order and filter active plans
+                const activePlans = response.results
+                    .filter((plan: SubscriptionPlan) => plan.isActive !== false)
+                    .sort((a: SubscriptionPlan, b: SubscriptionPlan) =>
+                        (a.displayOrder || 0) - (b.displayOrder || 0)
+                    );
+                setPlans(activePlans);
+            } else {
+                setPlans([]);
+            }
         } catch (error) {
             console.error('Error loading plans:', error);
+            setPlans([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleSubscribe = async (planId: number) => {
-        setProcessingPlanId(planId);
+    const handleSubscribe = async (plan: SubscriptionPlan) => {
+        const planPrice = typeof plan.price === 'string' ? parseFloat(plan.price) : plan.price;
+
+        if (planPrice === 0) {
+            Alert.alert('Free Plan', 'This is a free plan.');
+            return;
+        }
+
+        setProcessingPlanId(plan.id);
+
         try {
+            // Validate Razorpay module
+            if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
+                throw new Error('Razorpay module not properly initialized. Please restart the app.');
+            }
+
             // 1. Create Order
-            const order = await paymentService.createOrder(planId);
+            console.log('Creating order for plan:', plan.id);
+            const order = await paymentService.createOrder(plan.id);
+            console.log('Order created:', order);
+
+            // Validate order response
+            if (!order || !order.orderId || !order.razorpayKey) {
+                console.error('Invalid order response:', order);
+                throw new Error('Invalid order response from server. Missing Key or ID.');
+            }
+
+            if (order.razorpayKey === 'rzp_test_...' || order.razorpayKey.includes('***')) {
+                console.warn('Warning: It looks like a placeholder Razorpay key is being used.');
+            }
+
+            // Get user prefill data
+            const userEmail = user?.email || 'user@example.com';
+            const userPhone = user?.phone || '9999999999';
+            const userName = profile
+                ? `${profile.firstName} ${profile.lastName || ''}`.trim()
+                : (user?.email?.split('@')[0] || 'User');
 
             // 2. Open Razorpay Checkout
             const options = {
-                description: 'Premium Subscription',
-                image: 'https://chhattisgarhshaadi.com/logo.png', // Replace with your app logo URL
+                description: `${plan.name} Subscription`,
+                image: 'https://chhattisgarhshaadi.com/logo.png',
                 currency: order.currency,
-                key: order.razorpayKey, // Your api key
+                key: order.razorpayKey,
                 amount: order.amount,
                 name: 'Chhattisgarh Shaadi',
                 order_id: order.orderId,
                 prefill: {
-                    email: 'user@example.com', // You can fetch this from user store
-                    contact: '919999999999', // You can fetch this from user store
-                    name: 'User Name' // You can fetch this from user store
+                    email: userEmail,
+                    contact: userPhone,
+                    name: userName,
                 },
-                theme: { color: Theme.colors.primary }
+                theme: { color: Theme.colors.primary },
             };
 
-            RazorpayCheckout.open(options).then(async (data: any) => {
-                // handle success
-                try {
-                    await paymentService.verifyPayment({
-                        razorpay_order_id: data.razorpay_order_id,
-                        razorpay_payment_id: data.razorpay_payment_id,
-                        razorpay_signature: data.razorpay_signature
-                    });
-                    Alert.alert('Success', 'Subscription activated successfully!');
-                    navigation.goBack();
-                } catch (verifyError: any) {
-                    Alert.alert('Payment Verification Failed', verifyError.message);
-                }
-            }).catch((error: any) => {
-                // handle failure
-                if (error.code === 0) {
-                    // Payment cancelled by user, do nothing or show toast
-                    console.log('Payment cancelled');
-                } else {
-                    Alert.alert('Payment Failed', error.description || 'Something went wrong');
-                }
-            });
+            console.log('Opening Razorpay with options:', { ...options, key: '***' });
+
+            // DEBUG: Alert to confirm we are reaching this point and check values
+            Alert.alert(
+                'Debug: Opening Razorpay',
+                `Key: ${order.razorpayKey?.substring(0, 8)}...\nAmount: ${options.amount}\nOrder ID: ${options.order_id}`,
+                [
+                    {
+                        text: 'Open SDK',
+                        onPress: () => {
+                            RazorpayCheckout.open(options)
+                                .then(async (data: any) => {
+                                    console.log('Payment successful:', data);
+                                    try {
+                                        await paymentService.verifyPayment({
+                                            razorpay_order_id: data.razorpay_order_id,
+                                            razorpay_payment_id: data.razorpay_payment_id,
+                                            razorpay_signature: data.razorpay_signature,
+                                        });
+
+                                        // Refresh subscription status
+                                        await refreshAfterPayment();
+
+                                        Alert.alert(
+                                            '🎉 Welcome to Premium!',
+                                            'Your subscription has been activated successfully. Enjoy exclusive features!',
+                                            [{ text: 'OK' }]
+                                        );
+                                    } catch (verifyError: any) {
+                                        console.error('Payment verification error:', verifyError);
+                                        Alert.alert('Payment Verification Failed', verifyError.message || 'Please contact support.');
+                                    }
+                                })
+                                .catch((error: any) => {
+                                    console.error('Razorpay Error Catch:', error);
+                                    const errorDesc = typeof error === 'object' ? JSON.stringify(error) : String(error);
+                                    Alert.alert('Razorpay Failed', `The Payment SDK failed to open or returned an error:\n${errorDesc}`);
+                                })
+                                .finally(() => {
+                                    setProcessingPlanId(null);
+                                });
+                        }
+                    }
+                ]
+            );
 
         } catch (error: any) {
-            Alert.alert('Error', error.response?.data?.message || 'Failed to create order');
-        } finally {
+            console.error('Order creation error:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to create order. Please try again.';
+            Alert.alert('Error', errorMessage);
             setProcessingPlanId(null);
         }
     };
 
-    const features = [
-        { icon: 'shield-check', title: 'Verified Profiles', subtitle: 'Connect with genuine members' },
-        { icon: 'chat', title: 'Unlimited Chats', subtitle: 'Talk without limits' },
-        { icon: 'phone', title: 'View Contacts', subtitle: 'Access phone numbers' },
-        { icon: 'headset', title: 'Priority Support', subtitle: 'Get help when you need it' },
-    ];
-
-    const renderFeatureCard = (feature: any, index: number) => (
-        <View key={index} style={styles.featureCard}>
-            <View style={styles.featureIconContainer}>
-                <Icon name={feature.icon} size={24} color={Theme.colors.primary} />
-            </View>
-            <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureSubtitle}>{feature.subtitle}</Text>
-            </View>
-        </View>
-    );
-
-    const renderPlanCard = (plan: any, isPopular: boolean = false) => {
-        const isProcessing = processingPlanId === plan.id;
-        const isPremium = plan.name.toLowerCase().includes('premium');
-        const isGold = plan.name.toLowerCase().includes('gold');
-        const isSilver = plan.name.toLowerCase().includes('silver');
-
-        // Parse features from JSON string
-        let planFeatures: string[] = [];
+    const parseFeatures = (features: any): string[] => {
+        if (!features) return [];
         try {
-            planFeatures = typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features || [];
+            if (typeof features === 'string') {
+                try {
+                    return JSON.parse(features);
+                } catch {
+                    return features.split(',').map((f: string) => f.trim()).filter((f: string) => f);
+                }
+            }
+            if (Array.isArray(features)) return features;
         } catch (e) {
-            planFeatures = [];
+            console.error('Failed to parse features:', e);
         }
+        return [];
+    };
+
+    const renderPlanCard = (plan: SubscriptionPlan) => {
+        const isProcessing = processingPlanId === plan.id;
+        const planPrice = typeof plan.price === 'string' ? parseFloat(plan.price) : plan.price;
+        const isFree = planPrice === 0;
+        const parsedFeatures = parseFeatures(plan.features);
+
+        // Calculate duration text
+        const durationMonths = Math.round(plan.duration / 30);
+        const perMonthPrice = durationMonths > 0 ? Math.round(planPrice / durationMonths) : planPrice;
 
         return (
-            <View
+            <Surface
                 key={plan.id}
                 style={[
                     styles.planCard,
-                    isGold && styles.goldPlanCard,
+                    plan.isPopular && styles.popularCard,
                 ]}
+                elevation={plan.isPopular ? 4 : 2}
             >
-                {isPopular && (
-                    <View style={styles.popularBadge}>
-                        <Text style={styles.popularText}>Most Popular</Text>
-                    </View>
+                {plan.isPopular && (
+                    <LinearGradient
+                        colors={[Theme.colors.primary, '#D81B60']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.popularBadge}
+                    >
+                        <Icon name="star" size={12} color="#fff" />
+                        <Text style={styles.popularText}>MOST POPULAR</Text>
+                    </LinearGradient>
                 )}
 
-                <Text style={styles.planName}>{plan.name}</Text>
-                <View style={styles.priceContainer}>
-                    <Text style={styles.currency}>₹</Text>
-                    <Text style={styles.price}>{Math.floor(plan.price)}</Text>
-                    <Text style={styles.duration}>/3 months</Text>
+                <View style={styles.planHeader}>
+                    <View style={styles.planIconContainer}>
+                        <Icon
+                            name="crown"
+                            size={24}
+                            color={plan.isPopular ? Theme.colors.primary : Theme.colors.secondary}
+                        />
+                    </View>
+                    <Text style={styles.planName}>{plan.name}</Text>
                 </View>
 
+                <View style={styles.priceContainer}>
+                    <Text style={styles.currencySymbol}>₹</Text>
+                    <Text style={styles.priceValue}>{planPrice.toLocaleString('en-IN')}</Text>
+                    <Text style={styles.priceDuration}>/{plan.duration} days</Text>
+                </View>
+
+                {!isFree && durationMonths > 0 && (
+                    <Text style={styles.perMonthText}>
+                        ₹{perMonthPrice.toLocaleString('en-IN')}/month
+                    </Text>
+                )}
+
+                <Divider style={styles.divider} />
+
                 <View style={styles.featuresContainer}>
-                    {planFeatures.slice(0, 4).map((feature, index) => (
+                    {parsedFeatures.slice(0, 5).map((feature: string, index: number) => (
                         <View key={index} style={styles.featureRow}>
-                            <Icon name="check-circle" size={18} color={Theme.colors.primary} />
+                            <Icon
+                                name="check-circle"
+                                size={18}
+                                color={plan.isPopular ? Theme.colors.primary : Theme.colors.success}
+                            />
                             <Text style={styles.featureText}>{feature}</Text>
                         </View>
                     ))}
                 </View>
 
                 <TouchableOpacity
-                    style={styles.subscribeButton}
-                    onPress={() => handleSubscribe(plan.id)}
-                    disabled={isProcessing}
+                    style={styles.subscribeButtonContainer}
+                    onPress={() => handleSubscribe(plan)}
+                    disabled={isProcessing || isFree}
+                    activeOpacity={0.8}
                 >
-                    {isPremium || isGold ? (
+                    {plan.isPopular ? (
                         <LinearGradient
-                            colors={['#E91E63', '#D81B60']}
-                            style={styles.subscribeGradient}
+                            colors={[Theme.colors.primary, '#D81B60']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
+                            style={styles.subscribeGradient}
                         >
                             {isProcessing ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
                                 <Text style={styles.subscribeTextWhite}>
-                                    {isPremium ? 'Upgrade Now' : 'Subscribe Now'}
+                                    {isFree ? 'Free Plan' : 'Subscribe Now'}
                                 </Text>
                             )}
                         </LinearGradient>
                     ) : (
-                        <View style={styles.subscribeLightButton}>
+                        <View style={styles.subscribeOutlined}>
                             {isProcessing ? (
                                 <ActivityIndicator size="small" color={Theme.colors.primary} />
                             ) : (
-                                <Text style={styles.subscribeTextPink}>Choose Plan</Text>
+                                <Text style={styles.subscribeTextPrimary}>
+                                    {isFree ? 'Free Plan' : 'Choose Plan'}
+                                </Text>
                             )}
                         </View>
                     )}
                 </TouchableOpacity>
-            </View>
+            </Surface>
         );
     };
 
+    // Show loading state
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Theme.colors.primary} />
+                    <Text style={styles.loadingText}>Loading plans...</Text>
                 </View>
             </SafeAreaView>
         );
     }
 
-    // Sort plans: Premium, Gold, Silver
-    const sortedPlans = [...plans].sort((a, b) => {
-        const order: any = { premium: 0, gold: 1, silver: 2 };
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        const aOrder = Object.keys(order).find(key => aName.includes(key)) || 'silver';
-        const bOrder = Object.keys(order).find(key => bName.includes(key)) || 'silver';
-        return order[aOrder] - order[bOrder];
-    });
+    // If user is premium, show the Premium Dashboard
+    if (isPremium && subscription) {
+        return <PremiumDashboardScreen />;
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Icon name="arrow-left" size={24} color="#333" />
+                    <Icon name="arrow-left" size={24} color={Theme.colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Choose Your Plan</Text>
-                <View style={styles.backButton} />
+                <Text style={styles.headerTitle}>Premium Plans</Text>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('TransactionHistory')}
+                    style={styles.historyButton}
+                >
+                    <Icon name="receipt" size={22} color={Theme.colors.primary} />
+                </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Feature Cards */}
-                <View style={styles.featuresGrid}>
-                    {features.map((feature, index) => renderFeatureCard(feature, index))}
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Hero Section */}
+                <View style={styles.heroSection}>
+                    <LinearGradient
+                        colors={[Theme.colors.primary, '#D81B60']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.heroGradient}
+                    >
+                        <Icon name="crown" size={48} color="#FFD700" />
+                        <Text style={styles.heroTitle}>Upgrade to Premium</Text>
+                        <Text style={styles.heroSubtitle}>
+                            Find your perfect match faster with exclusive features
+                        </Text>
+                    </LinearGradient>
                 </View>
 
                 {/* Plan Cards */}
                 <View style={styles.plansContainer}>
-                    {sortedPlans.map(plan => {
-                        const isGold = plan.name.toLowerCase().includes('gold');
-                        return renderPlanCard(plan, isGold);
-                    })}
+                    {plans.map(plan => renderPlanCard(plan))}
                 </View>
 
-                {/* Secure Payments Footer */}
-                <View style={styles.secureFooter}>
-                    <Icon name="lock" size={16} color="#666" />
-                    <Text style={styles.secureText}>100% Secure Payments</Text>
+                {/* Trust Badges */}
+                <View style={styles.trustSection}>
+                    <View style={styles.trustBadge}>
+                        <Icon name="shield-check" size={20} color={Theme.colors.success} />
+                        <Text style={styles.trustText}>Secure Payments</Text>
+                    </View>
+                    <View style={styles.trustBadge}>
+                        <Icon name="cash-refund" size={20} color={Theme.colors.primary} />
+                        <Text style={styles.trustText}>7-Day Refund</Text>
+                    </View>
+                    <View style={styles.trustBadge}>
+                        <Icon name="lock" size={20} color={Theme.colors.secondary} />
+                        <Text style={styles.trustText}>Encrypted</Text>
+                    </View>
                 </View>
+
+                <View style={styles.bottomPadding} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -253,7 +396,7 @@ const SubscriptionScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F8F8',
+        backgroundColor: Theme.colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -261,7 +404,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: Theme.colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.colors.surfaceCard,
     },
     backButton: {
         width: 40,
@@ -271,155 +416,187 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '600',
-        color: '#333',
+        fontWeight: '700',
+        color: Theme.colors.text,
+    },
+    historyButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: Theme.colors.textSecondary,
+    },
     scrollContent: {
         padding: 16,
     },
-    featuresGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
+    heroSection: {
         marginBottom: 24,
+        borderRadius: 16,
+        overflow: 'hidden',
     },
-    featureCard: {
-        width: '48%',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'column',
-        gap: 8,
-    },
-    featureIconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#FFF0F5',
-        justifyContent: 'center',
+    heroGradient: {
+        padding: 24,
         alignItems: 'center',
     },
-    featureTextContainer: {
-        gap: 2,
+    heroTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: Theme.colors.white,
+        marginTop: 12,
     },
-    featureTitle: {
+    heroSubtitle: {
         fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-    },
-    featureSubtitle: {
-        fontSize: 11,
-        color: '#666',
+        color: 'rgba(255,255,255,0.9)',
+        textAlign: 'center',
+        marginTop: 8,
     },
     plansContainer: {
         gap: 16,
+        marginBottom: 24,
     },
     planCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
         padding: 20,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderRadius: 16,
+        backgroundColor: Theme.colors.white,
+        position: 'relative',
+        overflow: 'hidden',
     },
-    goldPlanCard: {
+    popularCard: {
         borderWidth: 2,
         borderColor: Theme.colors.primary,
     },
     popularBadge: {
         position: 'absolute',
-        top: 16,
-        right: 16,
-        backgroundColor: Theme.colors.primary,
+        top: 0,
+        right: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingVertical: 6,
+        borderBottomLeftRadius: 12,
     },
     popularText: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '700',
-        color: '#fff',
+        color: Theme.colors.white,
+    },
+    planHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    planIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#FFF0F5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
     planName: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#333',
-        marginBottom: 8,
+        color: Theme.colors.text,
     },
     priceContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        marginBottom: 20,
+        marginBottom: 4,
     },
-    currency: {
-        fontSize: 24,
+    currencySymbol: {
+        fontSize: 20,
         fontWeight: '700',
-        color: '#333',
+        color: Theme.colors.primary,
     },
-    price: {
-        fontSize: 36,
+    priceValue: {
+        fontSize: 32,
         fontWeight: '800',
-        color: '#333',
+        color: Theme.colors.primary,
     },
-    duration: {
+    priceDuration: {
         fontSize: 14,
-        color: '#666',
+        color: Theme.colors.textSecondary,
         marginLeft: 4,
     },
+    perMonthText: {
+        fontSize: 13,
+        color: Theme.colors.textSecondary,
+        marginBottom: 16,
+    },
+    divider: {
+        marginVertical: 16,
+        backgroundColor: Theme.colors.surfaceCard,
+    },
     featuresContainer: {
-        gap: 12,
+        gap: 10,
         marginBottom: 20,
     },
     featureRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
     },
     featureText: {
-        fontSize: 14,
-        color: '#333',
         flex: 1,
+        fontSize: 14,
+        color: Theme.colors.text,
     },
-    subscribeButton: {
-        borderRadius: 24,
+    subscribeButtonContainer: {
+        borderRadius: 12,
         overflow: 'hidden',
     },
     subscribeGradient: {
         paddingVertical: 14,
         alignItems: 'center',
+        borderRadius: 12,
     },
-    subscribeLightButton: {
-        backgroundColor: '#FFF0F5',
+    subscribeOutlined: {
         paddingVertical: 14,
         alignItems: 'center',
-        borderRadius: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: Theme.colors.primary,
+        backgroundColor: 'transparent',
     },
     subscribeTextWhite: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#fff',
+        color: Theme.colors.white,
     },
-    subscribeTextPink: {
+    subscribeTextPrimary: {
         fontSize: 16,
         fontWeight: '700',
         color: Theme.colors.primary,
     },
-    secureFooter: {
+    trustSection: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginTop: 24,
-        paddingVertical: 16,
+        justifyContent: 'space-around',
+        paddingVertical: 20,
+        backgroundColor: Theme.colors.white,
+        borderRadius: 12,
     },
-    secureText: {
-        fontSize: 13,
-        color: '#666',
+    trustBadge: {
+        alignItems: 'center',
+        gap: 6,
+    },
+    trustText: {
+        fontSize: 11,
+        color: Theme.colors.textSecondary,
         fontWeight: '500',
+    },
+    bottomPadding: {
+        height: 32,
     },
 });
 

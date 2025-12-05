@@ -81,12 +81,12 @@ const ProfileStack: React.FC = () => {
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
-        options={{ title: 'Edit Profile' }}
+        options={{ headerShown: false }} // Custom header in component
       />
       <Stack.Screen
         name="PhotoManagement"
         component={PhotoManagementScreen}
-        options={{ title: 'Manage Photos' }}
+        options={{ headerShown: false }} // Custom header in component
       />
       <Stack.Screen
         name="Settings"
@@ -121,7 +121,7 @@ const ProfileStack: React.FC = () => {
       <Stack.Screen
         name="NotificationCenter"
         component={NotificationCenterScreen}
-        options={{ title: 'Notifications' }}
+        options={{ headerShown: false }} // Custom header in component
       />
       <Stack.Screen
         name="WhoViewedMe"

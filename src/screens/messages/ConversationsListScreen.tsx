@@ -25,6 +25,8 @@ import matchService from '../../services/match.service';
 import socketService from '../../services/socket.service';
 import { SOCKET_EVENTS } from '../../constants/socket.constants';
 import { useFocusEffect } from '@react-navigation/native';
+import PremiumBadge from '../../components/common/PremiumBadge';
+import LinearGradient from 'react-native-linear-gradient';
 
 type ConversationsListScreenNavigationProp = NativeStackNavigationProp<
   MessagesStackParamList,
@@ -190,7 +192,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
               <Image source={{ uri: user.profilePicture }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Icon name="account" size={32} color="#999" />
+                <Icon name="account" size={32} color={Theme.colors.textSecondary} />
               </View>
             )}
             {isOnline && <View style={styles.onlineDot} />}
@@ -198,9 +200,12 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.messageContent}>
             <View style={styles.messageHeader}>
-              <Text style={styles.userName} numberOfLines={1}>
-                {profile?.firstName} {profile?.lastName}
-              </Text>
+              <View style={styles.nameContainer}>
+                <Text style={styles.userName} numberOfLines={1}>
+                  {profile?.firstName} {profile?.lastName}
+                </Text>
+                {profile?.isPremium && <PremiumBadge variant="inline" size={14} />}
+              </View>
               <Text style={styles.timestamp}>
                 {conv.lastMessage?.createdAt ? formatTimestamp(conv.lastMessage.createdAt) : ''}
               </Text>
@@ -211,9 +216,12 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {conv.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
+            <LinearGradient
+              colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+              style={styles.unreadBadge}
+            >
               <Text style={styles.unreadText}>{conv.unreadCount}</Text>
-            </View>
+            </LinearGradient>
           )}
         </TouchableOpacity>
       );
@@ -238,16 +246,19 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
               <Image source={{ uri: user.profilePicture }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Icon name="account" size={32} color="#999" />
+                <Icon name="account" size={32} color={Theme.colors.textSecondary} />
               </View>
             )}
             {isOnline && <View style={styles.onlineDot} />}
           </View>
 
           <View style={styles.messageContent}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {profile?.firstName} {profile?.lastName}
-            </Text>
+            <View style={styles.nameContainer}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {profile?.firstName} {profile?.lastName}
+              </Text>
+              {profile?.isPremium && <PremiumBadge variant="inline" size={14} />}
+            </View>
             <Text style={styles.matchMessage}>Start chatting with your match!</Text>
           </View>
 
@@ -259,7 +270,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Icon name="message-outline" size={64} color="#ccc" />
+      <Icon name="message-outline" size={64} color={Theme.colors.border} />
       <Text style={styles.emptyText}>No messages yet</Text>
       <Text style={styles.emptySubtext}>Start connecting with matches!</Text>
     </View>
@@ -271,17 +282,17 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
         <TouchableOpacity style={styles.menuButton}>
-          <Icon name="dots-vertical" size={24} color="#333" />
+          <Icon name="dots-vertical" size={24} color={Theme.colors.text} />
         </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Icon name="magnify" size={20} color="#999" style={styles.searchIcon} />
+        <Icon name="magnify" size={20} color={Theme.colors.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name"
-          placeholderTextColor="#999"
+          placeholderTextColor={Theme.colors.textSecondary}
           value={searchQuery}
           onChangeText={handleSearch}
         />
@@ -315,7 +326,7 @@ const ConversationsListScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -327,7 +338,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#333',
+    color: Theme.colors.text,
   },
   menuButton: {
     padding: 4,
@@ -335,7 +346,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Theme.colors.surfaceCard,
     marginHorizontal: 20,
     marginBottom: 16,
     borderRadius: 12,
@@ -348,7 +359,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: Theme.colors.text,
     padding: 0,
   },
   listContent: {
@@ -360,7 +371,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.white,
+    ...Theme.shadows.sm,
   },
   avatarContainer: {
     position: 'relative',
@@ -372,7 +385,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Theme.colors.surfaceCard,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -383,9 +396,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#4CAF50',
+    backgroundColor: Theme.colors.success,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: Theme.colors.white,
   },
   messageContent: {
     flex: 1,
@@ -396,20 +409,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: Theme.colors.text,
     flex: 1,
   },
   timestamp: {
     fontSize: 12,
-    color: '#999',
+    color: Theme.colors.textSecondary,
     marginLeft: 8,
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: Theme.colors.textSecondary,
   },
   matchMessage: {
     fontSize: 14,
@@ -417,7 +436,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   unreadBadge: {
-    backgroundColor: Theme.colors.primary,
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -427,7 +445,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   unreadText: {
-    color: '#fff',
+    color: Theme.colors.white,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -445,12 +463,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: Theme.colors.textSecondary,
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: Theme.colors.textSecondary,
     marginTop: 8,
   },
 });

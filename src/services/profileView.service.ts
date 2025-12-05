@@ -21,18 +21,31 @@ class ProfileViewService {
 
     /**
      * Get who viewed my profile
+     * Note: Free users only see last 2 viewers
      */
     async getWhoViewedMe(params?: { page?: number; limit?: number }): Promise<{
         results: ProfileView[];
         pagination: PaginationResponse;
+        isPremium?: boolean;
+        totalViewers?: number;
+        message?: string | null;
     }> {
         const response = await api.get<ApiResponse<{
-            results: ProfileView[];
+            profiles: ProfileView[];
             pagination: PaginationResponse;
+            isPremium: boolean;
+            totalViewers: number;
+            message: string | null;
         }>>(API_ENDPOINTS.PROFILE_VIEWS.WHO_VIEWED_ME, { params });
 
-        const { results, ...pagination } = response.data.data as any;
-        return { results, pagination };
+        const data = response.data.data;
+        return {
+            results: data.profiles,
+            pagination: data.pagination,
+            isPremium: data.isPremium,
+            totalViewers: data.totalViewers,
+            message: data.message,
+        };
     }
 
     /**

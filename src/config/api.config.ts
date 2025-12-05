@@ -133,8 +133,9 @@ export const API_ENDPOINTS = {
     REFRESH: '/auth/refresh',
     REFRESH_TOKEN: '/auth/refresh',
     GOOGLE: '/auth/google',
-    SEND_OTP: '/auth/phone/send-otp',
-    VERIFY_OTP: '/auth/phone/verify-otp',
+    SEND_OTP: '/auth/phone/send-otp', // Deprecated - kept for reference
+    VERIFY_OTP: '/auth/phone/verify-otp', // Deprecated - kept for reference
+    VERIFY_FIREBASE_PHONE: '/auth/phone/verify-firebase', // New Firebase endpoint
   },
   USERS: {
     ME: '/users/me',

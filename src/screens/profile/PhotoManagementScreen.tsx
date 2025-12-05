@@ -22,6 +22,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ProfileStackParamList } from '../../navigation/types';
 import { useProfileStore } from '../../store/profileStore';
 import profileService from '../../services/profile.service';
+import { Theme } from '../../constants/theme';
+import LinearGradient from 'react-native-linear-gradient';
 
 type PhotoManagementScreenNavigationProp = NativeStackNavigationProp<
     ProfileStackParamList,
@@ -177,7 +179,7 @@ const PhotoManagementScreen: React.FC<Props> = ({ navigation }) => {
                         key={`empty-${index}`}
                         style={[styles.photoContainer, styles.emptyPhoto]}
                         elevation={1}>
-                        <Icon name="image-plus" size={40} color="#ccc" />
+                        <Icon name="image-plus" size={40} color={Theme.colors.border} />
                     </Surface>
                 ))}
             </View>
@@ -186,9 +188,29 @@ const PhotoManagementScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
+            {/* Custom Header */}
+            <LinearGradient
+                colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.headerGradient}
+            >
+                <View style={styles.headerRow}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Icon name="arrow-left" size={24} color={Theme.colors.white} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Manage Photos</Text>
+                </View>
+            </LinearGradient>
+
             <ScrollView contentContainerStyle={styles.content}>
-                <Surface style={styles.infoCard} elevation={1}>
-                    <Icon name="information" size={24} color="#D81B60" />
+                <Surface style={styles.infoCard} elevation={2}>
+                    <LinearGradient
+                        colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+                        style={styles.infoIconContainer}
+                    >
+                        <Icon name="information" size={20} color={Theme.colors.white} />
+                    </LinearGradient>
                     <View style={styles.infoContent}>
                         <Text variant="titleSmall" style={styles.infoTitle}>
                             Photo Guidelines
@@ -210,19 +232,26 @@ const PhotoManagementScreen: React.FC<Props> = ({ navigation }) => {
 
                 {isUploading && (
                     <View style={styles.uploadingContainer}>
-                        <ActivityIndicator size="large" color="#D81B60" />
+                        <ActivityIndicator size="large" color={Theme.colors.primary} />
                         <Text style={styles.uploadingText}>Uploading photos...</Text>
                     </View>
                 )}
             </ScrollView>
 
-            <FAB
-                icon="camera"
-                label="Add Photos"
-                style={styles.fab}
+            <TouchableOpacity
+                style={styles.fabContainer}
                 onPress={handlePickImage}
                 disabled={isUploading || (profile?.media?.length || 0) >= MAX_PHOTOS}
-            />
+                activeOpacity={0.8}
+            >
+                <LinearGradient
+                    colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+                    style={styles.fab}
+                >
+                    <Icon name="camera" size={24} color={Theme.colors.white} />
+                    <Text style={styles.fabText}>Add Photos</Text>
+                </LinearGradient>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -230,7 +259,27 @@ const PhotoManagementScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: Theme.colors.background,
+    },
+    headerGradient: {
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    headerTitle: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        color: Theme.colors.white,
     },
     content: {
         padding: 16,
@@ -239,21 +288,29 @@ const styles = StyleSheet.create({
     infoCard: {
         flexDirection: 'row',
         padding: 16,
-        borderRadius: 8,
-        backgroundColor: '#FFF3F8',
+        borderRadius: 12,
+        backgroundColor: Theme.colors.surfaceCardAlt,
         marginBottom: 24,
         gap: 12,
+        alignItems: 'flex-start',
+    },
+    infoIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     infoContent: {
         flex: 1,
     },
     infoTitle: {
         fontWeight: 'bold',
-        color: '#D81B60',
+        color: Theme.colors.primary,
         marginBottom: 8,
     },
     infoText: {
-        color: '#666',
+        color: Theme.colors.textSecondary,
         lineHeight: 20,
     },
     sectionTitle: {
@@ -268,9 +325,9 @@ const styles = StyleSheet.create({
     photoContainer: {
         width: PHOTO_SIZE,
         height: PHOTO_SIZE,
-        borderRadius: 8,
+        borderRadius: 12,
         overflow: 'hidden',
-        backgroundColor: '#fff',
+        backgroundColor: Theme.colors.white,
         position: 'relative',
     },
     photo: {
@@ -280,16 +337,16 @@ const styles = StyleSheet.create({
     emptyPhoto: {
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f9f9f9',
+        backgroundColor: Theme.colors.surfaceCard,
     },
     primaryBadge: {
         position: 'absolute',
         top: 8,
         left: 8,
-        backgroundColor: '#4CAF50',
+        backgroundColor: Theme.colors.success,
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 4,
+        borderRadius: 8,
     },
     primaryText: {
         color: '#fff',
@@ -319,13 +376,27 @@ const styles = StyleSheet.create({
     },
     uploadingText: {
         marginTop: 8,
-        color: '#666',
+        color: Theme.colors.textSecondary,
     },
-    fab: {
+    fabContainer: {
         position: 'absolute',
         right: 16,
         bottom: 16,
-        backgroundColor: '#D81B60',
+        borderRadius: 28,
+        overflow: 'hidden',
+        ...Theme.shadows.md,
+    },
+    fab: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        gap: 8,
+    },
+    fabText: {
+        color: Theme.colors.white,
+        fontSize: 15,
+        fontWeight: '600',
     },
 });
 

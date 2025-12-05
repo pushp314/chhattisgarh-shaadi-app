@@ -19,7 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
-import { Theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import EnhancedMatchCard from '../../components/matches/EnhancedMatchCard';
 import MatchFilters, { FilterType } from '../../components/matches/MatchFilters';
 import EmptyState from '../../components/common/EmptyState';
@@ -46,9 +46,11 @@ import { useToast } from '../../context/ToastContext';
 // ... imports
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const { theme } = useTheme();
   const user = useAuthStore(state => state.user);
   const { profile } = useProfileStore();
   const { showToast } = useToast();
+  const styles = createStyles(theme); // Create dynamic styles
 
   // State
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -56,7 +58,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [notificationCount, setNotificationCount] = useState(3); // TODO: Get from API
+  const [notificationCount, setNotificationCount] = useState(0); // Will be populated from API
   const [matchStatuses, setMatchStatuses] = useState<Record<number, string>>({}); // Track match status by userId
 
   const [shortlistedIds, setShortlistedIds] = useState<Set<number>>(new Set());
@@ -293,12 +295,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      {/* User Avatar - Opens Drawer */}
-      <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+      {/* User Avatar with Hamburger Icon - Opens Drawer */}
+      <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7} style={styles.avatarWrapper}>
         <Image
           source={{ uri: profile?.media?.[0]?.url || 'https://via.placeholder.com/40' }}
           style={styles.avatar}
         />
+        {/* Hamburger icon overlay at bottom-right */}
+        <View style={styles.hamburgerIconContainer}>
+          <Icon name="menu" size={12} color={theme.colors.white} />
+        </View>
       </TouchableOpacity>
 
       {/* Centered Title */}
@@ -306,7 +312,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Notification Icon */}
       <TouchableOpacity onPress={handleNotifications} style={styles.iconButton}>
-        <Icon name="bell-outline" size={26} color={Theme.colors.text} />
+        <Icon name="bell-outline" size={26} color={theme.colors.text} />
         {notificationCount > 0 && (
           <Badge style={styles.badge}>{notificationCount}</Badge>
         )}
@@ -339,7 +345,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <IconButton
               icon="bell"
-              iconColor={Theme.colors.white}
+              iconColor={theme.colors.white}
               size={24}
               onPress={handleNotifications}
             />
@@ -371,6 +377,92 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {renderHeader()}
+
+      {/* Phone Verification Banner - Shows if not verified */}
+      {user && !user.isPhoneVerified && (
+        <TouchableOpacity
+          style={styles.verificationBanner}
+          onPress={() => {
+            navigation.navigate('ProfileDetails', { userId: user.id });
+            // Note: For PhoneVerification, we need to access it via ProfileStack
+            const parent = navigation.getParent();
+            const drawer = parent?.getParent();
+            if (drawer) {
+              drawer.navigate('ProfileStack', {
+                screen: 'PhoneVerification',
+              });
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <Icon name="cellphone-off" size={22} color={theme.colors.white} />
+          <View style={styles.bannerTextContainer}>
+            <Text style={styles.bannerTitle}>Verify Your Phone Number</Text>
+            <Text style={styles.bannerSubtitle}>Increase trust and get more matches</Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={theme.colors.white} />
+        </TouchableOpacity>
+      )}
+
+      {/* Profile Completion Stats Card */}
+      {profile && (
+        <TouchableOpacity
+          style={styles.profileStatsCard}
+          onPress={() => {
+            const parent = navigation.getParent();
+            const drawer = parent?.getParent();
+            if (drawer) {
+              drawer.navigate('ProfileStack', {
+                screen: 'EditProfile',
+              });
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={styles.statsLeft}>
+            <View style={styles.progressCircleContainer}>
+              <View style={[
+                styles.progressCircle,
+                {
+                  borderColor: (profile.profileCompleteness || 0) >= 80
+                    ? theme.colors.success
+                    : (profile.profileCompleteness || 0) >= 50
+                      ? theme.colors.secondary
+                      : theme.colors.primary,
+                },
+              ]}>
+                <Text style={styles.progressText}>{profile.profileCompleteness || 0}%</Text>
+              </View>
+            </View>
+            <View style={styles.statsTextContainer}>
+              <Text style={styles.statsTitle}>Profile Completion</Text>
+              <Text style={styles.statsSubtitle}>
+                {(profile.profileCompleteness || 0) >= 80
+                  ? '✓ Profile is complete!'
+                  : (profile.profileCompleteness || 0) >= 50
+                    ? 'Good progress! Add more details'
+                    : 'Complete your profile for better matches'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.statsRight}>
+            <View style={styles.statBadge}>
+              <Icon
+                name={user?.isPhoneVerified ? 'check-circle' : 'alert-circle'}
+                size={14}
+                color={user?.isPhoneVerified ? theme.colors.success : theme.colors.warning}
+              />
+              <Text style={[
+                styles.statBadgeText,
+                { color: user?.isPhoneVerified ? theme.colors.success : theme.colors.warning },
+              ]}>
+                {user?.isPhoneVerified ? 'Verified' : 'Unverified'}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={theme.colors.textSecondary} />
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Filters */}
       <MatchFilters
@@ -407,7 +499,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadProfiles(true)}
-            colors={[Theme.colors.primary]}
+            colors={[theme.colors.primary]}
           />
         }
         ListEmptyComponent={renderEmptyState}
@@ -424,10 +516,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -435,10 +527,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 50, // Account for status bar
-    backgroundColor: Theme.colors.white,
+    paddingTop: 16, // Reduced from 50 - SafeAreaView or status bar handles top spacing
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.colors.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -449,7 +541,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFE5D9',
+    backgroundColor: theme.colors.surfaceCardAlt,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  hamburgerIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.white,
   },
   headerText: {
     flex: 1,
@@ -457,15 +565,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     flex: 1,
     textAlign: 'center',
   },
   headerSubtitle: {
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
   },
   preferencesLink: {
-    color: '#FF6B35',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   headerRight: {
@@ -480,12 +588,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   listContent: {
     paddingVertical: 4,
     flexGrow: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -494,10 +602,10 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
   },
   greeting: {
-    color: Theme.colors.white,
+    color: theme.colors.white,
     fontWeight: 'bold',
   },
   subtitle: {
@@ -505,10 +613,99 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
+  },
+  // Phone Verification Banner Styles
+  verificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    color: theme.colors.white,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  bannerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+  },
+  // Profile Stats Card Styles
+  profileStatsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.white,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 12,
+    ...theme.shadows.sm,
+  },
+  statsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  progressCircleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surfaceCard,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  statsTextContainer: {
+    flex: 1,
+  },
+  statsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  statsSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  statsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surfaceCard,
+  },
+  statBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
 

@@ -90,8 +90,14 @@ api.interceptors.response.use(
         // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         // Refresh failed - clear tokens and redirect to login
+        if (__DEV__) {
+          console.error('🔐 Token refresh FAILED - clearing session:', {
+            error: refreshError.message,
+            status: refreshError.response?.status,
+          });
+        }
         await Keychain.resetGenericPassword({ service: 'accessToken' });
         await Keychain.resetGenericPassword({ service: 'refreshToken' });
         await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);

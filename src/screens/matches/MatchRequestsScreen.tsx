@@ -33,6 +33,8 @@ import { MatchRequest, MatchStatus } from '../../types';
 import matchService from '../../services/match.service';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
+import LinearGradient from 'react-native-linear-gradient';
+import PremiumBadge from '../../components/common/PremiumBadge';
 
 import { ProfileStackParamList } from '../../navigation/types';
 
@@ -153,7 +155,8 @@ const MatchRequestsScreen: React.FC<Props> = ({ navigation }) => {
         }
     };
 
-    const renderRequest = ({ item }: { item: MatchRequest }) => {
+    // Memoized render function for performance
+    const renderRequest = useCallback(({ item }: { item: MatchRequest }) => {
         const profile = tab === 'received' ? item.sender?.profile : item.receiver?.profile;
         if (!profile) return null;
 
@@ -185,6 +188,7 @@ const MatchRequestsScreen: React.FC<Props> = ({ navigation }) => {
                                 <Text variant="titleLarge" style={styles.name}>
                                     {fullName}
                                 </Text>
+                                {profile.isPremium && <PremiumBadge variant="inline" size={16} />}
                                 {profile.isVerified && (
                                     <Icon name="check-decagram" size={20} color={Theme.colors.success} />
                                 )}
@@ -239,17 +243,27 @@ const MatchRequestsScreen: React.FC<Props> = ({ navigation }) => {
                     {/* Action Buttons (only for received pending requests) */}
                     {tab === 'received' && isPending && (
                         <View style={styles.actionButtons}>
-                            <Button
-                                mode="contained"
+                            <TouchableOpacity
+                                style={styles.acceptButtonContainer}
                                 onPress={() => handleOpenResponseDialog(item, 'accept')}
-                                loading={isResponding}
                                 disabled={isResponding}
-                                style={styles.acceptButton}
-                                buttonColor={Theme.colors.success}
-                                textColor={Theme.colors.white}
-                                icon="heart-multiple">
-                                Accept
-                            </Button>
+                            >
+                                <LinearGradient
+                                    colors={[Theme.colors.success, '#4CAF50']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.acceptButtonGradient}
+                                >
+                                    {isResponding ? (
+                                        <ActivityIndicator size="small" color={Theme.colors.white} />
+                                    ) : (
+                                        <>
+                                            <Icon name="heart-multiple" size={20} color={Theme.colors.white} />
+                                            <Text style={styles.acceptButtonText}>Accept</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
                             <Button
                                 mode="outlined"
                                 onPress={() => handleOpenResponseDialog(item, 'reject')}
@@ -277,13 +291,39 @@ const MatchRequestsScreen: React.FC<Props> = ({ navigation }) => {
                 </Surface>
             </TouchableOpacity>
         );
-    };
+    }, [tab, responding, navigation]);
 
+    // Skeleton loading component for professional appearance
+    const SkeletonCard = () => (
+        <Surface style={styles.requestCard} elevation={1}>
+            <View style={styles.cardHeader}>
+                <View style={[styles.profilePicPlaceholder, styles.skeleton]} />
+                <View style={styles.infoContainer}>
+                    <View style={[styles.skeletonText, { width: '60%', height: 20 }]} />
+                    <View style={[styles.skeletonText, { width: '40%', height: 14, marginTop: 8 }]} />
+                    <View style={[styles.skeletonText, { width: '50%', height: 14, marginTop: 4 }]} />
+                    <View style={[styles.skeletonText, { width: '30%', height: 24, marginTop: 8, borderRadius: 12 }]} />
+                </View>
+            </View>
+        </Surface>
+    );
+
+    // Professional skeleton loading screen
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Theme.colors.primary} />
-                <Text style={styles.loadingText}>Loading match requests...</Text>
+            <View style={styles.container}>
+                <Surface style={styles.tabContainer} elevation={2}>
+                    <View style={styles.skeletonTabs}>
+                        <View style={[styles.skeletonTab, styles.skeleton]} />
+                        <View style={[styles.skeletonTab, styles.skeleton]} />
+                        <View style={[styles.skeletonTab, styles.skeleton]} />
+                    </View>
+                </Surface>
+                <View style={styles.listContent}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </View>
             </View>
         );
     }
@@ -420,6 +460,7 @@ const styles = StyleSheet.create({
         backgroundColor: Theme.colors.white,
         ...Theme.shadows.md,
         overflow: 'hidden',
+        elevation: 2,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -492,6 +533,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 16,
     },
+    acceptButtonContainer: {
+        flex: 1,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    acceptButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        gap: 8,
+        borderRadius: 8,
+    },
+    acceptButtonText: {
+        color: Theme.colors.white,
+        fontSize: 15,
+        fontWeight: '600',
+    },
     acceptButton: {
         flex: 1,
         borderRadius: 8,
@@ -521,6 +580,23 @@ const styles = StyleSheet.create({
     },
     responseInput: {
         backgroundColor: Theme.colors.white,
+    },
+    // Skeleton loading styles
+    skeleton: {
+        backgroundColor: Theme.colors.surfaceCard,
+    },
+    skeletonText: {
+        backgroundColor: Theme.colors.surfaceCard,
+        borderRadius: 4,
+    },
+    skeletonTabs: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    skeletonTab: {
+        flex: 1,
+        height: 40,
+        borderRadius: 8,
     },
 });
 

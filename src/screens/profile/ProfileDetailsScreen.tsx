@@ -21,7 +21,7 @@ import { Text, ActivityIndicator } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { ProfileStackParamList, HomeStackParamList, ActivityStackParamList } from '../../navigation/types';
 import { Profile, ReportType } from '../../types';
 import profileService from '../../services/profile.service';
@@ -55,6 +55,8 @@ const { width, height } = Dimensions.get('window');
 
 const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { userId } = route.params;
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const { showToast } = useToast();
   const { profile: myProfile } = useProfileStore();
   const { user: currentUser } = useAuthStore();
@@ -75,6 +77,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
 
   const isPremium = myProfile?.isPremium || currentUser?.subscription?.status === 'ACTIVE';
+  const isOwnProfile = currentUser?.id === userId;
 
   useEffect(() => {
     if (userId) {
@@ -98,8 +101,18 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       }
 
       // Fetch fresh data
-      const data = await profileService.getProfileByUserId(userId);
+      const data: any = await profileService.getProfileByUserId(userId);
       setProfile(data);
+
+      // Check match status from backend response
+      // data.matchStatus can be 'PENDING', 'ACCEPTED', 'REJECTED'
+      if (data.matchStatus === 'PENDING' || data.matchStatus === 'ACCEPTED') {
+        setInterestSent(true);
+      } else if (data.matchStatus === 'REJECTED') {
+        // Optional: handle rejected state differently? 
+        // For now, let's keep it as sent/disabled to prevent spamming
+        setInterestSent(true);
+      }
 
       // Cache the profile
       await profileCacheService.cacheProfile(data);
@@ -168,7 +181,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleShortlist = async () => {
-    if (!isPremium) { showPremiumPopup('shortlist profiles'); return; }
+    // Backend enforces free user limits (10 max)
     const previousState = isShortlisted;
     setIsShortlisted(!isShortlisted);
     showToast(isShortlisted ? 'Removed from shortlist' : 'Added to shortlist');
@@ -177,13 +190,17 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       else await shortlistService.addToShortlist(userId);
     } catch (error: any) {
       setIsShortlisted(previousState);
-      if (error.response?.status === 403) showPremiumPopup('shortlist profiles');
-      else showToast('Failed to update shortlist');
+      if (error.response?.status === 403) {
+        // Show premium popup only if backend returns 403 (limit exceeded)
+        showPremiumPopup(error.response?.data?.message || 'shortlist more profiles');
+      } else {
+        showToast('Failed to update shortlist');
+      }
     }
   };
 
   const handleInterest = async () => {
-    if (!isPremium) { showPremiumPopup('send interest requests'); return; }
+    // Backend enforces free user limits (3/month)
     if (isLoadingInterest || interestSent) return;
     setInterestSent(true);
     showToast('Interest sent!');
@@ -192,9 +209,14 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       await matchService.sendMatchRequest(userId, 'Interested in your profile');
     } catch (error: any) {
       setInterestSent(false);
-      if (error.response?.status === 403) showPremiumPopup('send interest requests');
-      else if (error.response?.status === 409) setInterestSent(true);
-      else showToast('Failed to send interest');
+      if (error.response?.status === 403) {
+        // Show premium popup with backend message (limit info)
+        showPremiumPopup(error.response?.data?.message || 'send more interest requests');
+      } else if (error.response?.status === 409) {
+        setInterestSent(true);
+      } else {
+        showToast('Failed to send interest');
+      }
     } finally {
       setIsLoadingInterest(false);
     }
@@ -320,7 +342,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     <Modal visible={showPremiumModal} transparent animationType="fade">
       <View style={styles.modalOverlay}>
         <View style={styles.premiumContent}>
-          <LinearGradient colors={[Theme.colors.primary, '#FF1744']} style={styles.premiumIcon}>
+          <LinearGradient colors={[theme.colors.primary, '#FF1744']} style={styles.premiumIcon}>
             <Icon name="crown" size={36} color="#fff" />
           </LinearGradient>
           <Text style={styles.premiumTitle}>Premium Required</Text>
@@ -340,7 +362,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           </View>
           <TouchableOpacity style={styles.premiumButton} onPress={() => { setShowPremiumModal(false); navigation.navigate('Subscription' as any); }}>
-            <LinearGradient colors={[Theme.colors.primary, '#FF1744']} style={styles.premiumGradient}>
+            <LinearGradient colors={[theme.colors.primary, '#FF1744']} style={styles.premiumGradient}>
               <Text style={styles.premiumButtonText}>View Plans</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -353,7 +375,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 
   if (isLoading) {
-    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color={Theme.colors.primary} /></View>;
+    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
   }
 
   if (!profile) return null;
@@ -397,7 +419,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Quick Share Button */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Icon name="share-variant" size={20} color={Theme.colors.primary} />
+            <Icon name="share-variant" size={20} color={theme.colors.primary} />
             <Text style={styles.shareButtonText}>Share Profile</Text>
           </TouchableOpacity>
         </View>
@@ -427,12 +449,12 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Information</Text>
           <View style={styles.infoGrid}>
-            <InfoItem icon="human-male-height" label="Height" value={profile.height ? formatHeight(profile.height) : '-'} />
-            <InfoItem icon="ring" label="Marital Status" value={profile.maritalStatus || '-'} />
-            <InfoItem icon="translate" label="Mother Tongue" value={profile.motherTongue || '-'} />
-            <InfoItem icon="hands-pray" label="Religion" value={profile.religion || '-'} />
-            <InfoItem icon="account-group" label="Caste" value={profile.caste || '-'} />
-            <InfoItem icon="star-david" label="Sub-caste" value={profile.subCaste || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="human-male-height" label="Height" value={profile.height ? formatHeight(profile.height) : '-'} />
+            <InfoItem styles={styles} theme={theme} icon="ring" label="Marital Status" value={profile.maritalStatus || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="translate" label="Mother Tongue" value={profile.motherTongue || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="hands-pray" label="Religion" value={profile.religion || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="account-group" label="Caste" value={profile.caste || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="star-david" label="Sub-caste" value={profile.subCaste || '-'} />
           </View>
         </View>
 
@@ -440,9 +462,9 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Education & Career</Text>
           <View style={styles.infoGrid}>
-            <InfoItem icon="school" label="Education" value={profile.education || '-'} />
-            <InfoItem icon="briefcase" label="Occupation" value={profile.occupation || '-'} />
-            <InfoItem icon="currency-inr" label="Annual Income" value={profile.annualIncome || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="school" label="Education" value={profile.education || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="briefcase" label="Occupation" value={profile.occupation || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="currency-inr" label="Annual Income" value={profile.annualIncome || '-'} />
           </View>
         </View>
 
@@ -450,10 +472,10 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Location Details</Text>
           <View style={styles.infoGrid}>
-            <InfoItem icon="city" label="City" value={profile.city || '-'} />
-            <InfoItem icon="map" label="State" value={profile.state || '-'} />
-            <InfoItem icon="home-map-marker" label="Native District" value={profile.nativeDistrict || '-'} />
-            <InfoItem icon="village" label="Native Village" value={profile.nativeVillage || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="city" label="City" value={profile.city || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="map" label="State" value={profile.state || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="home-map-marker" label="Native District" value={profile.nativeDistrict || '-'} />
+            <InfoItem styles={styles} theme={theme} icon="village" label="Native Village" value={profile.nativeVillage || '-'} />
           </View>
         </View>
 
@@ -477,43 +499,45 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleInterest} disabled={isLoadingInterest}>
-          <View style={[styles.actionCircle, interestSent ? styles.sentCircle : styles.primaryCircle]}>
-            {isLoadingInterest ? <ActivityIndicator size="small" color="#fff" /> : <Icon name={interestSent ? "check" : "heart-plus"} size={24} color="#fff" />}
-          </View>
-          <Text style={styles.actionLabel}>{interestSent ? 'Sent' : 'Interest'}</Text>
-        </TouchableOpacity>
+      {/* Bottom Actions - Hide for own profile */}
+      {!isOwnProfile && (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleInterest} disabled={isLoadingInterest}>
+            <View style={[styles.actionCircle, interestSent ? styles.sentCircle : styles.primaryCircle]}>
+              {isLoadingInterest ? <ActivityIndicator size="small" color="#fff" /> : <Icon name={interestSent ? "check" : "heart-plus"} size={24} color="#fff" />}
+            </View>
+            <Text style={styles.actionLabel}>{interestSent ? 'Sent' : 'Interest'}</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleShortlist}>
-          <View style={[styles.actionCircle, styles.outlinedCircle]}>
-            <Icon name={isShortlisted ? "star" : "star-outline"} size={24} color={isShortlisted ? "#FFD700" : "#666"} />
-          </View>
-          <Text style={styles.actionLabel}>Shortlist</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleShortlist}>
+            <View style={[styles.actionCircle, styles.outlinedCircle]}>
+              <Icon name={isShortlisted ? "star" : "star-outline"} size={24} color={isShortlisted ? "#FFD700" : "#666"} />
+            </View>
+            <Text style={styles.actionLabel}>Shortlist</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleChat}>
-          <View style={[styles.actionCircle, styles.outlinedCircle]}>
-            <Icon name="message-text" size={24} color={canChat ? Theme.colors.primary : "#666"} />
-          </View>
-          <Text style={styles.actionLabel}>Chat</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleChat}>
+            <View style={[styles.actionCircle, styles.outlinedCircle]}>
+              <Icon name="message-text" size={24} color={canChat ? theme.colors.primary : "#666"} />
+            </View>
+            <Text style={styles.actionLabel}>Chat</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handlePhotoRequest}>
-          <View style={[styles.actionCircle, styles.outlinedCircle]}>
-            <Icon name="image-lock" size={24} color="#666" />
-          </View>
-          <Text style={styles.actionLabel}>Photos</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.actionButton} onPress={handlePhotoRequest}>
+            <View style={[styles.actionCircle, styles.outlinedCircle]}>
+              <Icon name="image-lock" size={24} color="#666" />
+            </View>
+            <Text style={styles.actionLabel}>Photos</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
-const InfoItem: React.FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => (
+const InfoItem: React.FC<{ icon: string; label: string; value: string; styles: any; theme: any }> = ({ icon, label, value, styles, theme }) => (
   <View style={styles.infoItem}>
-    <Icon name={icon} size={18} color={Theme.colors.primary} />
+    <Icon name={icon} size={18} color={theme.colors.primary} />
     <View>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
@@ -521,7 +545,7 @@ const InfoItem: React.FC<{ icon: string; label: string; value: string }> = ({ ic
   </View>
 );
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
@@ -535,11 +559,11 @@ const styles = StyleSheet.create({
   locationText: { fontSize: 14, color: '#666' },
   quickActions: { paddingHorizontal: 20, marginBottom: 8 },
   shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: '#FFF0F5', borderRadius: 12 },
-  shareButtonText: { fontSize: 14, fontWeight: '600', color: Theme.colors.primary },
+  shareButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
   section: { padding: 20, borderTopWidth: 8, borderTopColor: '#F5F5F5' },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 16 },
   bioText: { fontSize: 15, color: '#555', lineHeight: 22 },
-  readMore: { fontSize: 14, color: Theme.colors.primary, fontWeight: '600', marginTop: 8 },
+  readMore: { fontSize: 14, color: theme.colors.primary, fontWeight: '600', marginTop: 8 },
   infoGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   infoItem: { width: '50%', flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 12 },
   infoLabel: { fontSize: 12, color: '#888', marginBottom: 2 },
@@ -547,7 +571,7 @@ const styles = StyleSheet.create({
   bottomBar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F0F0F0', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   actionButton: { alignItems: 'center', flex: 1 },
   actionCircle: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  primaryCircle: { backgroundColor: Theme.colors.primary },
+  primaryCircle: { backgroundColor: theme.colors.primary },
   sentCircle: { backgroundColor: '#4CAF50' },
   outlinedCircle: { backgroundColor: '#F5F5F5', borderWidth: 1.5, borderColor: '#E0E0E0' },
   actionLabel: { color: '#666', fontSize: 11, fontWeight: '500' },
@@ -565,7 +589,7 @@ const styles = StyleSheet.create({
   reportActions: { flexDirection: 'row', marginTop: 16, gap: 12 },
   reportCancel: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: '#F5F5F5' },
   reportCancelText: { fontSize: 14, fontWeight: '600', color: '#666' },
-  reportSubmit: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Theme.colors.primary },
+  reportSubmit: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: theme.colors.primary },
   reportSubmitText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   premiumContent: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 320, alignItems: 'center' },
   premiumIcon: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },

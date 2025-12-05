@@ -19,6 +19,9 @@ import { ProfileStackParamList } from '../../navigation/types';
 import { Theme } from '../../constants/theme';
 import partnerPreferenceService from '../../services/partnerPreference.service';
 import { PartnerPreference, Religion, MaritalStatus } from '../../types';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { TouchableOpacity } from 'react-native';
 
 type PartnerPreferencesScreenNavigationProp = NativeStackNavigationProp<
     ProfileStackParamList,
@@ -104,10 +107,18 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Surface style={styles.section} elevation={1}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Age Range
-                </Text>
+            <Surface style={styles.section} elevation={2}>
+                <View style={styles.sectionHeader}>
+                    <LinearGradient
+                        colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+                        style={styles.sectionIcon}
+                    >
+                        <Icon name="calendar-range" size={18} color={Theme.colors.white} />
+                    </LinearGradient>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Age Range
+                    </Text>
+                </View>
                 <View style={styles.row}>
                     <TextInput
                         label="From"
@@ -128,10 +139,18 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Surface>
 
-            <Surface style={styles.section} elevation={1}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Height Range (cm)
-                </Text>
+            <Surface style={styles.section} elevation={2}>
+                <View style={styles.sectionHeader}>
+                    <LinearGradient
+                        colors={[Theme.colors.secondary, Theme.colors.secondaryAlt]}
+                        style={styles.sectionIcon}
+                    >
+                        <Icon name="human-male-height" size={18} color={Theme.colors.white} />
+                    </LinearGradient>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Height Range (cm)
+                    </Text>
+                </View>
                 <View style={styles.row}>
                     <TextInput
                         label="From"
@@ -156,10 +175,18 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Surface>
 
-            <Surface style={styles.section} elevation={1}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Religion
-                </Text>
+            <Surface style={styles.section} elevation={2}>
+                <View style={styles.sectionHeader}>
+                    <LinearGradient
+                        colors={[Theme.colors.success, '#4CAF50']}
+                        style={styles.sectionIcon}
+                    >
+                        <Icon name="hands-pray" size={18} color={Theme.colors.white} />
+                    </LinearGradient>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Religion
+                    </Text>
+                </View>
                 <View style={styles.chipContainer}>
                     {['HINDU', 'MUSLIM', 'CHRISTIAN', 'SIKH', 'BUDDHIST', 'JAIN'].map(
                         religion => (
@@ -181,10 +208,18 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Surface>
 
-            <Surface style={styles.section} elevation={1}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Marital Status
-                </Text>
+            <Surface style={styles.section} elevation={2}>
+                <View style={styles.sectionHeader}>
+                    <LinearGradient
+                        colors={[Theme.colors.primary, '#D81B60']}
+                        style={styles.sectionIcon}
+                    >
+                        <Icon name="heart-outline" size={18} color={Theme.colors.white} />
+                    </LinearGradient>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Marital Status
+                    </Text>
+                </View>
                 <View style={styles.chipContainer}>
                     {['NEVER_MARRIED', 'DIVORCED', 'WIDOWED', 'SEPARATED'].map(status => (
                         <Chip
@@ -206,14 +241,19 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Surface>
 
-            <Surface style={styles.section} elevation={1}>
+            <Surface style={styles.section} elevation={2}>
                 <View style={styles.switchRow}>
-                    <Text variant="bodyLarge">Must Speak Chhattisgarhi</Text>
+                    <View style={styles.switchLabelContainer}>
+                        <Icon name="translate" size={20} color={Theme.colors.secondary} />
+                        <Text variant="bodyLarge" style={styles.switchLabel}>Must Speak Chhattisgarhi</Text>
+                    </View>
                     <Switch
                         value={preferences.mustSpeakChhattisgarhi || false}
                         onValueChange={value =>
                             updateField('mustSpeakChhattisgarhi', value)
                         }
+                        color={Theme.colors.primary}
+                        trackColor={{ false: Theme.colors.border, true: Theme.colors.primaryLight }}
                     />
                 </View>
             </Surface>
@@ -244,16 +284,28 @@ const PartnerPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 />
             </Surface>
 
-            <Button
-                mode="contained"
+            <TouchableOpacity
+                style={styles.saveButtonContainer}
                 onPress={handleSave}
-                loading={isSaving}
                 disabled={isSaving}
-                style={styles.saveButton}
-                buttonColor={Theme.colors.secondary}
-                textColor={Theme.colors.primaryDark}>
-                Save Preferences
-            </Button>
+                activeOpacity={0.8}
+            >
+                <LinearGradient
+                    colors={[Theme.colors.secondary, Theme.colors.secondaryAlt]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.saveButton}
+                >
+                    {isSaving ? (
+                        <ActivityIndicator size="small" color={Theme.colors.primaryDark} />
+                    ) : (
+                        <>
+                            <Icon name="content-save" size={20} color={Theme.colors.primaryDark} />
+                            <Text style={styles.saveButtonText}>Save Preferences</Text>
+                        </>
+                    )}
+                </LinearGradient>
+            </TouchableOpacity>
         </ScrollView>
     );
 };
@@ -286,8 +338,20 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontWeight: 'bold',
-        marginBottom: 12,
         color: Theme.colors.text,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    sectionIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     row: {
         flexDirection: 'row',
@@ -309,9 +373,31 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    saveButton: {
+    switchLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    switchLabel: {
+        color: Theme.colors.text,
+    },
+    saveButtonContainer: {
         marginTop: 8,
-        borderRadius: 8,
+        borderRadius: 12,
+        overflow: 'hidden',
+        ...Theme.shadows.md,
+    },
+    saveButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        gap: 8,
+    },
+    saveButtonText: {
+        color: Theme.colors.primaryDark,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

@@ -10,7 +10,6 @@ import {
 import {
   Text,
   Surface,
-  useTheme,
   ActivityIndicator,
   List,
   IconButton,
@@ -19,10 +18,13 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { ProfileStackParamList } from '../../navigation/types';
-import { Theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useProfileStore } from '../../store/profileStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useToast } from '../../providers/ToastProvider';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { TouchableOpacity } from 'react-native';
 
 // Import step components
 import BasicInfoStep from '../../components/profile/BasicInfoStep';
@@ -44,23 +46,26 @@ type Props = {
   route: EditProfileScreenRouteProp;
 };
 
-const SECTIONS = [
-  { id: 'basic', title: 'Basic Information', icon: 'account', component: BasicInfoStep },
-  { id: 'location', title: 'Location Details', icon: 'map-marker', component: LocationStep },
-  { id: 'religion', title: 'Religion & Community', icon: 'book-cross', component: ReligionStep },
-  { id: 'education', title: 'Education & Career', icon: 'school', component: EducationStep },
-  { id: 'about', title: 'About Me', icon: 'text-box', component: AboutStep },
-  { id: 'photos', title: 'Photos', icon: 'image-multiple', component: PhotosStep },
-];
+
 
 const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const theme = useTheme();
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const toast = useToast();
   const { profile, fetchProfile, updateProfile } = useProfileStore();
   const { updateOnboardingData } = useOnboardingStore();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const SECTIONS = [
+    { id: 'basic', title: 'Basic Information', icon: 'account', color: theme.colors.primary },
+    { id: 'location', title: 'Location Details', icon: 'map-marker', color: theme.colors.success },
+    { id: 'religion', title: 'Religion & Community', icon: 'book-cross', color: theme.colors.secondary },
+    { id: 'education', title: 'Education & Career', icon: 'school', color: '#2196F3' },
+    { id: 'about', title: 'About Me', icon: 'text-box', color: theme.colors.primary },
+    { id: 'photos', title: 'Photos', icon: 'image-multiple', color: '#9C27B0' },
+  ];
 
   useEffect(() => {
     loadProfileData();
@@ -196,20 +201,36 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     const section = SECTIONS.find(s => s.id === selectedSection);
     if (!section) return null;
 
-    const StepComponent = section.component;
+    // Get component based on section id
+    const componentMap: { [key: string]: any } = {
+      basic: BasicInfoStep,
+      location: LocationStep,
+      religion: ReligionStep,
+      education: EducationStep,
+      about: AboutStep,
+      photos: PhotosStep,
+    };
+    const StepComponent = componentMap[section.id];
 
     return (
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Surface style={styles.header} elevation={2}>
+        <LinearGradient
+          colors={[theme.colors.primary, theme.colors.primaryLight]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.headerGradient}
+        >
           <View style={styles.headerRow}>
-            <IconButton icon="arrow-left" onPress={() => setSelectedSection(null)} />
-            <Text variant="titleLarge" style={styles.headerTitle}>
+            <TouchableOpacity onPress={() => setSelectedSection(null)} style={styles.backButton}>
+              <Icon name="arrow-left" size={24} color={theme.colors.white} />
+            </TouchableOpacity>
+            <Text variant="titleLarge" style={styles.headerTitleWhite}>
               {section.title}
             </Text>
           </View>
-        </Surface>
+        </LinearGradient>
 
         <ScrollView
           style={styles.content}
@@ -231,27 +252,41 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Render Section List
   return (
     <View style={styles.container}>
-      <Surface style={styles.header} elevation={2}>
+      <LinearGradient
+        colors={[theme.colors.primary, theme.colors.primaryLight]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.headerGradient}
+      >
         <View style={styles.headerRow}>
-          <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
-          <Text variant="titleLarge" style={styles.headerTitle}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Icon name="arrow-left" size={24} color={theme.colors.white} />
+          </TouchableOpacity>
+          <Text variant="titleLarge" style={styles.headerTitleWhite}>
             Edit Profile
           </Text>
         </View>
-      </Surface>
+      </LinearGradient>
 
       <ScrollView style={styles.content}>
-        <Surface style={styles.listSurface} elevation={1}>
+        <Surface style={styles.listSurface} elevation={2}>
           {SECTIONS.map((section, index) => (
             <React.Fragment key={section.id}>
-              <List.Item
-                title={section.title}
-                left={props => <List.Icon {...props} icon={section.icon} color={Theme.colors.primary} />}
-                right={props => <List.Icon {...props} icon="chevron-right" />}
+              <TouchableOpacity
+                style={styles.sectionItem}
                 onPress={() => setSelectedSection(section.id)}
-                style={styles.listItem}
-              />
-              {index < SECTIONS.length - 1 && <Divider />}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[section.color, section.color + '80']}
+                  style={styles.sectionIconGradient}
+                >
+                  <Icon name={section.icon} size={20} color={theme.colors.white} />
+                </LinearGradient>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Icon name="chevron-right" size={24} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+              {index < SECTIONS.length - 1 && <Divider style={styles.divider} />}
             </React.Fragment>
           ))}
         </Surface>
@@ -260,25 +295,25 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   loadingText: {
     marginTop: 16,
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
   },
   header: {
     paddingVertical: 8,
     paddingHorizontal: 4,
-    backgroundColor: Theme.colors.surfaceCard,
+    backgroundColor: theme.colors.surfaceCard,
   },
   headerRow: {
     flexDirection: 'row',
@@ -286,7 +321,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: 'bold',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     marginLeft: 8,
   },
   content: {
@@ -298,11 +333,48 @@ const styles = StyleSheet.create({
   listSurface: {
     margin: 16,
     borderRadius: 12,
-    backgroundColor: Theme.colors.surfaceCard,
+    backgroundColor: theme.colors.surfaceCard,
     overflow: 'hidden',
   },
   listItem: {
     paddingVertical: 12,
+  },
+  headerGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  headerTitleWhite: {
+    fontWeight: 'bold',
+    color: theme.colors.white,
+  },
+  sectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  sectionIconGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.text,
+  },
+  divider: {
+    marginLeft: 72,
   },
 });
 

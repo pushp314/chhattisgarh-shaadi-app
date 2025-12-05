@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../../navigation/types';
 import { Theme } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 
 type SearchScreenNavigationProp = NativeStackNavigationProp<
   HomeStackParamList,
@@ -70,12 +71,18 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
             onSubmitEditing={handleSearch}
           />
           <View style={styles.filterButtonContainer}>
-            <IconButton
-              icon="filter-variant"
-              size={24}
-              onPress={openFilters}
-              style={styles.filterButton}
-            />
+            <LinearGradient
+              colors={[Theme.colors.secondary, Theme.colors.secondaryAlt]}
+              style={styles.filterButtonGradient}
+            >
+              <IconButton
+                icon="filter-variant"
+                size={24}
+                iconColor={Theme.colors.white}
+                onPress={openFilters}
+                style={styles.filterButton}
+              />
+            </LinearGradient>
             {activeFilterCount > 0 && (
               <Badge style={styles.filterBadge}>{activeFilterCount}</Badge>
             )}
@@ -187,14 +194,19 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   subtitle,
   onPress,
 }) => (
-  <Surface style={styles.categoryCard} elevation={1}>
+  <Surface style={styles.categoryCard} elevation={2}>
     <Button
       mode="text"
       onPress={onPress}
       contentStyle={styles.categoryCardContent}
       style={styles.categoryCardButton}>
       <View style={styles.categoryCardInner}>
-        <Icon name={icon} size={32} color={Theme.colors.primary} />
+        <LinearGradient
+          colors={[Theme.colors.primary, Theme.colors.primaryLight]}
+          style={styles.categoryIconGradient}
+        >
+          <Icon name={icon} size={28} color={Theme.colors.white} />
+        </LinearGradient>
         <Text variant="titleSmall" style={styles.categoryTitle}>
           {title}
         </Text>
@@ -229,6 +241,10 @@ const styles = StyleSheet.create({
   },
   filterButtonContainer: {
     position: 'relative',
+  },
+  filterButtonGradient: {
+    borderRadius: 24,
+    overflow: 'hidden',
   },
   filterButton: {
     margin: 0,
@@ -282,6 +298,14 @@ const styles = StyleSheet.create({
   categorySubtitle: {
     color: Theme.colors.textSecondary,
     textAlign: 'center',
+  },
+  categoryIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   chipContainer: {
     flexDirection: 'row',

@@ -153,40 +153,17 @@ const authService = {
   },
 
   /**
-   * Sends OTP to phone number
+   * Verifies phone with Firebase token
+   * Called after successful Firebase client-side OTP verification
    */
-  sendPhoneOTP: async (phone: string, countryCode: string = '+91') => {
+  verifyFirebasePhone: async (firebaseIdToken: string) => {
     try {
-      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.SEND_OTP, {
-        phone,
-        countryCode,
+      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_FIREBASE_PHONE, {
+        firebaseIdToken,
       });
       return data;
     } catch (error: any) {
-      console.error('Send OTP failed:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  /**
-   * Verifies phone OTP
-   */
-  verifyPhoneOTP: async (phone: string, otp: string, countryCode: string = '+91', referralCode?: string) => {
-    try {
-      const payload: any = {
-        phone,
-        otp,
-        countryCode,
-      };
-
-      if (referralCode) {
-        payload.referralCode = referralCode;
-      }
-
-      const { data } = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, payload);
-      return data;
-    } catch (error: any) {
-      console.error('Verify OTP failed:', error.response?.data || error.message);
+      console.error('Firebase phone verification failed:', error.response?.data || error.message);
       throw error;
     }
   },

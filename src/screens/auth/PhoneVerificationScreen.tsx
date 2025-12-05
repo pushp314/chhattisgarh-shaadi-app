@@ -1,9 +1,9 @@
 /**
  * Phone Verification Screen
- * One-time phone verification after Google sign-in
+ * Uses Firebase Phone Auth for OTP, then verifies with backend
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { AuthStackParamList, ProfileStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
+import authService from '../../services/auth.service';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Theme } from '../../constants/theme';
 
@@ -32,15 +34,18 @@ interface Props {
 
 const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
   const rootNavigation = useNavigation<any>();
-  const { sendPhoneOTP, verifyPhoneOTP, isLoading } = useAuthStore();
+  const { isLoading: authLoading } = useAuthStore();
+
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [referralCode, setReferralCode] = useState('');
-  const [showReferralInput, setShowReferralInput] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+
+  // Firebase confirmation result
+  const confirmationRef = useRef<FirebaseAuthTypes.ConfirmationResult | null>(null);
 
   React.useEffect(() => {
     let interval: any;
@@ -58,8 +63,6 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
   React.useEffect(() => {
     const { user } = useAuthStore.getState();
     if (user?.isPhoneVerified) {
-      // Auto-redirect without showing Alert
-      // Navigate based on profile status
       setTimeout(() => {
         if (user?.profile) {
           rootNavigation.dispatch(
@@ -80,6 +83,9 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
+  /**
+   * Send OTP via Firebase Phone Auth
+   */
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
       setError('Please enter a valid 10-digit phone number');
@@ -87,39 +93,78 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
+      setIsLoading(true);
       setError('');
-      await sendPhoneOTP(phone, '+91');
+
+      const formattedPhone = `+91${phone}`;
+
+      // Firebase sends OTP directly
+      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+      confirmationRef.current = confirmation;
+
       setOtpSent(true);
       setResendTimer(30);
       setCanResend(false);
       Alert.alert('OTP Sent', 'Please check your phone for the verification code');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to send OTP';
+      console.error('Firebase OTP Error:', err);
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      if (err.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please try again later.';
+      } else if (err.code === 'auth/quota-exceeded') {
+        errorMessage = 'SMS quota exceeded. Please try again later.';
+      }
       setError(errorMessage);
       Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  /**
+   * Verify OTP with Firebase, then send token to backend
+   */
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
       return;
     }
 
-    try {
-      setError('');
-      await verifyPhoneOTP(phone, otp, '+91', referralCode || undefined);
+    if (!confirmationRef.current) {
+      setError('Session expired. Please request a new OTP.');
+      setOtpSent(false);
+      return;
+    }
 
-      // Get updated user state from auth store
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // 1. Verify OTP with Firebase (client-side)
+      const credential = await confirmationRef.current.confirm(otp);
+
+      if (!credential?.user) {
+        throw new Error('Firebase verification failed');
+      }
+
+      // 2. Get Firebase ID Token
+      const firebaseIdToken = await credential.user.getIdToken();
+
+      // 3. Send Firebase token to our backend for verification
+      await authService.verifyFirebasePhone(firebaseIdToken);
+
+      // 4. Reload user data to get updated isPhoneVerified status
+      await useAuthStore.getState().loadUserData();
+
       const { user, isNewUser } = useAuthStore.getState();
 
       Alert.alert('Success', 'Phone number verified successfully!', [
         {
           text: 'OK',
           onPress: () => {
-            // Navigate based on user status
             if (isNewUser || !user?.profile) {
-              // New user or user without profile - go to profile creation
               rootNavigation.dispatch(
                 CommonActions.reset({
                   index: 0,
@@ -127,7 +172,6 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
                 })
               );
             } else {
-              // Existing user with profile - go to home
               rootNavigation.dispatch(
                 CommonActions.reset({
                   index: 0,
@@ -139,11 +183,25 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
         },
       ]);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Invalid OTP';
+      console.error('Verification Error:', err);
+      let errorMessage = 'Verification failed. Please try again.';
+      if (err.code === 'auth/invalid-verification-code') {
+        errorMessage = 'Invalid OTP. Please check and try again.';
+      } else if (err.code === 'auth/session-expired') {
+        errorMessage = 'OTP expired. Please request a new one.';
+        setOtpSent(false);
+      } else if (err.response?.data?.message) {
+        // Backend error
+        errorMessage = err.response.data.message;
+      }
       setError(errorMessage);
       Alert.alert('Verification Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const loading = isLoading || authLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -195,11 +253,11 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
               </View>
 
               <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
+                style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleSendOTP}
-                disabled={isLoading}
+                disabled={loading}
               >
-                {isLoading ? (
+                {loading ? (
                   <ActivityIndicator size="small" color={Theme.colors.textOnPrimary} />
                 ) : (
                   <Text style={styles.buttonText}>Send OTP</Text>
@@ -219,11 +277,11 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
               />
 
               <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
+                style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleVerifyOTP}
-                disabled={isLoading}
+                disabled={loading}
               >
-                {isLoading ? (
+                {loading ? (
                   <ActivityIndicator size="small" color={Theme.colors.textOnPrimary} />
                 ) : (
                   <Text style={styles.buttonText}>Verify OTP</Text>
@@ -233,7 +291,7 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.resendButton, !canResend && styles.buttonDisabled]}
                 onPress={handleSendOTP}
-                disabled={!canResend || isLoading}
+                disabled={!canResend || loading}
               >
                 <Text style={styles.resendText}>
                   {canResend ? 'Resend OTP' : `Resend OTP in ${resendTimer}s`}
@@ -418,4 +476,3 @@ const styles = StyleSheet.create({
 });
 
 export default PhoneVerificationScreen;
-
